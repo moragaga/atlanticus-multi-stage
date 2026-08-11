@@ -1,0 +1,7 @@
+Metadata-Version: 2.4
+Name: atlanticus-web-observability
+Version: 0.1.0
+Summary: Observabilidad específica para aplicaciones web Atlanticus
+Classifier: Private :: Do Not Upload
+Requires-Python: ==3.14.2
+Requires-Dist: Flask==3.1.3

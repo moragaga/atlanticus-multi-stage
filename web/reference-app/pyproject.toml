@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools==83.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "atlanticus-web-reference"
+version = "0.1.0"
+requires-python = "==3.14.2"
+classifiers = [
+    "Private :: Do Not Upload",
+]
+dependencies = [
+    "atlanticus-web==0.1.0",
+    "gunicorn==26.0.0",
+]
+
+[tool.uv.sources]
+atlanticus-web = { workspace = true }
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["atlanticus_web_reference*"]
+
+[tool.setuptools.package-data]
+"atlanticus_web_reference" = [
+    "resources/css/*.css",
+    "resources/css/css.list",
+    "resources/js/*.js",
+    "resources/js/js.list",
+]

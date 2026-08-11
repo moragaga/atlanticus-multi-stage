@@ -1,0 +1,21 @@
+/* Override de aplicación que prueba la cascada después de los tokens Atlanticus. */
+:root {
+  --atlanticus-web-background: #0d1b2a;
+  --atlanticus-web-foreground: #f5f1e6;
+}
+
+.reference-shell {
+  display: grid;
+  min-height: 100vh;
+  place-content: center;
+  text-align: center;
+}
+
+.reference-shell h1,
+.reference-shell p {
+  margin: 0;
+}
+
+.reference-shell p {
+  margin-top: 0.5rem;
+}
