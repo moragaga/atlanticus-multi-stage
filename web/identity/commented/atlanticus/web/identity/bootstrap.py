@@ -1,4 +1,7 @@
-# El bootstrap limpia el snapshot previo y ejecuta provider + resolver solo al refrescar la página.
+# Orquesta una única resolución Identity -> AccessResolver por carga de página.
+# El load_id se crea antes de resolver Users para que todas las capacidades
+# puedan asociar sus snapshots a la misma carga.
+
 from __future__ import annotations
 
 from flask import Request
@@ -7,6 +10,7 @@ from atlanticus.web.identity.access import (
     AccessResolver,
     AccessRuntime,
     AccessSnapshot,
+    new_access_load_id,
 )
 from atlanticus.web.identity.errors import IdentityAuthenticationError
 from atlanticus.web.identity.provider import IdentityProvider
@@ -33,7 +37,12 @@ class AccessBootstrap:
             self._runtime.store(snapshot)
             return snapshot
 
-        decision = self._resolver.resolve(identity)
-        snapshot = AccessSnapshot.resolved(identity=identity, decision=decision)
+        load_id = new_access_load_id()
+        decision = self._resolver.resolve(identity, load_id=load_id)
+        snapshot = AccessSnapshot.resolved(
+            load_id=load_id,
+            identity=identity,
+            decision=decision,
+        )
         self._runtime.store(snapshot)
         return snapshot

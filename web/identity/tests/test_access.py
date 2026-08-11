@@ -26,6 +26,7 @@ def test_access_snapshot_round_trips_through_flask_session() -> None:
     server.secret_key = 'test-only'
     runtime = AccessRuntime()
     snapshot = AccessSnapshot.resolved(
+        load_id='load-1',
         identity=_identity(),
         decision=AccessDecision(status=AccessStatus.READY, user_id='user-1'),
     )

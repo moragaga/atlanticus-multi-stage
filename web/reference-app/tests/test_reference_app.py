@@ -8,11 +8,13 @@ from atlanticus_web_reference.navigation import build_reference_navigation
 def test_reference_definition_uses_navigation_service_and_dynamic_pages() -> None:
     definition = build_definition()
     modules = {module.name: module for module in definition.modules}
+    users = modules['users']
     identity = modules['identity']
     navigation = modules['navigation']
     reference = modules['reference']
 
     assert definition.metadata.application_id == 'atlanticus-web-reference'
+    assert users.register_services is not None
     assert identity.register_services is not None
     assert identity.register_middlewares is not None
     assert identity.register_routes is not None

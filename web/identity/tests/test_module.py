@@ -11,6 +11,7 @@ from atlanticus.web.identity.access import (
     AccessStatus,
 )
 from atlanticus.web.identity.errors import (
+    AccessResolverUnavailableError,
     IdentityAuthenticationError,
     IdentityConfigurationError,
     IdentityProviderUnavailableError,
@@ -53,12 +54,28 @@ class CountingResolver(AccessResolver):
         self.calls = 0
         self.disabled = disabled
 
-    def resolve(self, identity: AuthenticatedIdentity) -> AccessDecision:
-        del identity
+    def resolve(
+        self,
+        identity: AuthenticatedIdentity,
+        *,
+        load_id: str,
+    ) -> AccessDecision:
+        del identity, load_id
         self.calls += 1
         if self.disabled:
             return AccessDecision(status=AccessStatus.USER_DISABLED, user_id='user-1')
         return AccessDecision(status=AccessStatus.READY, user_id=f'user-{self.calls}')
+
+
+class UnavailableResolver(AccessResolver):
+    def resolve(
+        self,
+        identity: AuthenticatedIdentity,
+        *,
+        load_id: str,
+    ) -> AccessDecision:
+        del identity, load_id
+        raise AccessResolverUnavailableError('Users unavailable')
 
 
 def _build_server(
@@ -218,3 +235,20 @@ def test_production_requires_flask_secret_key(monkeypatch) -> None:
     assert module.register_middlewares is not None
     with pytest.raises(IdentityConfigurationError, match='SECRET_KEY'):
         module.register_middlewares(server, services)
+
+
+def test_access_resolver_unavailable_returns_service_unavailable(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    server, _ = _build_server(
+        monkeypatch,
+        tmp_path,
+        CountingProvider(),
+        UnavailableResolver(),
+    )
+
+    response = server.test_client().get('/', headers={'Accept': 'text/html'}, follow_redirects=True)
+
+    assert response.status_code == 503
+    assert 'Servicio no disponible' in response.get_data(as_text=True)

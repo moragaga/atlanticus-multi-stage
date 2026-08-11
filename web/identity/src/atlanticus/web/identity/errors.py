@@ -14,5 +14,9 @@ class IdentityProviderUnavailableError(RuntimeError):
     pass
 
 
+class AccessResolverUnavailableError(RuntimeError):
+    pass
+
+
 class AccessContextError(RuntimeError):
     pass

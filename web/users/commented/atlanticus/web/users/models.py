@@ -1,0 +1,75 @@
+# Modelos efectivos de Users para una carga de página.
+# ResolvedUserRecord transporta profile_key; el catálogo canónico resuelve
+# la definición completa para impedir redefinir perfiles de sistema desde la fuente.
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from atlanticus.web.users.errors import UsersDefinitionError
+from atlanticus.web.users.profiles import ProfileDefinition, has_full_access
+
+
+@dataclass(frozen=True, slots=True)
+class EffectiveUser:
+    user_id: str
+    subject_id: str
+    display_name: str
+    email: str | None
+    enabled: bool
+    pending: bool
+    avatar_text: str
+    profile: ProfileDefinition
+
+    def __post_init__(self) -> None:
+        for field_name in ('user_id', 'subject_id', 'display_name', 'avatar_text'):
+            value = str(getattr(self, field_name)).strip()
+            if not value:
+                raise UsersDefinitionError(f'Effective user {field_name} must not be empty')
+            object.__setattr__(self, field_name, value)
+        if self.email is not None:
+            email = self.email.strip().casefold()
+            object.__setattr__(self, 'email', email or None)
+
+    @property
+    def has_full_access(self) -> bool:
+        return has_full_access(self.profile.key)
+
+
+@dataclass(frozen=True, slots=True)
+class ResolvedUserRecord:
+    user_id: str
+    subject_id: str
+    display_name: str
+    email: str | None
+    enabled: bool
+    profile_key: str
+
+    def __post_init__(self) -> None:
+        profile_key = self.profile_key.strip().casefold()
+        if not profile_key:
+            raise UsersDefinitionError('Resolved user profile key must not be empty')
+        object.__setattr__(self, 'profile_key', profile_key)
+
+    def to_effective_user(self, *, profile: ProfileDefinition) -> EffectiveUser:
+        if profile.key != self.profile_key:
+            raise UsersDefinitionError('Resolved profile does not match user profile key')
+        return EffectiveUser(
+            user_id=self.user_id,
+            subject_id=self.subject_id,
+            display_name=self.display_name,
+            email=self.email,
+            enabled=self.enabled,
+            pending=False,
+            avatar_text=build_avatar_text(self.display_name),
+            profile=profile,
+        )
+
+
+def build_avatar_text(display_name: str) -> str:
+    words = tuple(part for part in display_name.strip().split() if part)
+    if not words:
+        raise UsersDefinitionError('Display name must not be empty')
+    if len(words) == 1:
+        return words[0][:2].upper()
+    return f'{words[0][0]}{words[-1][0]}'.upper()

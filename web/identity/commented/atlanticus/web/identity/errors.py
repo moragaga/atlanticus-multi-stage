@@ -1,4 +1,7 @@
-# Errores específicos separan configuración, autenticación, disponibilidad y contexto de acceso.
+# Define errores propios de Identity y del bootstrap de acceso.
+# AccessResolverUnavailableError permite distinguir una falla de Users u otra fuente
+# de un problema de credenciales del usuario.
+
 class IdentityDefinitionError(ValueError):
     pass
 
@@ -12,6 +15,10 @@ class IdentityAuthenticationError(RuntimeError):
 
 
 class IdentityProviderUnavailableError(RuntimeError):
+    pass
+
+
+class AccessResolverUnavailableError(RuntimeError):
     pass
 
 

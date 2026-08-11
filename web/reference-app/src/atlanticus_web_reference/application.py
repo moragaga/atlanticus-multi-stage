@@ -8,12 +8,24 @@ from atlanticus.web.identity.module import create_identity_module
 from atlanticus.web.index import IndexPageDefinition
 from atlanticus.web.models import ApplicationMetadata, WebApplicationDefinition
 from atlanticus.web.navigation import create_navigation_module
+from atlanticus.web.users.local import create_local_users_source
+from atlanticus.web.users.module import create_users_module
+from atlanticus.web.users.profiles import ProfileCatalog
+from atlanticus.web.users.resolver import UsersAccessResolver
+from atlanticus.web.users.runtime import UsersRuntime
 from atlanticus_web_reference.layout import build_layout
 from atlanticus_web_reference.modules import create_reference_module
 from atlanticus_web_reference.navigation import build_reference_navigation
 
 
 def build_definition() -> WebApplicationDefinition:
+    profiles = ProfileCatalog()
+    users_runtime = UsersRuntime()
+    users_resolver = UsersAccessResolver(
+        source=create_local_users_source(),
+        runtime=users_runtime,
+        profiles=profiles,
+    )
     return WebApplicationDefinition(
         import_name='atlanticus_web_reference',
         metadata=ApplicationMetadata(
@@ -24,7 +36,11 @@ def build_definition() -> WebApplicationDefinition:
         publications_root=Path.cwd() / '.runtime' / 'assets',
         layout=build_layout,
         modules=(
-            create_identity_module(create_local_identity_provider()),
+            create_users_module(users_runtime),
+            create_identity_module(
+                create_local_identity_provider(),
+                access_resolver=users_resolver,
+            ),
             create_navigation_module(build_reference_navigation()),
             create_reference_module(),
         ),

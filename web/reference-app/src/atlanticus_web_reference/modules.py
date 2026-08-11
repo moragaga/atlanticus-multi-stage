@@ -8,6 +8,7 @@ from atlanticus.web.identity.access import ACCESS_RUNTIME_SERVICE_KEY, AccessRun
 from atlanticus.web.index import IndexContribution
 from atlanticus.web.modules import WebModule
 from atlanticus.web.services import ServiceRegistry
+from atlanticus.web.users.runtime import USERS_RUNTIME_SERVICE_KEY, UsersRuntime
 
 
 def create_reference_module() -> WebModule:
@@ -64,6 +65,25 @@ def _register_routes(server: Flask, services: ServiceRegistry) -> None:
             'provider': identity.provider_key if identity is not None else None,
             'subject_id': identity.subject_id if identity is not None else None,
             'user_id': snapshot.user_id,
+        }, 200
+
+    @server.get('/api/user')
+    def effective_user() -> tuple[dict[str, object], int]:
+        access = services.require(ACCESS_RUNTIME_SERVICE_KEY, AccessRuntime).current()
+        user = services.require(USERS_RUNTIME_SERVICE_KEY, UsersRuntime).current(access)
+        return {
+            'user_id': user.user_id,
+            'display_name': user.display_name,
+            'email': user.email,
+            'enabled': user.enabled,
+            'pending': user.pending,
+            'avatar_text': user.avatar_text,
+            'profile': {
+                'key': user.profile.key,
+                'label': user.profile.label,
+                'color': user.profile.color,
+            },
+            'full_access': user.has_full_access,
         }, 200
 
     @server.get('/api/reference')

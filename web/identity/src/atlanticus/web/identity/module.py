@@ -13,6 +13,7 @@ from atlanticus.web.identity.access import (
 from atlanticus.web.identity.bootstrap import AccessBootstrap
 from atlanticus.web.identity.configuration import resolve_identity_provider_key
 from atlanticus.web.identity.errors import (
+    AccessResolverUnavailableError,
     IdentityConfigurationError,
     IdentityProviderUnavailableError,
 )
@@ -70,7 +71,7 @@ def create_identity_module(
                 return None
             try:
                 snapshot = bootstrap.refresh(request)
-            except IdentityProviderUnavailableError:
+            except (IdentityProviderUnavailableError, AccessResolverUnavailableError):
                 return redirect(_UNAVAILABLE_PATH)
             if snapshot.status is AccessStatus.INVALID_IDENTITY:
                 return redirect(_INVALID_PATH)
