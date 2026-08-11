@@ -6,7 +6,7 @@ from atlanticus.web.application import create_web_application
 from atlanticus.web.assets import AssetLayer
 from atlanticus.web.identity.local import LocalIdentityProvider
 from atlanticus.web.identity.models import AuthenticatedIdentity
-from atlanticus.web.navigation import NavigationMenu
+from atlanticus.web.navigation import NavigationDefinition, NavigationMenu
 from atlanticus.web.observability import WebObservability
 from atlanticus.web.users.local import LocalUsersSource
 from atlanticus.web.users.models import EffectiveUser
@@ -23,6 +23,7 @@ def test_web_namespace_composes_split_distributions() -> None:
     assert AuthenticatedIdentity is not None
     assert LocalIdentityProvider is not None
     assert AssetLayer is not None
+    assert NavigationDefinition is not None
     assert NavigationMenu is not None
     assert EffectiveUser is not None
     assert LocalUsersSource is not None

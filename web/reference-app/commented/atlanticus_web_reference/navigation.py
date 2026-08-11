@@ -1,27 +1,35 @@
-# Menú resuelto de prueba para validar el contrato transversal.
+# Espejo comentado: definición global de navegación independiente del usuario.
 from atlanticus.web.navigation import (
-    NavigationGroup,
-    NavigationLink,
-    NavigationMenu,
-    NavigationUser,
+    NavigationDefinition,
+    NavigationGroupDefinition,
+    NavigationLinkDefinition,
 )
 
 
-def build_reference_navigation() -> NavigationMenu:
-    return NavigationMenu(
-        user=NavigationUser(
-            display_name='Usuario Atlanticus',
-            email='usuario@local.atlanticus',
-            profile='Local',
-            initials='UA',
+def build_reference_navigation() -> NavigationDefinition:
+    return NavigationDefinition(
+        links=(
+            NavigationLinkDefinition(
+                key='home',
+                label='Home',
+                href='/',
+                order=0,
+                icon='home',
+            ),
         ),
-        links=(NavigationLink(key='home', label='Inicio', href='/', order=0),),
         groups=(
-            NavigationGroup(
-                key='reference',
-                label='Reference',
+            NavigationGroupDefinition(
+                key='main',
+                label='Main',
                 order=10,
-                links=(NavigationLink(key='status', label='Status', href='/status'),),
+                icon='folder',
+                links=(
+                    NavigationLinkDefinition(
+                        key='status',
+                        label='Status',
+                        href='/status',
+                    ),
+                ),
             ),
         ),
     )

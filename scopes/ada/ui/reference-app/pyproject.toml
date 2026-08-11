@@ -14,6 +14,8 @@ dependencies = [
     "ada-ui-navigation==0.1.0",
     "atlanticus-web==0.1.0",
     "atlanticus-web-navigation==0.1.0",
+    "atlanticus-web-identity-local==0.1.0",
+    "atlanticus-web-users-local==0.1.0",
     "gunicorn==26.0.0",
 ]
 

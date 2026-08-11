@@ -10,6 +10,7 @@ from atlanticus.web.users.profiles import (
     LOCAL_PROFILE_KEY,
     ProfileCatalog,
     ProfileDefinition,
+    profile_has_access,
 )
 
 
@@ -56,3 +57,11 @@ def test_only_administrator_and_custom_profiles_are_assignable() -> None:
         'operator',
     )
     assert tuple(profile.key for profile in catalog.navigation_selectable()) == ('operator',)
+
+
+def test_profile_access_policy_keeps_system_full_access_implicit() -> None:
+    assert profile_has_access('local', ()) is True
+    assert profile_has_access('administrator', ()) is True
+    assert profile_has_access('guest', ()) is False
+    assert profile_has_access('operator', ('operator',)) is True
+    assert profile_has_access('operator', ('viewer',)) is False

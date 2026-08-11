@@ -104,6 +104,13 @@ def has_full_access(profile_key: str) -> bool:
     }
 
 
+def profile_has_access(profile_key: str, allowed_profiles: tuple[str, ...]) -> bool:
+    normalized_profile = _normalize_key(profile_key)
+    if has_full_access(normalized_profile):
+        return True
+    return normalized_profile in {_normalize_key(value) for value in allowed_profiles}
+
+
 def _normalize_key(value: str) -> str:
     normalized = value.strip().casefold()
     if not normalized:

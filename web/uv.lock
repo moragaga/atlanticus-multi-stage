@@ -107,11 +107,13 @@ version = "0.1.0"
 source = { editable = "navigation" }
 dependencies = [
     { name = "atlanticus-web" },
+    { name = "atlanticus-web-users" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "atlanticus-web", editable = "atlanticus-web" },
+    { name = "atlanticus-web-users", editable = "users" },
 ]
 
 [[package]]

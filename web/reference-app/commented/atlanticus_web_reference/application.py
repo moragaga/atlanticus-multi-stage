@@ -1,7 +1,4 @@
-# Composición de referencia que demuestra Identity + Users sin acoplarlos.
-# Users se registra primero, su resolver se inyecta explícitamente en Identity
-# y Navigation continúa siendo una capability independiente.
-
+# Espejo comentado: composición explícita de Identity, Users y Navigation.
 from __future__ import annotations
 
 from pathlib import Path
@@ -40,12 +37,12 @@ def build_definition() -> WebApplicationDefinition:
         publications_root=Path.cwd() / '.runtime' / 'assets',
         layout=build_layout,
         modules=(
-            create_users_module(users_runtime),
+            create_users_module(users_runtime, profiles),
             create_identity_module(
                 create_local_identity_provider(),
                 access_resolver=users_resolver,
             ),
-            create_navigation_module(build_reference_navigation()),
+            create_navigation_module(build_reference_navigation(), profiles=profiles),
             create_reference_module(),
         ),
         index=IndexPageDefinition(

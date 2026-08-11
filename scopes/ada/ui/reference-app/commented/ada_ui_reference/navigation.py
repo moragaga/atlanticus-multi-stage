@@ -1,22 +1,15 @@
-# Espejo comentado de navigation.py.
+# Espejo comentado: definición de rutas de referencia para ADA.
 from atlanticus.web.navigation import (
-    NavigationGroup,
-    NavigationLink,
-    NavigationMenu,
-    NavigationUser,
+    NavigationDefinition,
+    NavigationGroupDefinition,
+    NavigationLinkDefinition,
 )
 
 
-def build_reference_navigation() -> NavigationMenu:
-    return NavigationMenu(
-        user=NavigationUser(
-            display_name='Usuario ADA',
-            email='usuario@local.ada',
-            profile='Administrador',
-            initials='UA',
-        ),
+def build_reference_navigation() -> NavigationDefinition:
+    return NavigationDefinition(
         links=(
-            NavigationLink(
+            NavigationLinkDefinition(
                 key='home',
                 label='Inicio',
                 href='/',
@@ -25,13 +18,13 @@ def build_reference_navigation() -> NavigationMenu:
             ),
         ),
         groups=(
-            NavigationGroup(
+            NavigationGroupDefinition(
                 key='configuration',
                 label='CONFIGURACIÓN',
                 order=10,
                 icon='bi bi-gear',
                 links=(
-                    NavigationLink(
+                    NavigationLinkDefinition(
                         key='status',
                         label='Status',
                         href='/status',

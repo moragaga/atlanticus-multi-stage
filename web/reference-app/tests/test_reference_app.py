@@ -1,11 +1,11 @@
 from pathlib import Path
 
-from atlanticus.web.navigation import NAVIGATION_SERVICE_KEY, NavigationMenu
+from atlanticus.web.navigation import NavigationDefinition
 from atlanticus_web_reference.application import build_definition
 from atlanticus_web_reference.navigation import build_reference_navigation
 
 
-def test_reference_definition_uses_navigation_service_and_dynamic_pages() -> None:
+def test_reference_definition_composes_users_identity_navigation_and_dynamic_pages() -> None:
     definition = build_definition()
     modules = {module.name: module for module in definition.modules}
     users = modules['users']
@@ -29,13 +29,12 @@ def test_reference_definition_uses_navigation_service_and_dynamic_pages() -> Non
     assert reference.asset_layers[0].load_order == 900
 
 
-def test_reference_navigation_is_resolved_before_web_composition() -> None:
-    menu = build_reference_navigation()
+def test_reference_navigation_is_global_definition_not_user_specific_menu() -> None:
+    definition = build_reference_navigation()
 
-    assert isinstance(menu, NavigationMenu)
-    assert menu.links[0].href == '/'
-    assert menu.groups[0].links[0].href == '/status'
-    assert NAVIGATION_SERVICE_KEY == 'atlanticus.web.navigation.menu'
+    assert isinstance(definition, NavigationDefinition)
+    assert definition.links[0].href == '/'
+    assert definition.groups[0].links[0].href == '/status'
 
 
 def test_reference_entrypoints_live_inside_the_application_package() -> None:
@@ -45,4 +44,3 @@ def test_reference_entrypoints_live_inside_the_application_package() -> None:
     assert (package / 'wsgi.py').is_file()
     assert (package / 'pages' / 'home.py').is_file()
     assert (package / 'pages' / 'status.py').is_file()
-

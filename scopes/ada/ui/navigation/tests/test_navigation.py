@@ -19,10 +19,12 @@ from atlanticus.web.navigation import (
 def _menu() -> NavigationMenu:
     return NavigationMenu(
         user=NavigationUser(
-            display_name='Usuario ADA',
-            email='usuario@local.ada',
-            profile='Administrador',
-            initials='UA',
+            display_name='John Doe',
+            email='john.doe@local.atlanticus',
+            profile_key='local',
+            profile_label='Local',
+            profile_color='#3778C2',
+            avatar_text='JD',
         ),
         links=(
             NavigationLink(
@@ -84,6 +86,16 @@ def test_approved_offcanvas_contract_is_preserved() -> None:
     assert props['is_open'] is False
 
 
+def test_user_fallback_uses_effective_initials_and_profile_color() -> None:
+    component = build_ada_navigation_offcanvas(_menu())
+    payload = str(component.to_plotly_json())
+
+    assert 'JD' in payload
+    assert '#3778C2' in payload
+    assert 'Local' in payload
+    assert 'John Doe' in payload
+
+
 def test_approved_navigation_css_is_copied_without_redesign() -> None:
     css = (
         Path(__file__).parents[1]
@@ -102,3 +114,4 @@ def test_approved_navigation_css_is_copied_without_redesign() -> None:
     assert '.dashboard-menu-btn-desktop:hover {' in css
     assert 'right: -12px;' in css
     assert '.app-navigation-offcanvas' in css
+    assert '.app-navigation-user-avatar-fallback' in css

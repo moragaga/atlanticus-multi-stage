@@ -1,77 +1,227 @@
 import pytest
+from flask import Flask
 
-from atlanticus.web.errors import WebDefinitionError
+from atlanticus.web.errors import ServiceRegistryError, WebDefinitionError
+from atlanticus.web.identity.access import (
+    AccessDecision,
+    AccessRuntime,
+    AccessSnapshot,
+    AccessStatus,
+)
+from atlanticus.web.identity.models import AuthenticatedIdentity
 from atlanticus.web.navigation import (
-    NAVIGATION_SERVICE_KEY,
-    NavigationGroup,
-    NavigationLink,
+    NAVIGATION_DEFINITION_SERVICE_KEY,
+    NavigationDefinition,
+    NavigationGroupDefinition,
+    NavigationLinkDefinition,
     NavigationMenu,
-    NavigationUser,
     create_navigation_module,
+    resolve_navigation,
+    resolve_navigation_from_services,
 )
 from atlanticus.web.services import ServiceRegistry
+from atlanticus.web.users.models import EffectiveUser
+from atlanticus.web.users.module import PROFILE_CATALOG_SERVICE_KEY
+from atlanticus.web.users.profiles import ProfileCatalog, ProfileDefinition
+from atlanticus.web.users.runtime import USERS_RUNTIME_SERVICE_KEY, UsersRuntime
 
 
-def _menu() -> NavigationMenu:
-    return NavigationMenu(
-        user=NavigationUser(
-            display_name='John Doe',
-            email='john.doe@local.atlanticus',
-            profile='Administrator',
-            initials='JD',
-        ),
+def _profiles(*, administrator_color: str = '#673AB7') -> ProfileCatalog:
+    return ProfileCatalog(
+        administrator_color=administrator_color,
+        custom_profiles=(
+            ProfileDefinition(key='viewer', label='Visualizador', color='#123456'),
+            ProfileDefinition(key='analyst', label='Analista', color='#654321'),
+        )
+    )
+
+
+def _user(profile_key: str) -> EffectiveUser:
+    profiles = _profiles()
+    return EffectiveUser(
+        user_id=f'user:{profile_key}',
+        subject_id=f'subject:{profile_key}',
+        display_name='John Doe',
+        email='john@example.com',
+        enabled=True,
+        pending=profile_key == 'guest',
+        avatar_text='JD',
+        profile=profiles.require(profile_key),
+    )
+
+
+def _definition() -> NavigationDefinition:
+    return NavigationDefinition(
         links=(
-            NavigationLink(key='home', label='Home', href='/', order=0, icon='home'),
+            NavigationLinkDefinition(
+                key='private',
+                label='Privado',
+                href='/private',
+            ),
+            NavigationLinkDefinition(
+                key='viewer-home',
+                label='Viewer',
+                href='/viewer',
+                allowed_profiles=('viewer',),
+            ),
         ),
         groups=(
-            NavigationGroup(
+            NavigationGroupDefinition(
                 key='main',
                 label='Main',
-                order=10,
-                icon='folder',
+                allowed_profiles=('viewer',),
                 links=(
-                    NavigationLink(key='status', label='Status', href='/status'),
+                    NavigationLinkDefinition(
+                        key='inherited',
+                        label='Inherited',
+                        href='/inherited',
+                    ),
+                    NavigationLinkDefinition(
+                        key='override',
+                        label='Override',
+                        href='/override',
+                        allowed_profiles=('analyst',),
+                    ),
                 ),
             ),
         ),
     )
 
 
-def test_navigation_module_registers_resolved_menu_without_presentation() -> None:
-    menu = _menu()
-    module = create_navigation_module(menu)
+def test_full_access_profiles_receive_all_navigation_without_explicit_assignment() -> None:
+    profiles = _profiles()
+
+    local = resolve_navigation(_definition(), user=_user('local'), profiles=profiles)
+    administrator = resolve_navigation(
+        _definition(),
+        user=_user('administrator'),
+        profiles=profiles,
+    )
+
+    for menu in (local, administrator):
+        assert tuple(link.key for link in menu.links) == ('private', 'viewer-home')
+        assert tuple(link.key for link in menu.groups[0].links) == ('inherited', 'override')
+
+
+def test_custom_profile_filters_links_and_child_can_override_group_profiles() -> None:
+    profiles = _profiles()
+
+    viewer = resolve_navigation(_definition(), user=_user('viewer'), profiles=profiles)
+    analyst = resolve_navigation(_definition(), user=_user('analyst'), profiles=profiles)
+
+    assert tuple(link.key for link in viewer.links) == ('viewer-home',)
+    assert tuple(link.key for link in viewer.groups[0].links) == ('inherited',)
+    assert analyst.links == ()
+    assert tuple(link.key for link in analyst.groups[0].links) == ('override',)
+
+
+def test_guest_has_no_configurable_navigation_access() -> None:
+    menu = resolve_navigation(_definition(), user=_user('guest'), profiles=_profiles())
+
+    assert menu.links == ()
+    assert menu.groups == ()
+
+
+def test_system_profiles_cannot_be_persisted_in_allowed_profiles() -> None:
+    for profile_key in ('local', 'administrator', 'guest'):
+        with pytest.raises(WebDefinitionError, match='System profile'):
+            NavigationLinkDefinition(
+                key=f'link-{profile_key}',
+                label='Link',
+                href='/link',
+                allowed_profiles=(profile_key,),
+            )
+
+
+def test_navigation_rejects_unknown_custom_profile_during_composition() -> None:
+    definition = NavigationDefinition(
+        links=(
+            NavigationLinkDefinition(
+                key='unknown',
+                label='Unknown',
+                href='/unknown',
+                allowed_profiles=('not-created',),
+            ),
+        )
+    )
+
+    with pytest.raises(WebDefinitionError, match='not available for selection'):
+        create_navigation_module(definition, profiles=_profiles())
+
+
+def test_administrator_configured_color_flows_to_navigation_presentation() -> None:
+    profiles = _profiles(administrator_color='#112233')
+    user = EffectiveUser(
+        user_id='administrator-1',
+        subject_id='subject:administrator',
+        display_name='Jane Doe',
+        email='jane@example.com',
+        enabled=True,
+        pending=False,
+        avatar_text='JD',
+        profile=profiles.require('administrator'),
+    )
+
+    menu = resolve_navigation(_definition(), user=user, profiles=profiles)
+
+    assert menu.user.profile_label == 'Administrador'
+    assert menu.user.profile_color == '#112233'
+
+
+def test_navigation_user_is_built_from_effective_user_profile() -> None:
+    menu = resolve_navigation(_definition(), user=_user('viewer'), profiles=_profiles())
+
+    assert menu.user.display_name == 'John Doe'
+    assert menu.user.profile_key == 'viewer'
+    assert menu.user.profile_label == 'Visualizador'
+    assert menu.user.profile_color == '#123456'
+    assert menu.user.avatar_text == 'JD'
+
+
+def test_navigation_module_registers_definition_not_user_menu() -> None:
+    definition = _definition()
+    module = create_navigation_module(definition, profiles=_profiles())
     services = ServiceRegistry()
 
     assert module.name == 'navigation'
     assert module.register_callbacks is None
     assert module.asset_layers == ()
-
     assert module.register_services is not None
     module.register_services(services)
-    assert services.require(NAVIGATION_SERVICE_KEY, NavigationMenu) is menu
+    assert services.require(NAVIGATION_DEFINITION_SERVICE_KEY, NavigationDefinition) is definition
+
+    with pytest.raises(ServiceRegistryError):
+        services.require('atlanticus.web.navigation.menu', NavigationMenu)
 
 
-def test_navigation_contract_supports_runtime_presentation_metadata() -> None:
-    menu = _menu()
+def test_navigation_resolves_from_existing_access_and_users_snapshots() -> None:
+    server = Flask(__name__)
+    server.secret_key = 'test-only'
+    profiles = _profiles()
+    access_runtime = AccessRuntime()
+    users_runtime = UsersRuntime()
+    services = ServiceRegistry()
+    definition = _definition()
+    services.add('atlanticus.web.identity.access', access_runtime)
+    services.add(USERS_RUNTIME_SERVICE_KEY, users_runtime)
+    services.add(PROFILE_CATALOG_SERVICE_KEY, profiles)
+    services.add(NAVIGATION_DEFINITION_SERVICE_KEY, definition)
 
-    assert menu.links[0].order == 0
-    assert menu.links[0].icon == 'home'
-    assert menu.groups[0].order == 10
-    assert menu.groups[0].icon == 'folder'
-    assert menu.groups[0].enabled is True
+    identity = AuthenticatedIdentity(
+        provider_key='local',
+        issuer='atlanticus-local',
+        subject_id='subject:viewer',
+    )
+    access = AccessSnapshot.resolved(
+        load_id='load-1',
+        identity=identity,
+        decision=AccessDecision(status=AccessStatus.READY, user_id='user:viewer'),
+    )
 
+    with server.test_request_context('/'):
+        access_runtime.store(access)
+        users_runtime.store(load_id='load-1', user=_user('viewer'))
+        menu = resolve_navigation_from_services(services)
 
-def test_navigation_rejects_unsafe_href_and_duplicate_keys() -> None:
-    with pytest.raises(WebDefinitionError, match='HTTP'):
-        NavigationLink(key='bad', label='Bad', href='javascript:alert(1)')
-
-    link = NavigationLink(key='same', label='One', href='/one')
-    with pytest.raises(WebDefinitionError, match='duplicated link keys'):
-        NavigationGroup(key='main', label='Main', links=(link, link))
-
-    with pytest.raises(WebDefinitionError, match='duplicated link keys'):
-        NavigationMenu(
-            user=NavigationUser(display_name='User', profile='Local', initials='U'),
-            links=(link,),
-            groups=(NavigationGroup(key='group', label='Group', links=(link,)),),
-        )
+    assert tuple(link.key for link in menu.links) == ('viewer-home',)
+    assert tuple(link.key for link in menu.groups[0].links) == ('inherited',)

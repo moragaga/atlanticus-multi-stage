@@ -1,18 +1,19 @@
-# La reference app valida el servicio de navegación sin imponer una presentación genérica.
+# Espejo comentado: consume el menú resuelto para la carga vigente.
 from __future__ import annotations
 
 from dash import html, page_container
 
-from atlanticus.web.navigation import NAVIGATION_SERVICE_KEY, NavigationMenu
+from atlanticus.web.navigation import resolve_navigation_from_services
 from atlanticus.web.services import ServiceRegistry
 
 
 def build_layout(services: ServiceRegistry) -> object:
-    services.require(NAVIGATION_SERVICE_KEY, NavigationMenu)
+    navigation = resolve_navigation_from_services(services)
     return html.Div(
         [
             html.Header(
-                services.require('reference.application_name', str),
+                f"{services.require('reference.application_name', str)} · "
+                f'{navigation.user.display_name}',
                 className='reference-shell__header',
             ),
             html.Main(page_container, className='reference-shell__content'),

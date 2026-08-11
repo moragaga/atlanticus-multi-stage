@@ -4,7 +4,6 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 from ada.ui.navigation.constants import (
-    ACCOUNT_USER_ASSET,
     ADA_NAVIGATION_SUBTITLE,
     ADA_NAVIGATION_TITLE,
     ADA_PROJECTS_LABEL,
@@ -12,10 +11,11 @@ from ada.ui.navigation.constants import (
 )
 from ada.ui.navigation.ids import AdaNavigationIds
 from atlanticus.web.navigation import (
-    NAVIGATION_SERVICE_KEY,
     NavigationGroup,
     NavigationLink,
     NavigationMenu,
+    NavigationUser,
+    resolve_navigation_from_services,
 )
 from atlanticus.web.services import ServiceRegistry
 
@@ -60,8 +60,7 @@ def build_ada_navigation_offcanvas(menu: NavigationMenu) -> dbc.Offcanvas:
 
 
 def build_ada_navigation_offcanvas_from_services(services: ServiceRegistry) -> dbc.Offcanvas:
-    menu = services.require(NAVIGATION_SERVICE_KEY, NavigationMenu)
-    return build_ada_navigation_offcanvas(menu)
+    return build_ada_navigation_offcanvas(resolve_navigation_from_services(services))
 
 
 def _build_navigation_offcanvas_title() -> html.Div:
@@ -110,11 +109,7 @@ def _build_user_content(menu: NavigationMenu) -> html.Div:
     return html.Div(
         className='app-navigation-user-card',
         children=[
-            html.Img(
-                className='app-navigation-user-avatar',
-                src=user.avatar_src or ACCOUNT_USER_ASSET,
-                alt=user.display_name,
-            ),
+            _build_user_avatar(user),
             html.Div(
                 className='app-navigation-user-information',
                 children=[
@@ -125,14 +120,30 @@ def _build_user_content(menu: NavigationMenu) -> html.Div:
                     _build_user_email(user.email),
                     html.Div(
                         className='app-navigation-user-profile',
+                        style={'backgroundColor': user.profile_color},
                         children=[
                             html.I(className='bi bi-person-badge me-1'),
-                            html.Span(user.profile),
+                            html.Span(user.profile_label),
                         ],
                     ),
                 ],
             ),
         ],
+    )
+
+
+def _build_user_avatar(user: NavigationUser) -> html.Img | html.Div:
+    if user.avatar_src is not None:
+        return html.Img(
+            className='app-navigation-user-avatar',
+            src=user.avatar_src,
+            alt=user.display_name,
+        )
+    return html.Div(
+        className='app-navigation-user-avatar app-navigation-user-avatar-fallback',
+        style={'backgroundColor': user.profile_color},
+        title=user.display_name,
+        children=user.avatar_text,
     )
 
 

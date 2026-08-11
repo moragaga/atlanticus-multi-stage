@@ -7,6 +7,7 @@ from atlanticus.web.health import HealthRegistry
 from atlanticus.web.identity.access import ACCESS_RUNTIME_SERVICE_KEY, AccessRuntime
 from atlanticus.web.index import IndexContribution
 from atlanticus.web.modules import WebModule
+from atlanticus.web.navigation import resolve_navigation_from_services
 from atlanticus.web.services import ServiceRegistry
 from atlanticus.web.users.runtime import USERS_RUNTIME_SERVICE_KEY, UsersRuntime
 
@@ -84,6 +85,27 @@ def _register_routes(server: Flask, services: ServiceRegistry) -> None:
                 'color': user.profile.color,
             },
             'full_access': user.has_full_access,
+        }, 200
+
+    @server.get('/api/navigation')
+    def resolved_navigation() -> tuple[dict[str, object], int]:
+        menu = resolve_navigation_from_services(services)
+        return {
+            'user': {
+                'display_name': menu.user.display_name,
+                'profile_key': menu.user.profile_key,
+                'profile_label': menu.user.profile_label,
+                'profile_color': menu.user.profile_color,
+                'avatar_text': menu.user.avatar_text,
+            },
+            'links': [link.key for link in menu.links],
+            'groups': [
+                {
+                    'key': group.key,
+                    'links': [link.key for link in group.links],
+                }
+                for group in menu.groups
+            ],
         }, 200
 
     @server.get('/api/reference')

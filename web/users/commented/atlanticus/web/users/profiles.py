@@ -1,7 +1,4 @@
-# Define el catálogo de perfiles efectivo de Atlanticus Web.
-# local y guest son contratos fijos; administrator conserva key, label y reglas
-# y solamente permite configurar su color. Los perfiles custom son extensibles.
-
+# Espejo comentado: políticas de perfiles de sistema y acceso reutilizable.
 from __future__ import annotations
 
 import re
@@ -106,6 +103,13 @@ def has_full_access(profile_key: str) -> bool:
         LOCAL_PROFILE_KEY,
         ADMINISTRATOR_PROFILE_KEY,
     }
+
+
+def profile_has_access(profile_key: str, allowed_profiles: tuple[str, ...]) -> bool:
+    normalized_profile = _normalize_key(profile_key)
+    if has_full_access(normalized_profile):
+        return True
+    return normalized_profile in {_normalize_key(value) for value in allowed_profiles}
 
 
 def _normalize_key(value: str) -> str:
