@@ -22,6 +22,8 @@ package = false
 atlanticus-web-reference = { workspace = true }
 atlanticus-web = { workspace = true }
 atlanticus-web-observability = { workspace = true }
+atlanticus-web-identity = { workspace = true }
+atlanticus-web-identity-local = { workspace = true }
 atlanticus-web-navigation = { workspace = true }
 
 [tool.uv.workspace]
@@ -29,6 +31,8 @@ members = [
     "atlanticus-web",
     "observability",
     "navigation",
+    "identity",
+    "identity-local",
     "reference-app",
 ]
 
@@ -60,6 +64,8 @@ testpaths = [
     "atlanticus-web/tests",
     "observability/tests",
     "navigation/tests",
+    "identity/tests",
+    "identity-local/tests",
     "reference-app/tests",
 ]
 addopts = "-q --import-mode=importlib"

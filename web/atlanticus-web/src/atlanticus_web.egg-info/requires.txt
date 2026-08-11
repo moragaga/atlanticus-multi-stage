@@ -1,3 +1,0 @@
-atlanticus-web-observability==0.1.0
-dash==4.4.1
-Flask==3.1.3

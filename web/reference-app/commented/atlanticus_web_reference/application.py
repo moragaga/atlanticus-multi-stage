@@ -1,10 +1,11 @@
+# La reference app compone explícitamente el provider local para probar el contrato neutral.
 from __future__ import annotations
-
-# Compone Navigation antes del módulo de referencia para demostrar la capability transversal.
 
 from pathlib import Path
 
 from atlanticus.web.application import create_web_application
+from atlanticus.web.identity.local import create_local_identity_provider
+from atlanticus.web.identity.module import create_identity_module
 from atlanticus.web.index import IndexPageDefinition
 from atlanticus.web.models import ApplicationMetadata, WebApplicationDefinition
 from atlanticus.web.navigation import create_navigation_module
@@ -24,6 +25,7 @@ def build_definition() -> WebApplicationDefinition:
         publications_root=Path.cwd() / '.runtime' / 'assets',
         layout=build_layout,
         modules=(
+            create_identity_module(create_local_identity_provider()),
             create_navigation_module(build_reference_navigation()),
             create_reference_module(),
         ),

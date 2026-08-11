@@ -1,9 +1,0 @@
-Metadata-Version: 2.4
-Name: atlanticus-web
-Version: 0.1.0
-Summary: Base web modular de Atlanticus para Flask y Dash Pages
-Classifier: Private :: Do Not Upload
-Requires-Python: ==3.14.2
-Requires-Dist: atlanticus-web-observability==0.1.0
-Requires-Dist: dash==4.4.1
-Requires-Dist: Flask==3.1.3

@@ -8,10 +8,14 @@ from atlanticus_web_reference.navigation import build_reference_navigation
 def test_reference_definition_uses_navigation_service_and_dynamic_pages() -> None:
     definition = build_definition()
     modules = {module.name: module for module in definition.modules}
+    identity = modules['identity']
     navigation = modules['navigation']
     reference = modules['reference']
 
     assert definition.metadata.application_id == 'atlanticus-web-reference'
+    assert identity.register_services is not None
+    assert identity.register_middlewares is not None
+    assert identity.register_routes is not None
     assert navigation.register_services is not None
     assert navigation.register_callbacks is None
     assert navigation.asset_layers == ()
@@ -39,3 +43,4 @@ def test_reference_entrypoints_live_inside_the_application_package() -> None:
     assert (package / 'wsgi.py').is_file()
     assert (package / 'pages' / 'home.py').is_file()
     assert (package / 'pages' / 'status.py').is_file()
+

@@ -7,6 +7,8 @@ members = [
     "atlanticus-web",
     "atlanticus-web-navigation",
     "atlanticus-web-observability",
+    "atlanticus-web-identity",
+    "atlanticus-web-identity-local",
     "atlanticus-web-reference",
     "atlanticus-web-workspace",
 ]
@@ -34,6 +36,36 @@ dependencies = [
 requires-dist = [
     { name = "atlanticus-web-observability", editable = "observability" },
     { name = "dash", specifier = "==4.4.1" },
+    { name = "flask", specifier = "==3.1.3" },
+]
+
+[[package]]
+name = "atlanticus-web-identity"
+version = "0.1.0"
+source = { editable = "identity" }
+dependencies = [
+    { name = "atlanticus-web" },
+    { name = "flask" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "atlanticus-web", editable = "atlanticus-web" },
+    { name = "flask", specifier = "==3.1.3" },
+]
+
+[[package]]
+name = "atlanticus-web-identity-local"
+version = "0.1.0"
+source = { editable = "identity-local" }
+dependencies = [
+    { name = "atlanticus-web-identity" },
+    { name = "flask" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "atlanticus-web-identity", editable = "identity" },
     { name = "flask", specifier = "==3.1.3" },
 ]
 
@@ -69,6 +101,7 @@ version = "0.1.0"
 source = { editable = "reference-app" }
 dependencies = [
     { name = "atlanticus-web" },
+    { name = "atlanticus-web-identity-local" },
     { name = "atlanticus-web-navigation" },
     { name = "gunicorn" },
 ]
@@ -76,6 +109,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "atlanticus-web", editable = "atlanticus-web" },
+    { name = "atlanticus-web-identity-local", editable = "identity-local" },
     { name = "atlanticus-web-navigation", editable = "navigation" },
     { name = "gunicorn", specifier = "==26.0.0" },
 ]

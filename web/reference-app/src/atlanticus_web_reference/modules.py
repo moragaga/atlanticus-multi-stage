@@ -4,6 +4,7 @@ from flask import Flask
 
 from atlanticus.web.assets import AssetLayer
 from atlanticus.web.health import HealthRegistry
+from atlanticus.web.identity.access import ACCESS_RUNTIME_SERVICE_KEY, AccessRuntime
 from atlanticus.web.index import IndexContribution
 from atlanticus.web.modules import WebModule
 from atlanticus.web.services import ServiceRegistry
@@ -53,6 +54,18 @@ def _register_middlewares(server: Flask, _services: ServiceRegistry) -> None:
 
 
 def _register_routes(server: Flask, services: ServiceRegistry) -> None:
+    @server.get('/api/access')
+    def access_status() -> tuple[dict[str, str | None], int]:
+        snapshot = services.require(ACCESS_RUNTIME_SERVICE_KEY, AccessRuntime).current()
+        identity = snapshot.identity
+        return {
+            'load_id': snapshot.load_id,
+            'status': snapshot.status.value,
+            'provider': identity.provider_key if identity is not None else None,
+            'subject_id': identity.subject_id if identity is not None else None,
+            'user_id': snapshot.user_id,
+        }, 200
+
     @server.get('/api/reference')
     def reference_status() -> tuple[dict[str, str], int]:
         return {
