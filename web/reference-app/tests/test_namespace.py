@@ -1,0 +1,15 @@
+import atlanticus.web
+
+from atlanticus.web.application import create_web_application
+from atlanticus.web.assets import AssetLayer
+from atlanticus.web.navigation import NavigationMenu
+from atlanticus.web.observability import WebObservability
+
+
+def test_web_namespace_composes_split_distributions() -> None:
+    assert atlanticus.web.__spec__ is not None
+    assert atlanticus.web.__spec__.submodule_search_locations is not None
+    assert create_web_application is not None
+    assert AssetLayer is not None
+    assert NavigationMenu is not None
+    assert WebObservability is not None

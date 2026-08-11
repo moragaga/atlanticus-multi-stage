@@ -1,19 +1,18 @@
-# Compone la aplicación en fases deterministas: servicios, assets, Flask, middlewares, rutas, Dash Pages y callbacks.
-# Flask es siempre el servidor raíz; Dash se monta sobre ese servidor y no controla el proceso.
 from __future__ import annotations
 
+# Compone Flask, módulos, assets y Dash Pages en un orden determinista.
+
 import re
-from typing import Any
 
 from atlanticus.web.assets import AssetLayer, publish_asset_layers
-from atlanticus.web.environment import resolve_environment
+from atlanticus.web.environment import WebEnvironment, resolve_environment
 from atlanticus.web.errors import WebDefinitionError
 from atlanticus.web.health import HealthRegistry, register_health_routes
 from atlanticus.web.index import render_index_string
 from atlanticus.web.models import WebApplicationDefinition, WebApplicationRuntime
+from atlanticus.web.observability import WebObservability, configure_web_observability
 from atlanticus.web.pages import import_page_packages, validate_page_packages
 from atlanticus.web.services import ServiceRegistry
-from atlanticus.web_observability import configure_web_observability
 
 _APPLICATION_ID_PATTERN = re.compile(r'^[a-z0-9][a-z0-9._-]*$')
 _EXTENSION_KEY = 'atlanticus_web'
@@ -25,7 +24,6 @@ BASE_ASSET_LAYER = AssetLayer(
 )
 
 
-# La factory resuelve el environment y crea observabilidad antes de componer las capas que pueden fallar.
 def create_web_application(definition: WebApplicationDefinition) -> WebApplicationRuntime:
     _validate_definition(definition)
     environment = resolve_environment()
@@ -66,13 +64,12 @@ def run_web_application(
 def _compose_web_application(
     *,
     definition: WebApplicationDefinition,
-    environment: Any,
-    observability: Any,
+    environment: WebEnvironment,
+    observability: WebObservability,
 ) -> WebApplicationRuntime:
     from dash import Dash
     from flask import Flask
 
-    # Los productores registran servicios primero; después se congela el registro antes de montar consumidores.
     services = ServiceRegistry()
     health = HealthRegistry()
 
@@ -86,7 +83,6 @@ def _compose_web_application(
         publications_root=definition.publications_root,
     )
 
-    # Flask nace antes que Dash para conservar rutas, middleware, identidad y observabilidad bajo un único servidor.
     server = Flask(definition.import_name)
     server.config.update(dict(definition.flask_config))
     observability.attach_flask(server)
@@ -120,7 +116,6 @@ def _compose_web_application(
     )
 
     dash_settings = definition.dash
-    # Desactivamos el escaneo implícito de carpetas: Atlanticus importa únicamente los paquetes Pages declarados.
     dash_app = Dash(
         definition.import_name,
         server=server,
@@ -140,7 +135,6 @@ def _compose_web_application(
     )
     dash_app.index_string = index_string
 
-    # Las Pages se importan después de crear Dash, momento en que register_page puede poblar el registry activo.
     page_modules = import_page_packages(_collect_page_packages(definition))
     dash_app.layout = lambda: definition.layout(services)
 

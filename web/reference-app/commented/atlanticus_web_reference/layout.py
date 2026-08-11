@@ -1,12 +1,14 @@
-# Aplicación de referencia: demuestra el contrato web sin introducir lógica de negocio real.
+# La reference app valida el servicio de navegación sin imponer una presentación genérica.
 from __future__ import annotations
 
 from dash import html, page_container
 
-from atlanticus.web import ServiceRegistry
+from atlanticus.web.navigation import NAVIGATION_SERVICE_KEY, NavigationMenu
+from atlanticus.web.services import ServiceRegistry
 
 
 def build_layout(services: ServiceRegistry) -> object:
+    services.require(NAVIGATION_SERVICE_KEY, NavigationMenu)
     return html.Div(
         [
             html.Header(

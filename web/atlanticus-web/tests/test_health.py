@@ -1,4 +1,4 @@
-from atlanticus.web import HealthRegistry
+from atlanticus.web.health import HealthRegistry
 
 
 def test_health_registry_reports_check_failures_without_exposing_messages() -> None:

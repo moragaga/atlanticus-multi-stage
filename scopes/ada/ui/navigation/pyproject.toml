@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools==83.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ada-ui-navigation"
+version = "0.1.0"
+description = "Presentación ADA del contrato transversal de navegación Atlanticus"
+requires-python = "==3.14.2"
+classifiers = [
+    "Private :: Do Not Upload",
+]
+dependencies = [
+    "ada-ui-core==0.1.0",
+    "atlanticus-web-navigation==0.1.0",
+    "dash==4.4.1",
+    "dash-bootstrap-components==2.0.4",
+]
+
+[tool.uv.sources]
+ada-ui-core = { workspace = true }
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = true
+include = ["ada.ui.navigation*"]
+
+[tool.setuptools.package-data]
+"ada.ui.navigation" = [
+    "py.typed",
+    "resources/css/*.css",
+    "resources/css/css.list",
+    "resources/js/*.js",
+    "resources/js/js.list",
+    "resources/img/icons/*.svg",
+]

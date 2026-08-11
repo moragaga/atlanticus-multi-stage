@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools==83.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ada-ui-reference"
+version = "0.1.0"
+requires-python = "==3.14.2"
+classifiers = [
+    "Private :: Do Not Upload",
+]
+dependencies = [
+    "ada-ui-core==0.1.0",
+    "ada-ui-navigation==0.1.0",
+    "atlanticus-web==0.1.0",
+    "atlanticus-web-navigation==0.1.0",
+    "gunicorn==26.0.0",
+]
+
+[tool.uv.sources]
+ada-ui-core = { workspace = true }
+ada-ui-navigation = { workspace = true }
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["ada_ui_reference*"]
+
+[tool.setuptools.package-data]
+"ada_ui_reference" = [
+    "resources/css/*.css",
+    "resources/css/css.list",
+]

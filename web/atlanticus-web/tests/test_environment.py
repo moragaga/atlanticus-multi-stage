@@ -1,6 +1,6 @@
 import pytest
 
-from atlanticus.web import WebEnvironment, resolve_environment
+from atlanticus.web.environment import WebEnvironment, resolve_environment
 from atlanticus.web.errors import WebConfigurationError
 
 

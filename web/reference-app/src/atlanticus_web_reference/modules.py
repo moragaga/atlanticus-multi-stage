@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from atlanticus.web import (
-    AssetLayer,
-    HealthRegistry,
-    IndexContribution,
-    ServiceRegistry,
-    WebModule,
-)
+from flask import Flask
+
+from atlanticus.web.assets import AssetLayer
+from atlanticus.web.health import HealthRegistry
+from atlanticus.web.index import IndexContribution
+from atlanticus.web.modules import WebModule
+from atlanticus.web.services import ServiceRegistry
 
 
 def create_reference_module() -> WebModule:
@@ -45,14 +45,14 @@ def _register_health_checks(health: HealthRegistry, _services: ServiceRegistry) 
     health.add('reference', lambda: True)
 
 
-def _register_middlewares(server: object, _services: ServiceRegistry) -> None:
+def _register_middlewares(server: Flask, _services: ServiceRegistry) -> None:
     @server.after_request
     def add_reference_header(response):
         response.headers['X-Atlanticus-Reference'] = '1'
         return response
 
 
-def _register_routes(server: object, services: ServiceRegistry) -> None:
+def _register_routes(server: Flask, services: ServiceRegistry) -> None:
     @server.get('/api/reference')
     def reference_status() -> tuple[dict[str, str], int]:
         return {

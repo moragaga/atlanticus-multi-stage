@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from atlanticus.web import AssetLayer, publish_asset_layers
+from atlanticus.web.assets import AssetLayer, publish_asset_layers
 from atlanticus.web.errors import WebAssetError, WebDefinitionError
 
 

@@ -1,6 +1,7 @@
 import pytest
 
-from atlanticus.web import ServiceRegistry, ServiceRegistryError
+from atlanticus.web.errors import ServiceRegistryError
+from atlanticus.web.services import ServiceRegistry
 
 
 def test_service_registry_registers_requires_and_freezes() -> None:

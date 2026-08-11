@@ -1,0 +1,77 @@
+{
+  "css_entries": [
+    "0010_atlanticus_web/css/0000__00_tokens.css",
+    "0010_atlanticus_web/css/0001__10_shell.css",
+    "0100_ada_ui_core/css/0000__00_bootstrap.min.css",
+    "0100_ada_ui_core/css/0001__10_tokens.css",
+    "0200_ada_ui_navigation/css/0000__10_navigation.css",
+    "0900_ada_ui_reference/css/0000__00_reference.css"
+  ],
+  "files": {
+    "0010_atlanticus_web/css/0000__00_tokens.css": "b72dde70a5984f9d4c35877a30f5e890979d4344ada5cc88f01f4eab2397f524",
+    "0010_atlanticus_web/css/0001__10_shell.css": "d717ecb7e2c514079ac35b3d42ffccc03ca5ad64777f8d9f8e19004ebf3a3442",
+    "0010_atlanticus_web/css/css.list": "d37fb816e6ff7817fb818c40880925a3397479c023cf5d8ee5788d72945244e4",
+    "0010_atlanticus_web/js/0000__00_runtime.js": "bd4de3a1e9e6912b3c2c24335e6c95eecb40cb3730f31015a1ad8db7a5576ab8",
+    "0010_atlanticus_web/js/js.list": "9ed8e1b6b1bf1562ad28c5db56948d24c564e407f24b1978ef4c0ff00db99737",
+    "0100_ada_ui_core/css/0000__00_bootstrap.min.css": "52388aee9ce002772bbe66f7bb65ca6271911411d872ede7a20399540a94dc35",
+    "0100_ada_ui_core/css/0001__10_tokens.css": "075f23762e82fb625a18109e2a1b6f1041e6673b62fad952e28929e29d14ed8d",
+    "0100_ada_ui_core/css/css.list": "b78314d14297a1c1c46e617da1748fcaecf1ee2a97fcccc4a6c004a55a994c80",
+    "0200_ada_ui_navigation/css/0000__10_navigation.css": "7154a0fba945db43b4b295f19e500d570817d741608af66deaeeff7820067fec",
+    "0200_ada_ui_navigation/css/css.list": "1c4080d5233a0c5230f8cd409018234ed9d02e5c0d97f14b858c88d41bba3084",
+    "0200_ada_ui_navigation/img/icons/account_user.svg": "afa39cc487a42b8610dd1749df328108805238bbc2402adfdd56339e2f69d85c",
+    "0200_ada_ui_navigation/js/0000__00_navigation.js": "487bbb54a16ace5f0965e25a10abefdb63b44224882f7f2b2f0aea15ff7644e7",
+    "0200_ada_ui_navigation/js/js.list": "e10b42cc253ab4869afdd7a1e9b9e53d2df24fb0f4f7cddba1d7001368b41285",
+    "0900_ada_ui_reference/css/0000__00_reference.css": "2de17b68573db3f798990ddf89b7562f496f4168ac19c2df7042d53d8c18ceda",
+    "0900_ada_ui_reference/css/css.list": "6834dc6ae0b59a2512ef44beda2a70f6478c515c5a064f285f23801097a6dcdd"
+  },
+  "js_entries": [
+    "0010_atlanticus_web/js/0000__00_runtime.js",
+    "0200_ada_ui_navigation/js/0000__00_navigation.js"
+  ],
+  "layers": [
+    {
+      "css": [
+        "00_tokens.css",
+        "10_shell.css"
+      ],
+      "js": [
+        "00_runtime.js"
+      ],
+      "load_order": 10,
+      "name": "atlanticus_web",
+      "target": "0010_atlanticus_web"
+    },
+    {
+      "css": [
+        "00_bootstrap.min.css",
+        "10_tokens.css"
+      ],
+      "js": [],
+      "load_order": 100,
+      "name": "ada_ui_core",
+      "target": "0100_ada_ui_core"
+    },
+    {
+      "css": [
+        "10_navigation.css"
+      ],
+      "js": [
+        "00_navigation.js"
+      ],
+      "load_order": 200,
+      "name": "ada_ui_navigation",
+      "target": "0200_ada_ui_navigation"
+    },
+    {
+      "css": [
+        "00_reference.css"
+      ],
+      "js": [],
+      "load_order": 900,
+      "name": "ada_ui_reference",
+      "target": "0900_ada_ui_reference"
+    }
+  ],
+  "revision": "956e73ef01fd87c3",
+  "schema_version": 1
+}

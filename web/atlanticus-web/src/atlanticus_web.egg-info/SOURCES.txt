@@ -1,5 +1,4 @@
 pyproject.toml
-src/atlanticus/web/__init__.py
 src/atlanticus/web/application.py
 src/atlanticus/web/assets.py
 src/atlanticus/web/environment.py

@@ -24,6 +24,7 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+namespaces = true
 include = ["atlanticus.web*"]
 
 [tool.setuptools.package-data]

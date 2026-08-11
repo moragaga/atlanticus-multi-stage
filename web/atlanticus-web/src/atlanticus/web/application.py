@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 import re
-from typing import Any
 
 from atlanticus.web.assets import AssetLayer, publish_asset_layers
-from atlanticus.web.environment import resolve_environment
+from atlanticus.web.environment import WebEnvironment, resolve_environment
 from atlanticus.web.errors import WebDefinitionError
 from atlanticus.web.health import HealthRegistry, register_health_routes
 from atlanticus.web.index import render_index_string
 from atlanticus.web.models import WebApplicationDefinition, WebApplicationRuntime
+from atlanticus.web.observability import WebObservability, configure_web_observability
 from atlanticus.web.pages import import_page_packages, validate_page_packages
 from atlanticus.web.services import ServiceRegistry
-from atlanticus.web_observability import configure_web_observability
 
 _APPLICATION_ID_PATTERN = re.compile(r'^[a-z0-9][a-z0-9._-]*$')
 _EXTENSION_KEY = 'atlanticus_web'
@@ -63,8 +62,8 @@ def run_web_application(
 def _compose_web_application(
     *,
     definition: WebApplicationDefinition,
-    environment: Any,
-    observability: Any,
+    environment: WebEnvironment,
+    observability: WebObservability,
 ) -> WebApplicationRuntime:
     from dash import Dash
     from flask import Flask

@@ -3,17 +3,14 @@ from pathlib import Path
 import pytest
 from dash import html, page_container, page_registry
 
-from atlanticus.web import (
-    ApplicationMetadata,
-    AssetLayer,
-    HealthRegistry,
-    IndexContribution,
-    ServiceRegistry,
-    WebApplicationDefinition,
-    WebDefinitionError,
-    WebModule,
-    create_web_application,
-)
+from atlanticus.web.application import create_web_application
+from atlanticus.web.assets import AssetLayer
+from atlanticus.web.errors import WebDefinitionError
+from atlanticus.web.health import HealthRegistry
+from atlanticus.web.index import IndexContribution
+from atlanticus.web.models import ApplicationMetadata, WebApplicationDefinition
+from atlanticus.web.modules import WebModule
+from atlanticus.web.services import ServiceRegistry
 
 
 def _build_layer(tmp_path: Path) -> AssetLayer:

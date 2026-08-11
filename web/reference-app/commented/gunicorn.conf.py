@@ -1,5 +1,5 @@
 # Configura Gunicorn desde la capacidad detectada por Atlanticus Web y evita access logs verbosos.
-from atlanticus.web import resolve_gunicorn_capacity
+from atlanticus.web.hosting import resolve_gunicorn_capacity
 
 bind = '0.0.0.0:8000'
 worker_class = 'gthread'

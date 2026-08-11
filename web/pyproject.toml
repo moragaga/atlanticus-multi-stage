@@ -22,11 +22,13 @@ package = false
 atlanticus-web-reference = { workspace = true }
 atlanticus-web = { workspace = true }
 atlanticus-web-observability = { workspace = true }
+atlanticus-web-navigation = { workspace = true }
 
 [tool.uv.workspace]
 members = [
     "atlanticus-web",
-    "atlanticus-web-observability",
+    "observability",
+    "navigation",
     "reference-app",
 ]
 
@@ -56,7 +58,8 @@ combine-as-imports = true
 [tool.pytest.ini_options]
 testpaths = [
     "atlanticus-web/tests",
-    "atlanticus-web-observability/tests",
+    "observability/tests",
+    "navigation/tests",
     "reference-app/tests",
 ]
 addopts = "-q --import-mode=importlib"

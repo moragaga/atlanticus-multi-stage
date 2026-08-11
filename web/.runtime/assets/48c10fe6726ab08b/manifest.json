@@ -1,0 +1,72 @@
+{
+  "css_entries": [
+    "0010_atlanticus_web/css/0000__00_tokens.css",
+    "0010_atlanticus_web/css/0001__10_shell.css",
+    "0100_atlanticus_web_navigation/css/0000__00_tokens.css",
+    "0100_atlanticus_web_navigation/css/0001__10_navigation.css",
+    "0100_atlanticus_web_navigation/css/0002__20_responsive.css",
+    "0900_reference_application/css/0000__00_reference.css"
+  ],
+  "files": {
+    "0010_atlanticus_web/css/0000__00_tokens.css": "b72dde70a5984f9d4c35877a30f5e890979d4344ada5cc88f01f4eab2397f524",
+    "0010_atlanticus_web/css/0001__10_shell.css": "d717ecb7e2c514079ac35b3d42ffccc03ca5ad64777f8d9f8e19004ebf3a3442",
+    "0010_atlanticus_web/css/css.list": "d37fb816e6ff7817fb818c40880925a3397479c023cf5d8ee5788d72945244e4",
+    "0010_atlanticus_web/js/0000__00_runtime.js": "bd4de3a1e9e6912b3c2c24335e6c95eecb40cb3730f31015a1ad8db7a5576ab8",
+    "0010_atlanticus_web/js/js.list": "9ed8e1b6b1bf1562ad28c5db56948d24c564e407f24b1978ef4c0ff00db99737",
+    "0100_atlanticus_web_navigation/css/0000__00_tokens.css": "7a62128952d87f6eea0f03ec0ebe34f018a579795e57baa9e116d57930076f05",
+    "0100_atlanticus_web_navigation/css/0001__10_navigation.css": "18fd384ae29d9bfc59f8eb344b0b332543a615230d92fb69d2e77094fc5578aa",
+    "0100_atlanticus_web_navigation/css/0002__20_responsive.css": "fb00a2bd98a286fec9512c42d3a812ee8816139a9fd3e9f4e68a4c2bb99633b7",
+    "0100_atlanticus_web_navigation/css/css.list": "11f78dc55eb1656bb706fa43f7fbd4e760d8b8428cb81c2c33108707a13e5d06",
+    "0100_atlanticus_web_navigation/js/0000__00_navigation.js": "fd5257a196bfea708e67fd9cd10a9d07389215fc3d30f21ff9c0791787a33de9",
+    "0100_atlanticus_web_navigation/js/js.list": "e10b42cc253ab4869afdd7a1e9b9e53d2df24fb0f4f7cddba1d7001368b41285",
+    "0900_reference_application/css/0000__00_reference.css": "09568872ff6c87cb3dda69993448398f5571ce354874dcd5acb481250818a081",
+    "0900_reference_application/css/css.list": "6834dc6ae0b59a2512ef44beda2a70f6478c515c5a064f285f23801097a6dcdd",
+    "0900_reference_application/js/0000__00_reference.js": "ed6e0f80d58daafdb928a2f9301dc7d24e52106857e6730141ca2c79c02fecdc",
+    "0900_reference_application/js/js.list": "c07d517668800121b90e63f211d24002431f410423737b0fc11e93365cb8172e"
+  },
+  "js_entries": [
+    "0010_atlanticus_web/js/0000__00_runtime.js",
+    "0100_atlanticus_web_navigation/js/0000__00_navigation.js",
+    "0900_reference_application/js/0000__00_reference.js"
+  ],
+  "layers": [
+    {
+      "css": [
+        "00_tokens.css",
+        "10_shell.css"
+      ],
+      "js": [
+        "00_runtime.js"
+      ],
+      "load_order": 10,
+      "name": "atlanticus_web",
+      "target": "0010_atlanticus_web"
+    },
+    {
+      "css": [
+        "00_tokens.css",
+        "10_navigation.css",
+        "20_responsive.css"
+      ],
+      "js": [
+        "00_navigation.js"
+      ],
+      "load_order": 100,
+      "name": "atlanticus_web_navigation",
+      "target": "0100_atlanticus_web_navigation"
+    },
+    {
+      "css": [
+        "00_reference.css"
+      ],
+      "js": [
+        "00_reference.js"
+      ],
+      "load_order": 900,
+      "name": "reference_application",
+      "target": "0900_reference_application"
+    }
+  ],
+  "revision": "48c10fe6726ab08b",
+  "schema_version": 1
+}

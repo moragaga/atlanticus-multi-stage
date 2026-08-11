@@ -1,5 +1,4 @@
-from atlanticus.web import IndexContribution, IndexPageDefinition
-from atlanticus.web.index import render_index_string
+from atlanticus.web.index import IndexContribution, IndexPageDefinition, render_index_string
 
 
 def test_index_composes_application_and_module_contributions() -> None:

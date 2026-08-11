@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from atlanticus.web.assets import AssetLayer, AssetPublication
 from atlanticus.web.environment import WebEnvironment
@@ -11,7 +11,12 @@ from atlanticus.web.health import HealthRegistry
 from atlanticus.web.index import IndexPageDefinition
 from atlanticus.web.modules import WebModule
 from atlanticus.web.services import ServiceRegistry
-from atlanticus.web_observability import WebObservability
+
+if TYPE_CHECKING:
+    from dash import Dash
+    from flask import Flask
+
+    from atlanticus.web.observability import WebObservability
 
 LayoutFactory = Callable[[ServiceRegistry], Any]
 
@@ -52,8 +57,8 @@ class WebApplicationDefinition:
 
 @dataclass(frozen=True, slots=True)
 class WebApplicationRuntime:
-    server: Any
-    dash: Any
+    server: Flask
+    dash: Dash
     services: ServiceRegistry
     health: HealthRegistry
     environment: WebEnvironment

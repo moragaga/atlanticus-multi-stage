@@ -1,0 +1,18 @@
+@media (max-width: 480px) {
+  :root {
+    --atlanticus-navigation-width: 18rem;
+  }
+
+  .atlanticus-navigation__trigger {
+    top: 0.75rem;
+    left: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atlanticus-navigation__drawer,
+  .atlanticus-navigation__backdrop,
+  .atlanticus-navigation__group-chevron {
+    transition: none;
+  }
+}
