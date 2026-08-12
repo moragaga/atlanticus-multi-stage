@@ -29,7 +29,7 @@ wheels = [
 [[package]]
 name = "atlanticus-web"
 version = "0.1.0"
-source = { editable = "atlanticus-web" }
+source = { editable = "framework/core" }
 dependencies = [
     { name = "atlanticus-web-observability" },
     { name = "dash" },
@@ -38,7 +38,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "atlanticus-web-observability", editable = "observability" },
+    { name = "atlanticus-web-observability", editable = "framework/observability" },
     { name = "dash", specifier = "==4.4.1" },
     { name = "flask", specifier = "==3.1.3" },
 ]
@@ -46,7 +46,7 @@ requires-dist = [
 [[package]]
 name = "atlanticus-web-identity"
 version = "0.1.0"
-source = { editable = "identity" }
+source = { editable = "capabilities/identity/core" }
 dependencies = [
     { name = "atlanticus-web" },
     { name = "flask" },
@@ -54,14 +54,14 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "atlanticus-web", editable = "atlanticus-web" },
+    { name = "atlanticus-web", editable = "framework/core" },
     { name = "flask", specifier = "==3.1.3" },
 ]
 
 [[package]]
 name = "atlanticus-web-identity-local"
 version = "0.1.0"
-source = { editable = "identity-local" }
+source = { editable = "capabilities/identity/local" }
 dependencies = [
     { name = "atlanticus-web-identity" },
     { name = "flask" },
@@ -69,14 +69,14 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "atlanticus-web-identity", editable = "identity" },
+    { name = "atlanticus-web-identity", editable = "capabilities/identity/core" },
     { name = "flask", specifier = "==3.1.3" },
 ]
 
 [[package]]
 name = "atlanticus-web-identity-app-service"
 version = "0.1.0"
-source = { editable = "identity-app-service" }
+source = { editable = "capabilities/identity/app-service" }
 dependencies = [
     { name = "atlanticus-web-identity" },
     { name = "flask" },
@@ -84,14 +84,14 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "atlanticus-web-identity", editable = "identity" },
+    { name = "atlanticus-web-identity", editable = "capabilities/identity/core" },
     { name = "flask", specifier = "==3.1.3" },
 ]
 
 [[package]]
 name = "atlanticus-web-users"
 version = "0.1.0"
-source = { editable = "users" }
+source = { editable = "capabilities/users/core" }
 dependencies = [
     { name = "atlanticus-web" },
     { name = "atlanticus-web-identity" },
@@ -100,41 +100,41 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "atlanticus-web", editable = "atlanticus-web" },
-    { name = "atlanticus-web-identity", editable = "identity" },
+    { name = "atlanticus-web", editable = "framework/core" },
+    { name = "atlanticus-web-identity", editable = "capabilities/identity/core" },
     { name = "flask", specifier = "==3.1.3" },
 ]
 
 [[package]]
 name = "atlanticus-web-users-local"
 version = "0.1.0"
-source = { editable = "users-local" }
+source = { editable = "capabilities/users/local" }
 dependencies = [
     { name = "atlanticus-web-users" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "atlanticus-web-users", editable = "users" },
+    { name = "atlanticus-web-users", editable = "capabilities/users/core" },
 ]
 
 [[package]]
 name = "atlanticus-web-users-cosmos"
 version = "0.1.0"
-source = { editable = "users-cosmos" }
+source = { editable = "capabilities/users/cosmos" }
 dependencies = [
     { name = "atlanticus-web-users" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "atlanticus-web-users", editable = "users" },
+    { name = "atlanticus-web-users", editable = "capabilities/users/core" },
 ]
 
 [[package]]
 name = "atlanticus-web-navigation"
 version = "0.1.0"
-source = { editable = "navigation" }
+source = { editable = "capabilities/navigation" }
 dependencies = [
     { name = "atlanticus-web" },
     { name = "atlanticus-web-users" },
@@ -142,14 +142,14 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "atlanticus-web", editable = "atlanticus-web" },
-    { name = "atlanticus-web-users", editable = "users" },
+    { name = "atlanticus-web", editable = "framework/core" },
+    { name = "atlanticus-web-users", editable = "capabilities/users/core" },
 ]
 
 [[package]]
 name = "atlanticus-web-observability"
 version = "0.1.0"
-source = { editable = "observability" }
+source = { editable = "framework/observability" }
 dependencies = [
     { name = "flask" },
 ]
@@ -162,7 +162,7 @@ requires-dist = [
 [[package]]
 name = "atlanticus-web-reference"
 version = "0.1.0"
-source = { editable = "reference-app" }
+source = { editable = "applications/reference" }
 dependencies = [
     { name = "atlanticus-web" },
     { name = "atlanticus-web-identity-local" },
@@ -174,11 +174,11 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "atlanticus-web", editable = "atlanticus-web" },
-    { name = "atlanticus-web-identity-local", editable = "identity-local" },
-    { name = "atlanticus-web-identity-app-service", editable = "identity-app-service" },
-    { name = "atlanticus-web-users-local", editable = "users-local" },
-    { name = "atlanticus-web-navigation", editable = "navigation" },
+    { name = "atlanticus-web", editable = "framework/core" },
+    { name = "atlanticus-web-identity-local", editable = "capabilities/identity/local" },
+    { name = "atlanticus-web-identity-app-service", editable = "capabilities/identity/app-service" },
+    { name = "atlanticus-web-users-local", editable = "capabilities/users/local" },
+    { name = "atlanticus-web-navigation", editable = "capabilities/navigation" },
     { name = "gunicorn", specifier = "==26.0.0" },
 ]
 
@@ -199,12 +199,12 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "atlanticus-web-reference", editable = "reference-app" },
+    { name = "atlanticus-web-reference", editable = "applications/reference" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "atlanticus-web-users-cosmos", editable = "users-cosmos" },
+    { name = "atlanticus-web-users-cosmos", editable = "capabilities/users/cosmos" },
     { name = "pytest", specifier = "==9.1.1" },
     { name = "ruff", specifier = "==0.15.22" },
 ]

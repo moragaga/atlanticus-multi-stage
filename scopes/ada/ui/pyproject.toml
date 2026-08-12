@@ -22,13 +22,13 @@ package = false
 ada-ui-reference = { workspace = true }
 ada-ui-core = { workspace = true }
 ada-ui-navigation = { workspace = true }
-atlanticus-web = { path = "../../../web/atlanticus-web", editable = true }
-atlanticus-web-observability = { path = "../../../web/observability", editable = true }
-atlanticus-web-navigation = { path = "../../../web/navigation", editable = true }
-atlanticus-web-identity = { path = "../../../web/identity", editable = true }
-atlanticus-web-identity-local = { path = "../../../web/identity-local", editable = true }
-atlanticus-web-users = { path = "../../../web/users", editable = true }
-atlanticus-web-users-local = { path = "../../../web/users-local", editable = true }
+atlanticus-web = { path = "../../../web/framework/core", editable = true }
+atlanticus-web-observability = { path = "../../../web/framework/observability", editable = true }
+atlanticus-web-navigation = { path = "../../../web/capabilities/navigation", editable = true }
+atlanticus-web-identity = { path = "../../../web/capabilities/identity/core", editable = true }
+atlanticus-web-identity-local = { path = "../../../web/capabilities/identity/local", editable = true }
+atlanticus-web-users = { path = "../../../web/capabilities/users/core", editable = true }
+atlanticus-web-users-local = { path = "../../../web/capabilities/users/local", editable = true }
 
 [tool.uv.workspace]
 members = [
