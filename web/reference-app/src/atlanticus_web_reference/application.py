@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from atlanticus.web.application import create_web_application
-from atlanticus.web.identity.local import create_local_identity_provider
 from atlanticus.web.identity.module import create_identity_module
 from atlanticus.web.index import IndexPageDefinition
 from atlanticus.web.models import ApplicationMetadata, WebApplicationDefinition
@@ -13,6 +12,7 @@ from atlanticus.web.users.module import create_users_module
 from atlanticus.web.users.profiles import ProfileCatalog
 from atlanticus.web.users.resolver import UsersAccessResolver
 from atlanticus.web.users.runtime import UsersRuntime
+from atlanticus_web_reference.identity import build_reference_identity_provider
 from atlanticus_web_reference.layout import build_layout
 from atlanticus_web_reference.modules import create_reference_module
 from atlanticus_web_reference.navigation import build_reference_navigation
@@ -38,7 +38,7 @@ def build_definition() -> WebApplicationDefinition:
         modules=(
             create_users_module(users_runtime, profiles),
             create_identity_module(
-                create_local_identity_provider(),
+                build_reference_identity_provider(),
                 access_resolver=users_resolver,
             ),
             create_navigation_module(build_reference_navigation(), profiles=profiles),

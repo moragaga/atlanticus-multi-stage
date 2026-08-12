@@ -1,9 +1,0 @@
-:root {
-  --atlanticus-navigation-width: 20rem;
-  --atlanticus-navigation-background: #0d1b2a;
-  --atlanticus-navigation-foreground: #f5f1e6;
-  --atlanticus-navigation-muted: #d6dade;
-  --atlanticus-navigation-accent: #c9a24b;
-  --atlanticus-navigation-overlay: rgb(13 27 42 / 45%);
-  --atlanticus-navigation-transition: 180ms ease;
-}

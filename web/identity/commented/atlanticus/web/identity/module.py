@@ -1,10 +1,11 @@
 # Integra Identity con el ciclo Flask.
-# Las fallas de provider o del resolver de acceso se presentan como servicio
-# no disponible; no se confunden con credenciales inválidas.
+# Una decisión de acceso no READY responde directamente desde before_request para cortar
+# la cadena antes de que Dash construya el layout operacional o cualquier middleware posterior
+# intente consumir Users, Navigation u otros contratos que requieren un usuario efectivo.
 
 from __future__ import annotations
 
-from flask import Flask, redirect, request
+from flask import Flask, request
 
 from atlanticus.web.environment import resolve_environment
 from atlanticus.web.identity.access import (
@@ -32,10 +33,6 @@ from atlanticus.web.modules import WebModule
 from atlanticus.web.services import ServiceRegistry
 
 ACCESS_BOOTSTRAP_SERVICE_KEY = 'atlanticus.web.identity.bootstrap'
-_ACCESS_PREFIX = '/_atlanticus/access'
-_INVALID_PATH = f'{_ACCESS_PREFIX}/invalid-identity'
-_DISABLED_PATH = f'{_ACCESS_PREFIX}/user-disabled'
-_UNAVAILABLE_PATH = f'{_ACCESS_PREFIX}/unavailable'
 
 
 def create_identity_module(
@@ -76,53 +73,30 @@ def create_identity_module(
             try:
                 snapshot = bootstrap.refresh(request)
             except (IdentityProviderUnavailableError, AccessResolverUnavailableError):
-                return redirect(_UNAVAILABLE_PATH)
+                return identity_unavailable_response()
             if snapshot.status is AccessStatus.INVALID_IDENTITY:
-                return redirect(_INVALID_PATH)
+                return invalid_identity_response()
             if snapshot.status is AccessStatus.USER_DISABLED:
-                return redirect(_DISABLED_PATH)
+                return user_disabled_response()
             return None
-
-    def register_routes(server: Flask, _services: ServiceRegistry) -> None:
-        server.add_url_rule(
-            _INVALID_PATH,
-            'atlanticus_identity_invalid',
-            invalid_identity_response,
-            methods=['GET'],
-        )
-        server.add_url_rule(
-            _DISABLED_PATH,
-            'atlanticus_identity_disabled',
-            user_disabled_response,
-            methods=['GET'],
-        )
-        server.add_url_rule(
-            _UNAVAILABLE_PATH,
-            'atlanticus_identity_unavailable',
-            identity_unavailable_response,
-            methods=['GET'],
-        )
 
     return WebModule(
         name='identity',
         register_services=register_services,
         register_middlewares=register_middlewares,
-        register_routes=register_routes,
     )
 
 
 def _is_page_document_request() -> bool:
     if request.method != 'GET':
         return False
-    path = request.path
     excluded_prefixes = (
-        _ACCESS_PREFIX,
         '/_dash',
         '/assets/',
         '/health/',
         '/api/',
     )
-    if path.startswith(excluded_prefixes):
+    if request.path.startswith(excluded_prefixes):
         return False
     best = request.accept_mimetypes.best_match(['text/html', 'application/json'])
     return best == 'text/html'

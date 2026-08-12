@@ -95,9 +95,6 @@ def _build_server(
     server = Flask(__name__)
     assert module.register_middlewares is not None
     module.register_middlewares(server, services)
-    assert module.register_routes is not None
-    module.register_routes(server, services)
-
     @server.get('/')
     def home():
         return 'home'
@@ -145,26 +142,26 @@ def test_page_load_resolves_once_callbacks_reuse_and_reload_refreshes(
     assert reloaded_snapshot['user_id'] == 'user-2'
 
 
-def test_invalid_identity_redirects_to_neutral_page_without_second_resolution(
+def test_invalid_identity_returns_neutral_page_without_second_resolution(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
     provider = CountingProvider(mode='invalid')
     server, _ = _build_server(monkeypatch, tmp_path, provider, CountingResolver())
 
-    response = server.test_client().get('/', headers={'Accept': 'text/html'}, follow_redirects=True)
+    response = server.test_client().get('/', headers={'Accept': 'text/html'})
 
     assert response.status_code == 401
     assert 'Credenciales no válidas' in response.get_data(as_text=True)
     assert provider.calls == 1
 
 
-def test_disabled_user_redirects_to_neutral_page(monkeypatch, tmp_path: Path) -> None:
+def test_disabled_user_returns_neutral_page(monkeypatch, tmp_path: Path) -> None:
     provider = CountingProvider()
     resolver = CountingResolver(disabled=True)
     server, _ = _build_server(monkeypatch, tmp_path, provider, resolver)
 
-    response = server.test_client().get('/', headers={'Accept': 'text/html'}, follow_redirects=True)
+    response = server.test_client().get('/', headers={'Accept': 'text/html'})
 
     assert response.status_code == 403
     assert 'Usuario deshabilitado' in response.get_data(as_text=True)
@@ -179,11 +176,30 @@ def test_provider_unavailable_is_not_reported_as_invalid_credentials(
     provider = CountingProvider(mode='unavailable')
     server, _ = _build_server(monkeypatch, tmp_path, provider, CountingResolver())
 
-    response = server.test_client().get('/', headers={'Accept': 'text/html'}, follow_redirects=True)
+    response = server.test_client().get('/', headers={'Accept': 'text/html'})
 
     assert response.status_code == 503
     assert 'Servicio no disponible' in response.get_data(as_text=True)
     assert 'Credenciales no válidas' not in response.get_data(as_text=True)
+
+
+def test_rejected_access_short_circuits_later_middlewares(monkeypatch, tmp_path: Path) -> None:
+    provider = CountingProvider(mode='invalid')
+    server, _ = _build_server(monkeypatch, tmp_path, provider, CountingResolver())
+    later_middleware_calls = 0
+
+    @server.before_request
+    def operational_middleware():
+        nonlocal later_middleware_calls
+        later_middleware_calls += 1
+        raise AssertionError('Operational middleware must not run for rejected access')
+
+    response = server.test_client().get('/', headers={'Accept': 'text/html'})
+
+    assert response.status_code == 401
+    assert 'Credenciales no válidas' in response.get_data(as_text=True)
+    assert provider.calls == 1
+    assert later_middleware_calls == 0
 
 
 def test_local_session_secret_is_persisted_for_multiple_workers(
@@ -248,7 +264,7 @@ def test_access_resolver_unavailable_returns_service_unavailable(
         UnavailableResolver(),
     )
 
-    response = server.test_client().get('/', headers={'Accept': 'text/html'}, follow_redirects=True)
+    response = server.test_client().get('/', headers={'Accept': 'text/html'})
 
     assert response.status_code == 503
     assert 'Servicio no disponible' in response.get_data(as_text=True)

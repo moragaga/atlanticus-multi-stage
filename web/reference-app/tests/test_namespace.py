@@ -4,6 +4,7 @@ import atlanticus.web.users
 
 from atlanticus.web.application import create_web_application
 from atlanticus.web.assets import AssetLayer
+from atlanticus.web.identity.app_service import AppServiceIdentityProvider
 from atlanticus.web.identity.local import LocalIdentityProvider
 from atlanticus.web.identity.models import AuthenticatedIdentity
 from atlanticus.web.navigation import NavigationDefinition, NavigationMenu
@@ -21,6 +22,7 @@ def test_web_namespace_composes_split_distributions() -> None:
     assert atlanticus.web.users.__spec__.submodule_search_locations is not None
     assert create_web_application is not None
     assert AuthenticatedIdentity is not None
+    assert AppServiceIdentityProvider is not None
     assert LocalIdentityProvider is not None
     assert AssetLayer is not None
     assert NavigationDefinition is not None

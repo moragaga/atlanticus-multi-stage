@@ -1,11 +1,15 @@
 from pathlib import Path
 
 from atlanticus.web.navigation import NavigationDefinition
+from atlanticus.web.services import ServiceRegistry
 from atlanticus_web_reference.application import build_definition
 from atlanticus_web_reference.navigation import build_reference_navigation
 
 
-def test_reference_definition_composes_users_identity_navigation_and_dynamic_pages() -> None:
+def test_reference_definition_composes_users_identity_navigation_and_dynamic_pages(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv('ATLANTICUS_IDENTITY_PROVIDER', 'local')
     definition = build_definition()
     modules = {module.name: module for module in definition.modules}
     users = modules['users']
@@ -17,7 +21,7 @@ def test_reference_definition_composes_users_identity_navigation_and_dynamic_pag
     assert users.register_services is not None
     assert identity.register_services is not None
     assert identity.register_middlewares is not None
-    assert identity.register_routes is not None
+    assert identity.register_routes is None
     assert navigation.register_services is not None
     assert navigation.register_callbacks is None
     assert navigation.asset_layers == ()
@@ -44,3 +48,14 @@ def test_reference_entrypoints_live_inside_the_application_package() -> None:
     assert (package / 'wsgi.py').is_file()
     assert (package / 'pages' / 'home.py').is_file()
     assert (package / 'pages' / 'status.py').is_file()
+
+
+def test_reference_application_selects_app_service_provider(monkeypatch) -> None:
+    monkeypatch.setenv('ATLANTICUS_IDENTITY_PROVIDER', 'app_service')
+
+    definition = build_definition()
+    identity = {module.name: module for module in definition.modules}['identity']
+    services = ServiceRegistry()
+
+    assert identity.register_services is not None
+    identity.register_services(services)
