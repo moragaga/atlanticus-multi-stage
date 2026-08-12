@@ -24,7 +24,7 @@ def test_manifest_rejects_unknown_parent() -> None:
         'center',
         'Center',
         ToolSectionKind.COMPONENT,
-        ToolScope.PROCESS,
+        ToolScope.MINE,
         parent_key='body',
     )
 
@@ -105,7 +105,7 @@ def test_registry_requires_unique_tools_and_resolves_targets() -> None:
                 'center',
                 'Center',
                 ToolSectionKind.COMPONENT,
-                ToolScope.PROCESS,
+                ToolScope.MINE,
                 targets=frozenset({ToolTarget.KPI}),
             ),
         ),

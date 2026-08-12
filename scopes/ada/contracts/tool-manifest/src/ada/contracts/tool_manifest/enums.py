@@ -11,7 +11,6 @@ class ToolScope(StrEnum):
     GLOBAL = 'global'
     MINE = 'mine'
     PLANT = 'plant'
-    PROCESS = 'process'
 
 
 class ToolTarget(StrEnum):

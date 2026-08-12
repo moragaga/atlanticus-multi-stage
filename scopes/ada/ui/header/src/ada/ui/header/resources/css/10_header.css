@@ -1,0 +1,363 @@
+.ada-header-shell {
+    --ada-header-surface: var(--tertiary-background, #E1E1E1);
+    --ada-header-border: var(--primary-border-color, #BDBDBD);
+    --ada-header-ink: var(--custom-text-color, #4D4D4D);
+    --ada-header-dark: var(--dark-color, #313131);
+    --ada-header-brand-ink: #5B5C64;
+    --ada-header-muted: #6B6B6B;
+    --ada-header-subtle: #5E5E5E;
+    --ada-header-attention: #E0A800;
+    --ada-header-critical: #A31A1A;
+    --ada-header-count-bg: #CFCFCF;
+    width: 100%;
+    background: var(--ada-header-surface);
+    border-bottom: 1px solid var(--ada-header-border);
+}
+
+.ada-header {
+    display: flex;
+    width: 100%;
+    height: 64px;
+    min-height: 64px;
+    align-items: stretch;
+    padding: 0 10px;
+    overflow: hidden;
+    background: var(--ada-header-surface);
+}
+
+.ada-header__brand {
+    display: flex;
+    flex: 0 0 158px;
+    min-width: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 10px 3px 4px;
+}
+
+.ada-header__brand-logo {
+    display: block;
+    width: auto;
+    max-width: 128px;
+    height: auto;
+    max-height: 36px;
+    object-fit: contain;
+}
+
+.ada-header__brand-lockup {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    margin-top: 2px;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    color: var(--ada-header-brand-ink);
+}
+
+.ada-header__brand-assistant {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 6px;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: .55px;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.ada-header__brand-tool {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 5.6px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 1.05px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.ada-header__brand-tool > span:not(.ada-header__brand-rule) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ada-header__brand-rule {
+    width: 11px;
+    height: 1px;
+    flex: 0 0 11px;
+    background: var(--ada-header-brand-ink);
+}
+
+.ada-header__indicators {
+    display: flex;
+    flex: 1 1 0;
+    min-width: 0;
+    align-items: stretch;
+}
+
+.ada-header__global-indicator {
+    display: flex;
+    flex: 1 1 0;
+    min-width: 0;
+    align-items: stretch;
+    border-left: 1px solid var(--ada-header-border);
+    overflow: hidden;
+}
+
+.ada-header__global-indicator .global-indicator {
+    width: 100%;
+    height: 100%;
+    padding: 3px 8px 4px;
+    gap: 2px;
+}
+
+.ada-header__global-indicator .global-indicator__heading {
+    justify-content: flex-start;
+    padding-inline: 0;
+}
+
+.ada-header__global-indicator .global-indicator__content {
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 6px;
+}
+
+.ada-header__global-indicator .global-indicator__value--temporality {
+    padding: 2px 4px 2px 0;
+}
+
+.ada-header__global-indicator .global-indicator__value--real {
+    padding: 2px 1px 2px 0;
+}
+
+.ada-header__global-indicator .global-indicator__separator {
+    padding: 2px 1px;
+}
+
+.ada-header__global-indicator .global-indicator__value--plan {
+    padding: 2px 0 2px 1px;
+}
+
+.ada-header__global-indicator .global-indicator__last-measurement {
+    padding-left: 5px;
+    border-left: 1px solid var(--ada-header-border);
+}
+
+.ada-header__management {
+    display: flex;
+    flex: 0 0 146px;
+    width: 146px;
+    min-width: 0;
+    align-items: stretch;
+    gap: 8px;
+    padding: 4px 8px;
+    border-left: 1px solid var(--ada-header-border);
+    border-right: 1px solid var(--ada-header-border);
+}
+
+.ada-header__management-segment {
+    display: flex;
+    flex: 1 1 0;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+}
+
+.ada-header__management-group,
+.ada-header__management-progress-block {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+}
+
+.ada-header__management-label {
+    max-width: 100%;
+    overflow: hidden;
+    color: var(--ada-header-ink);
+    font-size: 7.2px;
+    font-weight: 400;
+    line-height: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ada-header__management-value {
+    color: var(--ada-header-ink);
+    font-size: 9.4px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.ada-header__management-segment[data-tone='attention'] .ada-header__management-value {
+    color: var(--ada-header-attention);
+}
+
+.ada-header__management-segment[data-tone='critical'] .ada-header__management-value {
+    color: var(--ada-header-critical);
+}
+
+.ada-header__management-progress {
+    width: 100%;
+    height: 2px;
+    margin-top: 1px;
+    overflow: hidden;
+    appearance: none;
+    background: #D0D0D0;
+    border: 0;
+    border-radius: 1px;
+}
+
+.ada-header__management-progress::-webkit-progress-bar {
+    background: #D0D0D0;
+}
+
+.ada-header__management-progress::-webkit-progress-value {
+    background: var(--ada-header-ink);
+}
+
+.ada-header__management-progress::-moz-progress-bar {
+    background: var(--ada-header-ink);
+}
+
+.ada-header__management-segment[data-tone='attention'] .ada-header__management-progress::-webkit-progress-value {
+    background: var(--ada-header-attention);
+}
+
+.ada-header__management-segment[data-tone='attention'] .ada-header__management-progress::-moz-progress-bar {
+    background: var(--ada-header-attention);
+}
+
+.ada-header__management-segment[data-tone='critical'] .ada-header__management-progress::-webkit-progress-value {
+    background: var(--ada-header-critical);
+}
+
+.ada-header__management-segment[data-tone='critical'] .ada-header__management-progress::-moz-progress-bar {
+    background: var(--ada-header-critical);
+}
+
+.ada-header__alarm-status {
+    display: flex;
+    flex: 0 0 auto;
+    min-width: 104px;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    gap: 4px;
+    padding: 0 10px;
+}
+
+.ada-header__alarm-status-label {
+    padding-left: 1px;
+    color: var(--ada-header-muted);
+    font-size: 6.5px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+}
+
+.ada-header__alarm-status-chip {
+    display: flex;
+    height: 22px;
+    align-items: stretch;
+    overflow: hidden;
+    border: 1px solid var(--ada-header-muted);
+    border-radius: 6px;
+}
+
+.ada-header__alarm-status-count {
+    display: flex;
+    width: 22px;
+    flex: 0 0 22px;
+    align-items: center;
+    justify-content: center;
+    background: var(--ada-header-count-bg);
+    color: var(--ada-header-dark);
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.ada-header__alarm-status-text {
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    color: var(--ada-header-dark);
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.ada-header__mobile-navigation {
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+}
+
+.ada-header-shell.ada-header--expanded-mine [data-scope='plant'],
+.ada-header-shell.ada-header--expanded-plant [data-scope='mine'] {
+    display: none;
+}
+
+.ada-header-shell.ada-header--expanded-mine .ada-header__global-indicator[data-scope='mine'],
+.ada-header-shell.ada-header--expanded-plant .ada-header__global-indicator[data-scope='plant'] {
+    flex: 1 1 0;
+}
+
+@media (max-width: 991.98px) {
+    .ada-header {
+        padding-right: 6px;
+    }
+
+    .ada-header__brand {
+        flex-basis: 138px;
+    }
+
+    .ada-header__global-indicator .global-indicator {
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+
+    .ada-header__management {
+        width: 126px;
+        flex-basis: 126px;
+        gap: 5px;
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+
+    .ada-header__alarm-status {
+        display: none;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .ada-header__indicators,
+    .ada-header__management {
+        display: none;
+    }
+
+    .ada-header__brand {
+        flex: 1 1 auto;
+        align-items: flex-start;
+    }
+
+    .ada-header__brand-lockup {
+        align-items: flex-start;
+    }
+
+    .ada-header__brand-tool {
+        justify-content: flex-start;
+    }
+}

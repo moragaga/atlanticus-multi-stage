@@ -10,7 +10,11 @@ classifiers = [
     "Private :: Do Not Upload",
 ]
 dependencies = [
+    "ada-contracts-tool-manifest==0.1.0",
+    "ada-ui-branding==0.1.0",
+    "ada-ui-component-global-indicator==0.1.0",
     "ada-ui-core==0.1.0",
+    "ada-ui-header==0.1.0",
     "ada-ui-navigation==0.1.0",
     "atlanticus-web==0.1.0",
     "atlanticus-web-navigation==0.1.0",
@@ -20,7 +24,11 @@ dependencies = [
 ]
 
 [tool.uv.sources]
+ada-contracts-tool-manifest = { path = "../../contracts/tool-manifest", editable = true }
+ada-ui-branding = { workspace = true }
+ada-ui-component-global-indicator = { workspace = true }
 ada-ui-core = { workspace = true }
+ada-ui-header = { workspace = true }
 ada-ui-navigation = { workspace = true }
 
 [tool.setuptools]

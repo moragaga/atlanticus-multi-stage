@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from ada.ui.components.global_indicator import create_ada_global_indicator_module
 from ada.ui.core import create_ada_ui_module
+from ada.ui.header import create_ada_header_module
 from ada.ui.navigation import create_ada_navigation_module
 from ada_ui_reference.layout import build_layout
 from ada_ui_reference.module import create_reference_module
@@ -46,6 +48,8 @@ def build_definition() -> WebApplicationDefinition:
             create_navigation_module(build_reference_navigation(), profiles=profiles),
             create_ada_ui_module(),
             create_ada_navigation_module(),
+            create_ada_global_indicator_module(),
+            create_ada_header_module(),
             create_reference_module(),
         ),
         index=IndexPageDefinition(language='es'),

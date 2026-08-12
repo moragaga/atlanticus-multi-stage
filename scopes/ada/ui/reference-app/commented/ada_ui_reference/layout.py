@@ -1,43 +1,26 @@
-# Espejo comentado de layout.py.
+# Espejo comentado: conserva exactamente la lógica productiva del módulo.
+# Los comentarios describen la responsabilidad sin alterar el AST ejecutable.
 from __future__ import annotations
 
 from dash import html, page_container
 
+from ada.ui.header import build_ada_header
 from ada.ui.navigation import (
     build_ada_navigation_desktop_trigger,
     build_ada_navigation_mobile_trigger,
     build_ada_navigation_offcanvas_from_services,
 )
+from ada_ui_reference.header import build_reference_header_state
 from atlanticus.web.services import ServiceRegistry
 
 
 def build_layout(services: ServiceRegistry) -> object:
     return html.Div(
         [
-            html.Header(
-                [
-                    html.Div(
-                        [
-                            html.Div(
-                                [
-                                    html.Strong('ADA', className='reference-ada__brand'),
-                                    html.Span(
-                                        'Navigation visual contract',
-                                        className='reference-ada__subtitle',
-                                    ),
-                                ],
-                                className='reference-ada__identity',
-                            ),
-                            html.Div(
-                                build_ada_navigation_mobile_trigger(),
-                                className='app-header-mobile-toggle',
-                            ),
-                        ],
-                        className='dashboard-header-inner reference-ada__header-inner',
-                    ),
-                    build_ada_navigation_desktop_trigger(),
-                ],
-                className='dashboard-header-shell reference-ada__header',
+            build_ada_header(
+                build_reference_header_state(),
+                desktop_navigation_trigger=build_ada_navigation_desktop_trigger(),
+                mobile_navigation_trigger=build_ada_navigation_mobile_trigger(),
             ),
             build_ada_navigation_offcanvas_from_services(services),
             html.Main(page_container, className='reference-ada__content'),

@@ -1,0 +1,145 @@
+.global-indicators {
+    --global-indicator-border: var(--primary-border-color, #BDBDBD);
+    --global-indicator-ink: var(--custom-text-color, #4D4D4D);
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    align-items: stretch;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.global-indicator {
+    display: flex;
+    flex: 1 1 0;
+    min-width: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--global-indicator-ink);
+    overflow: hidden;
+}
+
+.global-indicator p {
+    margin: 0;
+    color: inherit;
+}
+
+.global-indicator__content {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.global-indicator__heading {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    align-items: center;
+    justify-content: center;
+    gap: .3rem;
+    padding-inline: .5rem;
+    font-weight: 600;
+}
+
+.global-indicator__label {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.global-indicator__icon,
+.global-indicator__unit {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.global-indicator__table {
+    width: auto;
+    background: transparent;
+    border-collapse: collapse;
+}
+
+.global-indicator__cell {
+    padding: 0;
+    background: transparent;
+    vertical-align: middle;
+}
+
+.global-indicator__value,
+.global-indicator__separator {
+    line-height: 1;
+}
+
+.global-indicator__value--temporality {
+    padding: .3rem .4rem .3rem 0;
+    font-weight: 600;
+}
+
+.global-indicator__value--real {
+    padding: .3rem .1rem .3rem 0;
+    text-align: end;
+    font-weight: 800;
+}
+
+.global-indicator__separator {
+    padding: .3rem .1rem;
+}
+
+.global-indicator__value--plan {
+    padding: .3rem 0 .3rem .1rem;
+    text-align: start;
+    font-weight: 500;
+}
+
+.global-indicator__last-measurement {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.global-indicator__last-measurement-label {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.global-indicator__last-measurement-value {
+    font-weight: 800;
+}
+
+.font-size-gi-100 {
+    font-size: 12px;
+}
+
+.font-size-gi-200 {
+    font-size: 9px;
+}
+
+.font-size-gi-300 {
+    font-size: 11px;
+}
+
+.font-size-gi-400 {
+    font-size: 7px;
+}
+
+@media (min-width: 1280px) {
+    .global-indicators {
+        flex-wrap: nowrap;
+    }
+
+    .global-indicators > .global-indicator {
+        border-inline-end: 1px solid var(--global-indicator-border);
+    }
+
+    .global-indicators > .global-indicator:first-child {
+        border-inline-start: 1px solid var(--global-indicator-border);
+    }
+}

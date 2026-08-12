@@ -3,27 +3,45 @@ import pytest
 from ada.contracts.tool_manifest import (
     ProcessBodySection,
     ToolManifestError,
+    ToolScope,
     ToolTarget,
     build_process_manifest,
 )
 
 
-def test_process_manifest_accepts_center_only() -> None:
+def test_process_manifest_accepts_center_only_and_plant_scope() -> None:
     manifest = build_process_manifest(
         tool_key='flotacion_selectiva',
         display_name='Flotación Selectiva',
+        operational_scope=ToolScope.PLANT,
         body_sections=(ProcessBodySection.CENTER,),
     )
 
     assert [section.key for section in manifest.children('body')] == ['center']
-    assert manifest.require_target('center', ToolTarget.ALARM).key == 'center'
-    assert manifest.require_target('center', ToolTarget.KPI).key == 'center'
+    assert manifest.section('global_indicators').scope is ToolScope.PLANT
+    assert manifest.section('alarm_management').scope is ToolScope.PLANT
+    assert manifest.section('alarm_status').scope is ToolScope.GLOBAL
+    assert manifest.require_target('center', ToolTarget.ALARM).scope is ToolScope.PLANT
+
+
+def test_process_manifest_accepts_mine_scope() -> None:
+    manifest = build_process_manifest(
+        tool_key='chancado_stmg',
+        display_name='Chancado-STMG',
+        operational_scope=ToolScope.MINE,
+        body_sections=(ProcessBodySection.CENTER,),
+    )
+
+    assert manifest.section('global_indicators').scope is ToolScope.MINE
+    assert manifest.section('alarm_management').scope is ToolScope.MINE
+    assert manifest.section('center').scope is ToolScope.MINE
 
 
 def test_process_manifest_allows_kpis_in_other_visual_sections_but_alarms_only_in_center() -> None:
     manifest = build_process_manifest(
         tool_key='molienda',
         display_name='Molienda',
+        operational_scope=ToolScope.PLANT,
         body_sections=(
             ProcessBodySection.LEFT,
             ProcessBodySection.CENTER,
@@ -39,11 +57,22 @@ def test_process_manifest_allows_kpis_in_other_visual_sections_but_alarms_only_i
     assert alarm_keys == {'center'}
 
 
+def test_process_manifest_rejects_global_operational_scope() -> None:
+    with pytest.raises(ToolManifestError, match='must be mine or plant'):
+        build_process_manifest(
+            tool_key='invalid_process',
+            display_name='Invalid Process',
+            operational_scope=ToolScope.GLOBAL,
+            body_sections=(ProcessBodySection.CENTER,),
+        )
+
+
 def test_process_manifest_requires_center() -> None:
     with pytest.raises(ToolManifestError, match='requires the center section'):
         build_process_manifest(
             tool_key='invalid_process',
             display_name='Invalid Process',
+            operational_scope=ToolScope.MINE,
             body_sections=(ProcessBodySection.LEFT,),
         )
 
@@ -53,5 +82,6 @@ def test_process_manifest_rejects_duplicate_body_sections() -> None:
         build_process_manifest(
             tool_key='invalid_process',
             display_name='Invalid Process',
+            operational_scope=ToolScope.MINE,
             body_sections=(ProcessBodySection.CENTER, ProcessBodySection.CENTER),
         )

@@ -1,21 +1,26 @@
+# Espejo comentado: conserva exactamente la lógica productiva del módulo.
+# Los comentarios describen la responsabilidad sin alterar el AST ejecutable.
 from collections.abc import Iterable
 
 from ..enums import ProcessBodySection, ToolScope, ToolSectionKind, ToolTarget
 from ..errors import ToolManifestError
 from ..models import ToolManifest, ToolSection
 
-# Los Process permiten KPI en sus secciones activas; FAlarm solo puede seleccionar center.
 _KPI = frozenset({ToolTarget.KPI})
 _KPI_ALARM = frozenset({ToolTarget.KPI, ToolTarget.ALARM})
+_PROCESS_SCOPES = frozenset({ToolScope.MINE, ToolScope.PLANT})
 
 
-# Construye un manifiesto concreto usando solo las regiones que la herramienta implementa.
 def build_process_manifest(
     *,
     tool_key: str,
     display_name: str,
+    operational_scope: ToolScope,
     body_sections: Iterable[ProcessBodySection],
 ) -> ToolManifest:
+    if operational_scope not in _PROCESS_SCOPES:
+        raise ToolManifestError('Process operational_scope must be mine or plant')
+
     resolved_sections = tuple(body_sections)
     if not resolved_sections:
         raise ToolManifestError('Process manifest requires at least one body section')
@@ -28,12 +33,12 @@ def build_process_manifest(
         tool_key=tool_key,
         display_name=display_name,
         sections=(
-            ToolSection('header', 'Header', ToolSectionKind.REGION, ToolScope.PROCESS),
+            ToolSection('header', 'Header', ToolSectionKind.REGION, ToolScope.GLOBAL),
             ToolSection(
                 'global_indicators',
                 'Indicadores Globales',
                 ToolSectionKind.COMPONENT,
-                ToolScope.PROCESS,
+                operational_scope,
                 parent_key='header',
                 targets=_KPI,
             ),
@@ -41,36 +46,42 @@ def build_process_manifest(
                 'alarm_management',
                 'Gestión de Alarmas',
                 ToolSectionKind.COMPONENT,
-                ToolScope.PROCESS,
+                operational_scope,
                 parent_key='header',
             ),
             ToolSection(
                 'alarm_status',
                 'Estado de Alarmas',
                 ToolSectionKind.COMPONENT,
-                ToolScope.PROCESS,
+                ToolScope.GLOBAL,
                 parent_key='header',
             ),
             ToolSection(
                 'time_status',
                 'Estado Temporal',
                 ToolSectionKind.COMPONENT,
-                ToolScope.PROCESS,
+                ToolScope.GLOBAL,
             ),
-            ToolSection('body', 'Contenido', ToolSectionKind.REGION, ToolScope.PROCESS),
-            *(_build_process_body_section(section) for section in resolved_sections),
+            ToolSection('body', 'Contenido', ToolSectionKind.REGION, operational_scope),
+            *(
+                _build_process_body_section(section, operational_scope=operational_scope)
+                for section in resolved_sections
+            ),
         ),
     )
 
 
-# Deriva las capacidades de configuración de cada región del body.
-def _build_process_body_section(section: ProcessBodySection) -> ToolSection:
+def _build_process_body_section(
+    section: ProcessBodySection,
+    *,
+    operational_scope: ToolScope,
+) -> ToolSection:
     targets = _KPI_ALARM if section is ProcessBodySection.CENTER else _KPI
     return ToolSection(
         key=section.value,
         display_name=_display_name(section),
         kind=ToolSectionKind.COMPONENT,
-        scope=ToolScope.PROCESS,
+        scope=operational_scope,
         parent_key='body',
         targets=targets,
     )

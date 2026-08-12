@@ -22,6 +22,10 @@ package = false
 ada-ui-reference = { workspace = true }
 ada-ui-core = { workspace = true }
 ada-ui-navigation = { workspace = true }
+ada-ui-branding = { workspace = true }
+ada-ui-component-global-indicator = { workspace = true }
+ada-ui-header = { workspace = true }
+ada-contracts-tool-manifest = { path = "../contracts/tool-manifest", editable = true }
 atlanticus-web = { path = "../../../web/framework/core", editable = true }
 atlanticus-web-observability = { path = "../../../web/framework/observability", editable = true }
 atlanticus-web-navigation = { path = "../../../web/capabilities/navigation", editable = true }
@@ -33,6 +37,9 @@ atlanticus-web-users-local = { path = "../../../web/capabilities/users/local", e
 [tool.uv.workspace]
 members = [
     "core",
+    "branding",
+    "components/global-indicator",
+    "header",
     "navigation",
     "reference-app",
 ]
@@ -65,6 +72,9 @@ combine-as-imports = true
 [tool.pytest.ini_options]
 testpaths = [
     "core/tests",
+    "branding/tests",
+    "components/global-indicator/tests",
+    "header/tests",
     "navigation/tests",
     "reference-app/tests",
 ]
