@@ -44,6 +44,8 @@ class ResolvedUserRecord:
     email: str | None
     enabled: bool
     profile_key: str
+    # Conserva si la fuente ya materializó al usuario como pendiente.
+    pending: bool = False
 
     def __post_init__(self) -> None:
         profile_key = self.profile_key.strip().casefold()
@@ -60,7 +62,8 @@ class ResolvedUserRecord:
             display_name=self.display_name,
             email=self.email,
             enabled=self.enabled,
-            pending=False,
+            # El estado pending viaja desde la fuente hasta la sesión efectiva.
+            pending=self.pending,
             avatar_text=build_avatar_text(self.display_name),
             profile=profile,
         )

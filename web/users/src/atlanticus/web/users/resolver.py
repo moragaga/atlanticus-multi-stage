@@ -5,7 +5,7 @@ import hashlib
 from atlanticus.web.identity.access import AccessDecision, AccessResolver, AccessStatus
 from atlanticus.web.identity.errors import AccessResolverUnavailableError
 from atlanticus.web.identity.models import AuthenticatedIdentity
-from atlanticus.web.users.errors import UsersSourceUnavailableError
+from atlanticus.web.users.errors import UsersIdentityConflictError, UsersSourceUnavailableError
 from atlanticus.web.users.models import EffectiveUser, build_avatar_text
 from atlanticus.web.users.profiles import GUEST_PROFILE_KEY, ProfileCatalog
 from atlanticus.web.users.runtime import UsersRuntime
@@ -27,7 +27,7 @@ class UsersAccessResolver(AccessResolver):
     def resolve(self, identity: AuthenticatedIdentity, *, load_id: str) -> AccessDecision:
         try:
             record = self._source.resolve(identity)
-        except UsersSourceUnavailableError as error:
+        except (UsersSourceUnavailableError, UsersIdentityConflictError) as error:
             raise AccessResolverUnavailableError('Users source is unavailable') from error
 
         if record is None:

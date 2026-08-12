@@ -1,3 +1,5 @@
+import pytest
+
 from atlanticus.web.identity.access import AccessDecision, AccessSnapshot, AccessStatus
 from atlanticus.web.identity.models import AuthenticatedIdentity
 from atlanticus.web.users.models import ResolvedUserRecord
@@ -79,3 +81,28 @@ def test_disabled_user_returns_disabled_access_decision() -> None:
 
     assert decision.status is AccessStatus.USER_DISABLED
     assert decision.user_id == 'user-1'
+
+
+
+def test_identity_conflict_is_reported_as_users_service_unavailable() -> None:
+    from flask import Flask
+
+    from atlanticus.web.identity.errors import AccessResolverUnavailableError
+    from atlanticus.web.users.errors import UsersIdentityConflictError
+
+    class ConflictSource(UsersSource):
+        def resolve(self, identity: AuthenticatedIdentity) -> ResolvedUserRecord | None:
+            del identity
+            raise UsersIdentityConflictError('conflict')
+
+    server = Flask(__name__)
+    server.secret_key = 'test-only'
+    resolver = UsersAccessResolver(
+        source=ConflictSource(),
+        runtime=UsersRuntime(),
+        profiles=ProfileCatalog(),
+    )
+
+    with server.test_request_context('/'):
+        with pytest.raises(AccessResolverUnavailableError, match='Users source is unavailable'):
+            resolver.resolve(_identity(), load_id='load-1')

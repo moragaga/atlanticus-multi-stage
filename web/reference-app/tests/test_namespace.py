@@ -1,7 +1,6 @@
 import atlanticus.web
 import atlanticus.web.identity
 import atlanticus.web.users
-
 from atlanticus.web.application import create_web_application
 from atlanticus.web.assets import AssetLayer
 from atlanticus.web.identity.app_service import AppServiceIdentityProvider

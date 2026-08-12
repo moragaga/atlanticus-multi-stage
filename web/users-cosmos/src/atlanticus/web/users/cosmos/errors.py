@@ -1,0 +1,2 @@
+class UsersCosmosGatewayError(RuntimeError):
+    pass

@@ -1,4 +1,4 @@
-from atlanticus.web.users.models import EffectiveUser, build_avatar_text
+from atlanticus.web.users.models import EffectiveUser, ResolvedUserRecord, build_avatar_text
 from atlanticus.web.users.profiles import ProfileCatalog
 
 
@@ -31,3 +31,19 @@ def test_effective_user_contains_resolved_profile_and_full_access_policy() -> No
         profile=ProfileCatalog().require('local'),
     )
     assert local_user.has_full_access is True
+
+
+
+def test_resolved_record_preserves_pending_state() -> None:
+    profile = ProfileCatalog().require('guest')
+    user = ResolvedUserRecord(
+        user_id='pending:1',
+        subject_id='subject-1',
+        display_name='Pending User',
+        email='pending@example.com',
+        enabled=True,
+        profile_key='guest',
+        pending=True,
+    ).to_effective_user(profile=profile)
+
+    assert user.pending is True

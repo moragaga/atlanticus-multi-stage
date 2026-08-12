@@ -12,6 +12,7 @@ members = [
     "atlanticus-web-identity-app-service",
     "atlanticus-web-users",
     "atlanticus-web-users-local",
+    "atlanticus-web-users-cosmos",
     "atlanticus-web-reference",
     "atlanticus-web-workspace",
 ]
@@ -118,6 +119,19 @@ requires-dist = [
 ]
 
 [[package]]
+name = "atlanticus-web-users-cosmos"
+version = "0.1.0"
+source = { editable = "users-cosmos" }
+dependencies = [
+    { name = "atlanticus-web-users" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "atlanticus-web-users", editable = "users" },
+]
+
+[[package]]
 name = "atlanticus-web-navigation"
 version = "0.1.0"
 source = { editable = "navigation" }
@@ -178,6 +192,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "atlanticus-web-users-cosmos" },
     { name = "pytest" },
     { name = "ruff" },
 ]
@@ -189,6 +204,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "atlanticus-web-users-cosmos", editable = "users-cosmos" },
     { name = "pytest", specifier = "==9.1.1" },
     { name = "ruff", specifier = "==0.15.22" },
 ]

@@ -11,6 +11,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "atlanticus-web-users-cosmos==0.1.0",
     "pytest==9.1.1",
     "ruff==0.15.22",
 ]
@@ -27,6 +28,7 @@ atlanticus-web-identity-local = { workspace = true }
 atlanticus-web-identity-app-service = { workspace = true }
 atlanticus-web-users = { workspace = true }
 atlanticus-web-users-local = { workspace = true }
+atlanticus-web-users-cosmos = { workspace = true }
 atlanticus-web-navigation = { workspace = true }
 
 [tool.uv.workspace]
@@ -39,6 +41,7 @@ members = [
     "identity-app-service",
     "users",
     "users-local",
+    "users-cosmos",
     "reference-app",
 ]
 
@@ -75,6 +78,7 @@ testpaths = [
     "identity-app-service/tests",
     "users/tests",
     "users-local/tests",
+    "users-cosmos/tests",
     "reference-app/tests",
 ]
 addopts = "-q --import-mode=importlib"
