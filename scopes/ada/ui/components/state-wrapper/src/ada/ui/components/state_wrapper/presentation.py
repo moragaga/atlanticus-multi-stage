@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 from dash import html
 from dash.development.base_component import Component
 
-from .models import ComponentCover
+from .models import ComponentCover, normalize_ready_name
 
 StateWrapperContent = Component | Sequence[Component] | None
 
@@ -39,11 +39,43 @@ def build_state_wrapper(
     if component_id is not None:
         properties['id'] = component_id
     if ready_name is not None:
-        normalized_name = ready_name.strip()
-        if normalized_name:
-            properties['data-ready-name'] = normalized_name
+        properties['data-ready-name'] = normalize_ready_name(ready_name)
 
     return html.Div(**properties)
+
+
+def build_safe_state_wrapper(
+    *,
+    build_content: Callable[[], StateWrapperContent],
+    cover: ComponentCover | None = None,
+    component_id: str | dict | None = None,
+    class_name: str | None = None,
+    ready_name: str | None = None,
+    on_error: Callable[[Exception], None] | None = None,
+) -> html.Div:
+    try:
+        content = build_content()
+    except Exception as exc:
+        if on_error is not None:
+            try:
+                on_error(exc)
+            except Exception:
+                pass
+        return build_state_wrapper(
+            cover=ComponentCover.component_error(),
+            component_id=component_id,
+            class_name=class_name,
+            ready=True,
+            ready_name=ready_name,
+        )
+    return build_state_wrapper(
+        content=content,
+        cover=cover,
+        component_id=component_id,
+        class_name=class_name,
+        ready=True,
+        ready_name=ready_name,
+    )
 
 
 def _build_overlay(cover: ComponentCover) -> html.Div | None:

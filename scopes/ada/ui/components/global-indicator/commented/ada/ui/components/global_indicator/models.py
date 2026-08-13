@@ -1,5 +1,5 @@
-# Espejo comentado: define estados runtime, estilos y colecciones del indicador global.
-# La lógica ejecutable es idéntica al archivo productivo.
+# Espejo comentado del estado visual de Global Indicator.
+# Cada medición conserva su estado individual sin alterar la geometría del indicador.
 from __future__ import annotations
 
 import re
@@ -11,12 +11,15 @@ from typing import TypeAlias
 
 from dash.development.base_component import Component
 
+from ada.ui.core import DisplayValue, coerce_display_value
+
 from .errors import GlobalIndicatorDefinitionError
 
 _KEY_PATTERN = re.compile(r'^[a-z][a-z0-9_]*$')
 _CLASS_TOKEN = re.compile(r'^[A-Za-z_][A-Za-z0-9_-]*$')
 
-IndicatorValue: TypeAlias = str | int | float | Component | None
+IndicatorPrimitive: TypeAlias = str | int | float | Component
+IndicatorInput: TypeAlias = IndicatorPrimitive | DisplayValue | None
 IndicatorColorClass: TypeAlias = str | Component | None
 
 
@@ -48,15 +51,18 @@ class GlobalIndicatorStyle:
 
 @dataclass(frozen=True, slots=True)
 class GlobalIndicatorMeasurementState:
-    real_value: IndicatorValue
+    real_value: IndicatorInput
     temporality: str | None = None
-    plan_value: IndicatorValue = None
+    plan_value: IndicatorInput = None
     color_class: IndicatorColorClass = None
     kind: GlobalIndicatorMeasurementKind = GlobalIndicatorMeasurementKind.TEMPORAL
 
     def __post_init__(self) -> None:
+        object.__setattr__(self, 'real_value', coerce_display_value(self.real_value))
         if self.kind is GlobalIndicatorMeasurementKind.TEMPORAL:
             _require_text(self.temporality, field_name='temporality')
+            if self.plan_value is not None:
+                object.__setattr__(self, 'plan_value', coerce_display_value(self.plan_value))
             return
         if self.temporality is not None:
             raise GlobalIndicatorDefinitionError(
@@ -68,12 +74,12 @@ class GlobalIndicatorMeasurementState:
     @classmethod
     def temporal(
         cls,
-        real_value: IndicatorValue,
+        real_value: IndicatorInput,
         *,
         temporality: str,
-        plan_value: IndicatorValue = None,
+        plan_value: IndicatorInput = None,
         color_class: IndicatorColorClass = None,
-    ) -> GlobalIndicatorMeasurementState:
+    ) -> 'GlobalIndicatorMeasurementState':
         return cls(
             real_value=real_value,
             temporality=temporality,
@@ -84,10 +90,10 @@ class GlobalIndicatorMeasurementState:
     @classmethod
     def last_measurement(
         cls,
-        real_value: IndicatorValue,
+        real_value: IndicatorInput,
         *,
         color_class: IndicatorColorClass = None,
-    ) -> GlobalIndicatorMeasurementState:
+    ) -> 'GlobalIndicatorMeasurementState':
         return cls(
             real_value=real_value,
             color_class=color_class,
@@ -126,8 +132,7 @@ class GlobalIndicatorState:
         temporalities = [
             _normalize_label(item.temporality)
             for item in self.measurements
-            if item.kind is GlobalIndicatorMeasurementKind.TEMPORAL
-            and item.temporality is not None
+            if item.kind is GlobalIndicatorMeasurementKind.TEMPORAL and item.temporality is not None
         ]
         if len(temporalities) != len(set(temporalities)):
             raise GlobalIndicatorDefinitionError(
@@ -144,7 +149,7 @@ class GlobalIndicatorState:
         measurements: Iterable[GlobalIndicatorMeasurementState],
         definition_key: str | None = None,
         style: GlobalIndicatorStyle | None = None,
-    ) -> GlobalIndicatorState:
+    ) -> 'GlobalIndicatorState':
         return cls(
             key=key,
             label=label,
@@ -176,7 +181,7 @@ class GlobalIndicatorCollection:
     def from_iterable(
         cls,
         indicators: Iterable[GlobalIndicatorState],
-    ) -> GlobalIndicatorCollection:
+    ) -> 'GlobalIndicatorCollection':
         return cls(indicators=tuple(indicators))
 
     def to_component(self) -> Component:

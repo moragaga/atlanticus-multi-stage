@@ -12,6 +12,7 @@ classifiers = [
 ]
 dependencies = [
     "atlanticus-web==0.1.0",
+    "dash==4.4.1",
 ]
 
 [tool.setuptools]
@@ -27,4 +28,7 @@ include = ["ada.ui.core*"]
     "py.typed",
     "resources/css/*.css",
     "resources/css/css.list",
+    "resources/js/*.js",
+    "resources/js/js.list",
+    "resources/img/status/*.svg",
 ]

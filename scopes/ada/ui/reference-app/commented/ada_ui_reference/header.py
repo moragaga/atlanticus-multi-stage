@@ -1,5 +1,3 @@
-# Espejo comentado del Header de referencia consumiendo el runtime.
-# Mantiene el mismo AST que la implementación productiva.
 from datetime import date
 
 from ada.contracts.tool_manifest import INTEGRATED_OPERATIONS_MANIFEST, ToolScope
@@ -10,6 +8,7 @@ from ada.ui.components.global_indicator import (
     GlobalIndicatorState,
 )
 from ada.ui.components.state_wrapper import ComponentCover
+from ada.ui.core import coerce_display_value
 from ada.ui.header import (
     AlarmManagementSegmentState,
     AlarmManagementState,
@@ -22,6 +21,7 @@ from ada_ui_reference.runtime import ADA_RUNTIME_SERVICE
 from atlanticus.web.services import ServiceRegistry
 
 
+# La referencia combina estados sanos, degradados, stale y construction desde el primer render.
 def build_reference_header_state(services: ServiceRegistry):
     runtime = services.require(ADA_RUNTIME_SERVICE, AdaRuntime)
     snapshot = runtime.current().snapshot
@@ -34,40 +34,40 @@ def build_reference_header_state(services: ServiceRegistry):
         ),
         application_name='ADA',
         global_indicators=(
-            _indicator('transportado', 'Transportado', 'kt', ToolScope.MINE, '198', '220'),
-            _indicator('molienda', 'Molienda', 'kt', ToolScope.PLANT, '195', '210'),
-            _indicator('ley_cobre', 'Ley de Cobre', '%', ToolScope.PLANT, '0,52', '0,55'),
+            _indicator(snapshot, 'transportado', 'Transportado', 'kt', ToolScope.MINE, '220'),
+            _indicator(snapshot, 'molienda', 'Molienda', 'kt', ToolScope.PLANT, '210'),
+            _indicator(snapshot, 'ley_cobre', 'Ley de Cobre', '%', ToolScope.PLANT, '0,55'),
             _indicator(
+                snapshot,
                 'recuperacion_cu',
                 'Recuperación Cu',
                 '%',
                 ToolScope.PLANT,
-                '89,4',
                 '90,5',
             ),
             _indicator(
+                snapshot,
                 'cu_fino_producido',
                 'Cu Fino Producido',
                 't',
                 ToolScope.PLANT,
-                '920',
                 '1.050',
             ),
             _indicator(
+                snapshot,
                 'mo_fino_producido',
                 'Mo Fino Producido',
                 't',
                 ToolScope.PLANT,
-                '28',
                 '33',
             ),
-            _indicator('expit', 'ExPit', 't', ToolScope.MINE, '376', '426'),
+            _indicator(snapshot, 'expit', 'ExPit', 't', ToolScope.MINE, '426'),
             _indicator(
+                snapshot,
                 'cu_fino_filtrado_pagable',
                 'Cu Fino Filtr. Pag.',
                 't',
                 ToolScope.PLANT,
-                '1.886',
                 '1.784',
             ),
         ),
@@ -91,6 +91,7 @@ def build_reference_header_state(services: ServiceRegistry):
         ),
         section_states=HeaderSectionStates(
             global_indicators=_cover_from_guard(indicators_guard.state),
+            alarm_management=ComponentCover.stale(),
             alarm_status=ComponentCover.construction(),
         ),
     )
@@ -107,17 +108,18 @@ def _cover_from_guard(state: GuardState) -> ComponentCover:
 
 
 def _indicator(
+    snapshot,
     key: str,
     label: str,
     unit: str,
     scope: ToolScope,
-    day_value: str,
-    day_plan: str,
+    plan: str,
 ) -> HeaderIndicatorPlacement:
     section_key = {
         ToolScope.MINE: 'global_indicators_mine',
         ToolScope.PLANT: 'global_indicators_plant',
     }[scope]
+    value = coerce_display_value(snapshot.value(key))
     return HeaderIndicatorPlacement(
         section_key=section_key,
         scope=scope,
@@ -128,14 +130,14 @@ def _indicator(
             definition_key=key,
             measurements=(
                 GlobalIndicatorMeasurementState.temporal(
-                    day_value,
+                    value,
                     temporality='Día',
-                    plan_value=day_plan,
+                    plan_value=plan,
                 ),
                 GlobalIndicatorMeasurementState.temporal(
-                    day_value,
+                    value,
                     temporality='Semana',
-                    plan_value=day_plan,
+                    plan_value=plan,
                 ),
             ),
         ),

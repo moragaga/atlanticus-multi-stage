@@ -42,3 +42,4 @@ def test_reference_navigation_is_definition_not_user_specific_menu() -> None:
     assert isinstance(definition, NavigationDefinition)
     assert definition.links[0].href == '/'
     assert definition.groups[0].links[0].href == '/status'
+

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 from ada.runtime.web import AdaRuntime, RuntimeDefinition, RuntimeSnapshot, SourceState, ValueState
 from atlanticus.web.modules import WebModule
@@ -47,18 +47,22 @@ def _build_runtime() -> AdaRuntime:
 def _load_reference_snapshot() -> RuntimeSnapshot:
     now = datetime.now(UTC)
     return RuntimeSnapshot(
-        revision='reference-1',
+        revision='reference-2',
         loaded_at_utc=now,
         sources={
-            'pi': SourceState.healthy(
-                'pi',
-                updated_at_utc=now - timedelta(minutes=8),
-                stale=True,
-            ),
-            'dispatch': SourceState.healthy(
-                'dispatch',
-                updated_at_utc=now - timedelta(seconds=20),
+            'pi': SourceState.healthy('pi', updated_at_utc=now),
+            'dispatch': SourceState.healthy('dispatch', updated_at_utc=now),
+        },
+        values={
+            'transportado': ValueState.ok('transportado', '198'),
+            'ley_cobre': ValueState.empty('ley_cobre'),
+            'recuperacion_cu': ValueState.invalid('recuperacion_cu'),
+            'cu_fino_producido': ValueState.error('cu_fino_producido'),
+            'mo_fino_producido': ValueState.ok('mo_fino_producido', '28'),
+            'expit': ValueState.ok('expit', '376'),
+            'cu_fino_filtrado_pagable': ValueState.ok(
+                'cu_fino_filtrado_pagable',
+                '1.886',
             ),
         },
-        values={key: ValueState.invalid(key) for key in REFERENCE_INDICATOR_KEYS},
     )

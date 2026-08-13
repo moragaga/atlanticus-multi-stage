@@ -1,34 +1,52 @@
 from ada.ui.components.global_indicator import (
     GlobalIndicatorDefinition,
     GlobalIndicatorMeasurementDefinition,
-    map_global_indicator_state,
+    map_global_indicator_collection,
 )
+from ada.ui.core import DisplayStatus
 
 
-def test_mapper_supports_last_measurement_without_special_tool_logic() -> None:
-    definition = GlobalIndicatorDefinition(
+class RuntimeValue:
+    def __init__(self, status, value=None):
+        self.status = status
+        self.value = value
+
+
+def _definition() -> GlobalIndicatorDefinition:
+    return GlobalIndicatorDefinition(
         key='recuperacion_cu',
         label='Recuperación Cu',
         unit='%',
-        definition_key='recuperacion_cu',
         measurements=(
             GlobalIndicatorMeasurementDefinition.temporal('Día'),
             GlobalIndicatorMeasurementDefinition.temporal('Semana'),
-            GlobalIndicatorMeasurementDefinition.last_measurement(),
         ),
     )
-    state = map_global_indicator_state(
-        definition=definition,
+
+
+def test_mapper_keeps_configured_indicator_when_values_are_missing() -> None:
+    collection = map_global_indicator_collection(definitions=(_definition(),), kpis={})
+    indicator = collection.indicators[0]
+
+    assert indicator.key == 'recuperacion_cu'
+    assert indicator.measurements[0].real_value.status is DisplayStatus.NOT_MAPPED
+    assert indicator.measurements[0].plan_value.status is DisplayStatus.NOT_MAPPED
+    assert indicator.measurements[1].real_value.status is DisplayStatus.NOT_MAPPED
+
+
+def test_mapper_accepts_runtime_style_value_states_without_runtime_dependency() -> None:
+    collection = map_global_indicator_collection(
+        definitions=(_definition(),),
         kpis={
-            'recuperacion_cu_dia_real_inst': '89,4',
-            'recuperacion_cu_dia_plan_inst': '90,5',
-            'recuperacion_cu_semana_real_inst': '89,1',
-            'recuperacion_cu_semana_plan_inst': '90,5',
-            'recuperacion_cu_actual_real_inst': '88,9',
+            'recuperacion_cu_dia_real_inst': RuntimeValue('invalid'),
+            'recuperacion_cu_dia_plan_inst': RuntimeValue('ok', '90,5'),
+            'recuperacion_cu_semana_real_inst': RuntimeValue('empty'),
+            'recuperacion_cu_semana_plan_inst': RuntimeValue('error'),
         },
     )
+    indicator = collection.indicators[0]
 
-    assert [item.temporality for item in state.measurements] == ['Día', 'Semana', None]
-    assert state.measurements[-1].is_last_measurement is True
-    assert state.measurements[-1].real_value == '88,9'
-    assert state.definition_key == 'recuperacion_cu'
+    assert indicator.measurements[0].real_value.status is DisplayStatus.INVALID
+    assert indicator.measurements[0].plan_value.value == '90,5'
+    assert indicator.measurements[1].real_value.status is DisplayStatus.EMPTY
+    assert indicator.measurements[1].plan_value.status is DisplayStatus.ERROR

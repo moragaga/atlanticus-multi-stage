@@ -1,5 +1,4 @@
-# Espejo comentado: construye las primitivas visuales de filas temporales y última medición.
-# La lógica ejecutable es idéntica al archivo productivo.
+# Espejo comentado del renderer de valores e iconos defensivos de Global Indicator.
 from __future__ import annotations
 
 import re
@@ -7,11 +6,12 @@ import re
 from dash import html
 from dash.development.base_component import Component
 
+from ada.ui.core import DisplayStatus, DisplayValue, resolve_status_visual
+
 from .models import (
     GlobalIndicatorMeasurementState,
     GlobalIndicatorStyle,
     IndicatorColorClass,
-    IndicatorValue,
 )
 
 _CLASS_TOKEN = re.compile(r'^[A-Za-z_][A-Za-z0-9_-]*$')
@@ -75,7 +75,7 @@ def _build_table_row(
         className='global-indicator__row',
         children=[
             _build_table_value_cell(
-                value=state.temporality,
+                value=DisplayValue.ok(state.temporality),
                 value_class_name=(
                     f'global-indicator__value--temporality {style.temporality_class}'
                 ),
@@ -97,13 +97,14 @@ def _build_table_row(
 
 def _build_table_value_cell(
     *,
-    value: IndicatorValue,
+    value: DisplayValue | None,
     color_class: IndicatorColorClass = None,
     value_class_name: str = '',
     is_header: bool = False,
 ) -> Component:
     component = html.Th if is_header else html.Td
     attributes = {'scope': 'row'} if is_header else {}
+    resolved_value = value or DisplayValue.empty()
     return component(
         className='global-indicator__cell',
         children=[
@@ -113,11 +114,13 @@ def _build_table_value_cell(
                     for part in (
                         'global-indicator__value',
                         value_class_name,
-                        _safe_class_names(value=color_class),
+                        _safe_class_names(value=color_class)
+                        if resolved_value.status is DisplayStatus.OK
+                        else '',
                     )
                     if part
                 ),
-                children=[_safe_value(value=value)],
+                children=[_build_display_value(resolved_value)],
             )
         ],
         **attributes,
@@ -139,7 +142,7 @@ def _build_table_separator_cell(*, class_name: str) -> Component:
 def _build_last_measurement(
     *,
     label_class_name: str,
-    value: IndicatorValue,
+    value: DisplayValue,
     value_class_name: str,
     color_class: IndicatorColorClass = None,
 ) -> Component:
@@ -152,11 +155,13 @@ def _build_last_measurement(
                     for part in (
                         'global-indicator__last-measurement-value',
                         value_class_name,
-                        _safe_class_names(value=color_class),
+                        _safe_class_names(value=color_class)
+                        if value.status is DisplayStatus.OK
+                        else '',
                     )
                     if part
                 ),
-                children=[_safe_value(value=value)],
+                children=[_build_display_value(value)],
             ),
             html.P(
                 className=f'global-indicator__last-measurement-label {label_class_name}',
@@ -166,12 +171,23 @@ def _build_last_measurement(
     )
 
 
-def _safe_value(*, value: IndicatorValue) -> str | Component:
-    if isinstance(value, Component):
-        return value
-    if value is None:
+def _build_display_value(value: DisplayValue) -> str | Component:
+    if value.status is DisplayStatus.OK:
+        if isinstance(value.value, Component):
+            return value.value
+        return str(value.value)
+
+    visual = resolve_status_visual(value.status)
+    if visual is None:
+        visual = resolve_status_visual(DisplayStatus.ERROR)
+    if visual is None:
         return '-'
-    return str(value)
+    return html.Img(
+        src=visual.asset_url,
+        alt=visual.alt,
+        title=visual.title,
+        className='ada-status-icon global-indicator__status-icon',
+    )
 
 
 def _safe_class_names(*, value: IndicatorColorClass) -> str:

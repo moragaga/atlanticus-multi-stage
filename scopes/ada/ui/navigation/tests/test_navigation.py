@@ -105,7 +105,7 @@ def test_approved_navigation_css_is_copied_without_redesign() -> None:
         / 'navigation'
         / 'resources'
         / 'css'
-        / '10_navigation.css'
+        / '10-navigation.css'
     ).read_text(encoding='utf-8')
 
     assert '.dashboard-menu-btn-desktop {' in css

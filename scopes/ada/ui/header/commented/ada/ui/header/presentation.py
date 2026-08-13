@@ -1,5 +1,3 @@
-# Espejo comentado del renderer del Header.
-# Mantiene el mismo AST que la implementación productiva.
 from __future__ import annotations
 
 import base64
@@ -11,7 +9,7 @@ from dash.development.base_component import Component
 
 from ada.ui.branding import brand_asset_resource
 from ada.ui.components.global_indicator import build_global_indicator
-from ada.ui.components.state_wrapper import build_state_wrapper
+from ada.ui.components.state_wrapper import build_safe_state_wrapper, build_state_wrapper
 
 from .errors import HeaderPresentationError
 from .models import (
@@ -97,6 +95,7 @@ def build_alarm_status(state: AlarmStatusState | None) -> html.Div | None:
     )
 
 
+# Cada slot se protege de manera aislada: un fallo no derriba el Header completo.
 def _build_indicators_slot(state: HeaderState) -> html.Div:
     content = html.Div(
         className='ada-header__indicators',
@@ -108,9 +107,10 @@ def _build_indicators_slot(state: HeaderState) -> html.Div:
         className='ada-header__indicators-slot',
         **{'data-section-key': 'global_indicators'},
         children=[
-            build_state_wrapper(
-                content=content,
+            build_safe_state_wrapper(
+                build_content=lambda: content,
                 cover=state.section_states.global_indicators,
+                ready_name='global-indicators',
             )
         ],
     )
@@ -121,9 +121,10 @@ def _build_management_slot(state: HeaderState) -> html.Div:
         className='ada-header__management-slot',
         **{'data-section-key': 'alarm_management'},
         children=[
-            build_state_wrapper(
-                content=build_alarm_management(state.alarm_management),
+            build_safe_state_wrapper(
+                build_content=lambda: build_alarm_management(state.alarm_management),
                 cover=state.section_states.alarm_management,
+                ready_name='alarm-management',
             )
         ],
     )
@@ -134,14 +135,16 @@ def _build_alarm_status_slot(state: HeaderState) -> html.Div:
         className='ada-header__alarm-status-slot',
         **{'data-section-key': 'alarm_status'},
         children=[
-            build_state_wrapper(
-                content=build_alarm_status(state.alarm_status),
+            build_safe_state_wrapper(
+                build_content=lambda: build_alarm_status(state.alarm_status),
                 cover=state.section_states.alarm_status,
+                ready_name='alarm-status',
             )
         ],
     )
 
 
+# Cada indicador también tiene su propia frontera defensiva.
 def _build_global_indicator_placement(placement: HeaderIndicatorPlacement) -> html.Div:
     attributes = {
         'data-indicator-key': placement.indicator.key,
@@ -153,7 +156,11 @@ def _build_global_indicator_placement(placement: HeaderIndicatorPlacement) -> ht
     return html.Div(
         className='ada-header__global-indicator',
         **attributes,
-        children=[build_global_indicator(state=placement.indicator)],
+        children=[
+            build_safe_state_wrapper(
+                build_content=lambda: build_global_indicator(state=placement.indicator),
+            )
+        ],
     )
 
 

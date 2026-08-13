@@ -127,3 +127,50 @@ def _find_by_class(component: Component, class_name: str) -> Component | None:
 
 def _prop(component: Component, name: str):
     return component.to_plotly_json()['props'][name]
+
+
+def test_broken_global_indicator_is_covered_without_breaking_header(monkeypatch) -> None:
+    import ada.ui.header.presentation as header_presentation
+
+    manifest = build_process_manifest(
+        tool_key='chancado_stmg',
+        display_name='Chancado STMG',
+        operational_scope=ToolScope.MINE,
+        body_sections=(ProcessBodySection.CENTER,),
+    )
+    state = create_header_state(
+        manifest=manifest,
+        brand=resolve_brand(
+            ATLANTICUS_BRAND_MANIFEST,
+            BrandContext(current_date=date(2026, 8, 12)),
+        ),
+        application_name='ADA',
+        global_indicators=(
+            HeaderIndicatorPlacement(
+                section_key='global_indicators',
+                scope=ToolScope.MINE,
+                indicator=GlobalIndicatorState(
+                    key='transportado',
+                    label='Transportado',
+                    unit='kt',
+                    measurements=(
+                        GlobalIndicatorMeasurementState.temporal(
+                            '198',
+                            temporality='Día',
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    )
+
+    def broken_renderer(*, state):
+        raise RuntimeError(state.key)
+
+    monkeypatch.setattr(header_presentation, 'build_global_indicator', broken_renderer)
+    component = build_ada_header(state)
+    indicator = _require_by_class(component, 'ada-header__global-indicator')
+    wrapper = _require_descendant(indicator, 'ada-state-wrapper')
+
+    assert _prop(wrapper, 'data-cover') == 'component-error'
+    assert _prop(wrapper, 'data-ready') == 'true'

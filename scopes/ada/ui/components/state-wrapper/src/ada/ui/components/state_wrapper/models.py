@@ -7,14 +7,15 @@ from enum import StrEnum
 from .errors import StateWrapperDefinitionError
 
 _CLASS_TOKEN = re.compile(r'^[A-Za-z_][A-Za-z0-9_-]*$')
+_READY_NAME = re.compile(r'^[a-z][a-z0-9-]*$')
 
 
 class CoverState(StrEnum):
     NONE = 'none'
     CONSTRUCTION = 'construction'
     STALE = 'stale'
-    SOURCE_ERROR = 'source_error'
-    COMPONENT_ERROR = 'component_error'
+    SOURCE_ERROR = 'source-error'
+    COMPONENT_ERROR = 'component-error'
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,7 +34,7 @@ class ComponentCover:
             _require_class_tokens(self.icon_class)
 
     @classmethod
-    def none(cls) -> ComponentCover:
+    def none(cls) -> 'ComponentCover':
         return cls()
 
     @classmethod
@@ -42,7 +43,7 @@ class ComponentCover:
         *,
         message: str = 'Datos desactualizados',
         icon_class: str = 'bi bi-cloud-slash',
-    ) -> ComponentCover:
+    ) -> 'ComponentCover':
         return cls(CoverState.STALE, message, icon_class)
 
     @classmethod
@@ -51,7 +52,7 @@ class ComponentCover:
         *,
         message: str = 'En construcción',
         icon_class: str = 'bi bi-hammer',
-    ) -> ComponentCover:
+    ) -> 'ComponentCover':
         return cls(CoverState.CONSTRUCTION, message, icon_class)
 
     @classmethod
@@ -60,7 +61,7 @@ class ComponentCover:
         *,
         message: str = 'Problemas con la fuente de datos',
         icon_class: str = 'bi bi-cloud-slash',
-    ) -> ComponentCover:
+    ) -> 'ComponentCover':
         return cls(CoverState.SOURCE_ERROR, message, icon_class)
 
     @classmethod
@@ -69,12 +70,19 @@ class ComponentCover:
         *,
         message: str = 'No fue posible mostrar este componente',
         icon_class: str = 'bi bi-exclamation-triangle',
-    ) -> ComponentCover:
+    ) -> 'ComponentCover':
         return cls(CoverState.COMPONENT_ERROR, message, icon_class)
 
     @property
     def covered(self) -> bool:
         return self.state is not CoverState.NONE
+
+
+def normalize_ready_name(value: str) -> str:
+    normalized = value.strip()
+    if not _READY_NAME.fullmatch(normalized):
+        raise StateWrapperDefinitionError(f'Invalid readiness name: {value!r}')
+    return normalized
 
 
 def _require_class_tokens(value: str) -> None:
