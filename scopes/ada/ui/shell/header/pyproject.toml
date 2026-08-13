@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools==83.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ada-ui-shell-header"
+version = "0.1.0"
+description = "Header operacional reutilizable para herramientas ADA"
+requires-python = "==3.14.2"
+classifiers = [
+    "Private :: Do Not Upload",
+]
+dependencies = [
+    "ada-contracts-tool-manifest==0.1.0",
+    "ada-ui-component-branding==0.1.0",
+    "ada-ui-component-global-indicator==0.1.0",
+    "ada-ui-component-state-wrapper==0.1.0",
+    "ada-ui-framework-core==0.1.0",
+    "atlanticus-web==0.1.0",
+    "dash==4.4.1",
+]
+
+[tool.uv.sources]
+ada-contracts-tool-manifest = { workspace = true }
+ada-ui-component-branding = { workspace = true }
+ada-ui-component-global-indicator = { workspace = true }
+ada-ui-component-state-wrapper = { workspace = true }
+ada-ui-framework-core = { workspace = true }
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = true
+include = ["ada.ui.shell.header*"]
+
+[tool.setuptools.package-data]
+"ada.ui.shell.header" = [
+    "py.typed",
+    "resources/css/*.css",
+    "resources/css/css.list",
+]

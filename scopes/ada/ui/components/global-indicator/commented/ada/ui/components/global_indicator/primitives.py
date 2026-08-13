@@ -6,7 +6,7 @@ import re
 from dash import html
 from dash.development.base_component import Component
 
-from ada.ui.core import DisplayStatus, DisplayValue, resolve_status_visual
+from ada.ui.framework.core import DisplayStatus, DisplayValue, resolve_status_visual
 
 from .models import (
     GlobalIndicatorMeasurementState,

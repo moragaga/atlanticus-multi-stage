@@ -9,7 +9,7 @@ from typing import TypeAlias
 
 from dash.development.base_component import Component
 
-from ada.ui.core import DisplayValue, coerce_display_value
+from ada.ui.framework.core import DisplayValue, coerce_display_value
 
 from .errors import GlobalIndicatorDefinitionError
 

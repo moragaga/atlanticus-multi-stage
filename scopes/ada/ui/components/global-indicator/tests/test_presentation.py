@@ -5,7 +5,7 @@ from ada.ui.components.global_indicator import (
     build_global_indicator,
     build_global_indicators,
 )
-from ada.ui.core import DisplayValue
+from ada.ui.framework.core import DisplayValue
 
 
 def _props(component):

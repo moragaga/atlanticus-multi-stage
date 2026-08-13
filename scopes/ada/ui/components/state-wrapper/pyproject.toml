@@ -11,13 +11,13 @@ classifiers = [
     "Private :: Do Not Upload",
 ]
 dependencies = [
-    "ada-ui-core==0.1.0",
+    "ada-ui-framework-core==0.1.0",
     "atlanticus-web==0.1.0",
     "dash==4.4.1",
 ]
 
 [tool.uv.sources]
-ada-ui-core = { workspace = true }
+ada-ui-framework-core = { workspace = true }
 
 [tool.setuptools]
 package-dir = {"" = "src"}

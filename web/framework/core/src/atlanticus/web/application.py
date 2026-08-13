@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import importlib.util
 import re
+from pathlib import Path
 
 from atlanticus.web.assets import AssetLayer, publish_asset_layers
 from atlanticus.web.environment import WebEnvironment, resolve_environment
@@ -81,7 +83,16 @@ def _compose_web_application(
         publications_root=definition.publications_root,
     )
 
-    server = Flask(definition.import_name)
+    flask_paths = _resolve_namespace_flask_paths(definition.import_name)
+    if flask_paths is None:
+        server = Flask(definition.import_name)
+    else:
+        root_path, instance_path = flask_paths
+        server = Flask(
+            definition.import_name,
+            root_path=str(root_path),
+            instance_path=str(instance_path),
+        )
     server.config.update(dict(definition.flask_config))
     observability.attach_flask(server)
 
@@ -154,6 +165,45 @@ def _compose_web_application(
         raise WebDefinitionError('Atlanticus Web is already registered in this Flask application')
     server.extensions[_EXTENSION_KEY] = runtime
     return runtime
+
+
+def _resolve_namespace_flask_paths(import_name: str) -> tuple[Path, Path] | None:
+    root_name = import_name.partition('.')[0]
+    try:
+        root_spec = importlib.util.find_spec(root_name)
+    except (ImportError, ValueError):
+        return None
+
+    if (
+        root_spec is None
+        or not root_spec.submodule_search_locations
+        or root_spec.origin not in {None, 'namespace'}
+    ):
+        return None
+
+    try:
+        package_spec = importlib.util.find_spec(import_name)
+    except (ImportError, ValueError) as error:
+        raise WebDefinitionError(
+            f'Application import name could not be resolved: {import_name}'
+        ) from error
+
+    if package_spec is None:
+        raise WebDefinitionError(
+            f'Application import name could not be resolved: {import_name}'
+        )
+
+    if package_spec.origin not in {None, 'namespace'}:
+        root_path = Path(package_spec.origin).resolve().parent
+    else:
+        locations = tuple(package_spec.submodule_search_locations or ())
+        if len(locations) != 1:
+            raise WebDefinitionError(
+                f'Application import name must resolve to one filesystem location: {import_name}'
+            )
+        root_path = Path(locations[0]).resolve()
+
+    return root_path, root_path.parent / 'instance'
 
 
 def _collect_asset_layers(definition: WebApplicationDefinition) -> tuple[AssetLayer, ...]:

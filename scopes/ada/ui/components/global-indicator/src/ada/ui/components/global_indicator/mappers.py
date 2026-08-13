@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from ada.ui.core import DisplayValue, coerce_display_value
+from ada.ui.framework.core import DisplayValue, coerce_display_value
 
 from .definitions import GlobalIndicatorDefinition, GlobalIndicatorMeasurementDefinition
 from .models import (

@@ -3,7 +3,7 @@ from ada.ui.components.global_indicator import (
     GlobalIndicatorMeasurementDefinition,
     map_global_indicator_collection,
 )
-from ada.ui.core import DisplayStatus
+from ada.ui.framework.core import DisplayStatus
 
 
 class RuntimeValue:

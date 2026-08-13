@@ -24,8 +24,8 @@ def _build_layer(tmp_path: Path) -> AssetLayer:
     return AssetLayer(name='test', load_order=100, source_directory=tmp_path / 'layer')
 
 
-def _build_page_package(tmp_path: Path) -> str:
-    package = tmp_path / 'test_web_pages'
+def _build_page_package(tmp_path: Path, package_name: str = 'test_web_pages') -> str:
+    package = tmp_path / package_name
     package.mkdir()
     (package / '__init__.py').write_text('', encoding='utf-8')
     (package / '_private.py').write_text(
@@ -44,7 +44,14 @@ def _build_page_package(tmp_path: Path) -> str:
         "layout = html.Div('Status')\n",
         encoding='utf-8',
     )
-    return 'test_web_pages'
+    return package_name
+
+
+def _build_namespaced_application_package(tmp_path: Path) -> tuple[str, Path]:
+    package = tmp_path / 'test_namespace' / 'applications' / 'reference'
+    package.mkdir(parents=True)
+    (package / '__init__.py').write_text('', encoding='utf-8')
+    return 'test_namespace.applications.reference', package
 
 
 def test_application_composes_pages_services_middlewares_routes_and_index(
@@ -134,3 +141,31 @@ def test_application_requires_pages(tmp_path: Path) -> None:
                 asset_layers=(_build_layer(tmp_path),),
             ),
         )
+
+def test_application_supports_concrete_package_below_namespace_root(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    import_name, package_path = _build_namespaced_application_package(tmp_path)
+    page_package = _build_page_package(tmp_path, 'test_namespace_pages')
+    monkeypatch.syspath_prepend(str(tmp_path))
+    monkeypatch.delenv('ATLANTICUS_ENVIRONMENT', raising=False)
+
+    runtime = create_web_application(
+        WebApplicationDefinition(
+            import_name=import_name,
+            metadata=ApplicationMetadata(
+                application_id='test-namespace-web',
+                display_name='Test Namespace Web',
+                version='0.1.0',
+            ),
+            publications_root=tmp_path / 'published',
+            layout=lambda _services: html.Main(page_container),
+            page_packages=(page_package,),
+            asset_layers=(_build_layer(tmp_path),),
+        ),
+    )
+
+    assert Path(runtime.server.root_path) == package_path.resolve()
+    assert Path(runtime.server.instance_path) == package_path.resolve().parent / 'instance'
+

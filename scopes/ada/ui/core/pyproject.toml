@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ada-ui-core"
 version = "0.1.0"
-description = "Base visual compartida para capabilities UI del scope ADA"
+description = "Base visual compartida para la UI del scope ADA"
 requires-python = "==3.14.2"
 classifiers = [
     "Private :: Do Not Upload",

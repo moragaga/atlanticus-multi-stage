@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools==83.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ada-ui-framework-core"
+version = "0.1.0"
+description = "Framework visual base compartido para la UI del scope ADA"
+requires-python = "==3.14.2"
+classifiers = [
+    "Private :: Do Not Upload",
+]
+dependencies = [
+    "atlanticus-web==0.1.0",
+    "dash==4.4.1",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = true
+include = ["ada.ui.framework.core*"]
+
+[tool.setuptools.package-data]
+"ada.ui.framework.core" = [
+    "py.typed",
+    "resources/css/*.css",
+    "resources/css/css.list",
+    "resources/js/*.js",
+    "resources/js/js.list",
+    "resources/img/status/*.svg",
+]
