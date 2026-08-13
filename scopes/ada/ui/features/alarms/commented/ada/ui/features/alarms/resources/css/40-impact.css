@@ -1,0 +1,4 @@
+/* Espejo pedagógico: baseline estable, ruta activa y borde semántico sin alterar el contenido. */
+[data-ada-alarm-impact='active'] {
+    border-color: var(--ada-alarm-active-color) !important;
+}

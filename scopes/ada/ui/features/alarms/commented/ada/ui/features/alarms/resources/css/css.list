@@ -1,2 +1,4 @@
-/* Espejo pedagógico del asset productivo; conserva el mismo comportamiento visual. */
 10-header-presentations.css
+20-dashboard-baseline.css
+30-dashboard-routes.css
+40-impact.css

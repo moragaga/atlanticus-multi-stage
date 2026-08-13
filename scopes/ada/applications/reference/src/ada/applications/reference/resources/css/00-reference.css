@@ -80,3 +80,184 @@ body {
     min-height: 100vh;
     min-height: 100dvh;
 }
+
+.reference-ada__alarm-baselines {
+    display: grid;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.reference-ada__alarm-baselines > h2,
+.reference-ada__alarm-baselines > p,
+.reference-ada__alarm-baseline-example > h3 {
+    margin: 0;
+}
+
+.reference-ada__alarm-baseline-example {
+    display: grid;
+    gap: .5rem;
+}
+
+.reference-ada__alarm-example-grid,
+.reference-ada__alarm-process-variants {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+}
+
+.reference-ada__alarm-geometry-scope {
+    --reference-alarm-frame-padding: .75rem;
+    --reference-alarm-layout-gap: .35rem;
+    --reference-alarm-io-columns:
+        minmax(0, 1fr)
+        minmax(0, 2fr)
+        repeat(6, minmax(0, 1fr));
+    position: relative;
+    min-width: 0;
+    padding-block: .75rem;
+    background: var(--secondary-background);
+    border: 1px solid var(--primary-border-color);
+    border-radius: .5rem;
+}
+
+.reference-ada__alarm-example-label,
+.reference-ada__alarm-content-frame,
+.reference-ada__alarm-body-frame {
+    padding-inline: var(--reference-alarm-frame-padding);
+}
+
+.reference-ada__alarm-example-label {
+    margin-bottom: .5rem;
+    color: var(--custom-text-color);
+    font-size: .7rem;
+    font-weight: 700;
+}
+
+.reference-ada__alarm-content-frame {
+    margin-bottom: 1.25rem;
+}
+
+.reference-ada__alarm-body-frame {
+    padding-top: .25rem;
+}
+
+.reference-ada__alarm-card-slot {
+    min-width: 0;
+}
+
+.reference-ada__alarm-card {
+    position: relative;
+    z-index: 4;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    background: #EBEBEB;
+    border: .1125rem solid var(--primary-border-color);
+    border-radius: .6rem;
+}
+
+.reference-ada__alarm-card-band {
+    display: flex;
+    min-height: 1.1rem;
+    align-items: center;
+    padding: 0 .45rem;
+    background: var(--ada-alarm-active-color, #BDBDBD);
+    color: var(--ada-alarm-active-foreground, #FFFFFF);
+    font-size: .5rem;
+    font-weight: 700;
+    letter-spacing: .03rem;
+}
+
+.reference-ada__alarm-card-body {
+    min-height: 2.3rem;
+    padding: .4rem .45rem;
+    overflow-wrap: anywhere;
+    color: var(--custom-text-color);
+    font-size: .6rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.reference-ada__alarm-io-placement-grid,
+.reference-ada__alarm-io-grid {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: var(--reference-alarm-io-columns);
+    gap: var(--reference-alarm-layout-gap);
+}
+
+.reference-ada__alarm-io-double {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--reference-alarm-layout-gap);
+}
+
+.reference-ada__alarm-process-placement-grid {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: var(--reference-alarm-layout-gap);
+}
+
+.reference-ada__alarm-process-grid {
+    --reference-alarm-process-gap: .35rem;
+    --reference-alarm-process-half-gap: .175rem;
+    --reference-alarm-process-side-width: calc(25% - var(--reference-alarm-process-half-gap));
+    display: grid;
+    min-width: 0;
+    gap: var(--reference-alarm-process-gap);
+}
+
+.reference-ada__alarm-process-grid--full {
+    grid-template-columns:
+        var(--reference-alarm-process-side-width)
+        minmax(0, 1fr)
+        var(--reference-alarm-process-side-width);
+    grid-template-areas: 'left center right';
+}
+
+.reference-ada__alarm-process-grid--left-center {
+    grid-template-columns: var(--reference-alarm-process-side-width) minmax(0, 1fr);
+    grid-template-areas: 'left center';
+}
+
+.reference-ada__alarm-process-grid--center-right {
+    grid-template-columns: minmax(0, 1fr) var(--reference-alarm-process-side-width);
+    grid-template-areas: 'center right';
+}
+
+.reference-ada__alarm-process-grid--center-only {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'center';
+}
+
+.reference-ada__alarm-target {
+    display: flex;
+    min-width: 0;
+    min-height: 4rem;
+    align-items: center;
+    justify-content: center;
+    padding: .5rem;
+    overflow: hidden;
+    background: var(--primary-background);
+    border: 1px solid var(--primary-border-color);
+    border-radius: .35rem;
+    color: var(--custom-text-color);
+    font-size: .7rem;
+    font-weight: 600;
+    text-align: center;
+    text-overflow: ellipsis;
+}
+
+.reference-ada__alarm-target--left {
+    grid-area: left;
+}
+
+.reference-ada__alarm-target--center {
+    grid-area: center;
+}
+
+.reference-ada__alarm-target--right {
+    grid-area: right;
+}

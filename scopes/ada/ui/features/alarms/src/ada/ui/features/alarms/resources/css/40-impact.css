@@ -1,0 +1,3 @@
+[data-ada-alarm-impact='active'] {
+    border-color: var(--ada-alarm-active-color) !important;
+}

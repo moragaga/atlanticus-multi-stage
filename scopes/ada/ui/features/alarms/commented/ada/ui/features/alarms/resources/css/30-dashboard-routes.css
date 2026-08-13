@@ -1,0 +1,45 @@
+/* Espejo pedagógico: baseline estable, ruta activa y borde semántico sin alterar el contenido. */
+.ada-alarm-dashboard-route {
+    --ada-alarm-route-track-offset: 1.25rem;
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    pointer-events: none;
+}
+
+.ada-alarm-dashboard-route[data-ada-alarm-route-tone='critical'] {
+    --ada-alarm-route-color: #C82333;
+    --ada-alarm-route-foreground: #FFFFFF;
+}
+
+.ada-alarm-dashboard-route[data-ada-alarm-route-tone='attention'] {
+    --ada-alarm-route-color: #E0A800;
+    --ada-alarm-route-foreground: #212529;
+}
+
+.ada-alarm-dashboard-route__measure {
+    position: absolute;
+    width: var(--ada-alarm-route-track-offset);
+    height: 0;
+    visibility: hidden;
+}
+
+.ada-alarm-dashboard-route__svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.ada-alarm-dashboard-route__path {
+    fill: none;
+    stroke: var(--ada-alarm-route-color);
+    stroke-width: .1rem;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+[data-ada-alarm-card-key][data-ada-alarm-active='true'] {
+    border-color: var(--ada-alarm-active-color) !important;
+}

@@ -34,4 +34,6 @@ include = ["ada.ui.features.alarms*"]
     "py.typed",
     "resources/css/*.css",
     "resources/css/css.list",
+    "resources/js/*.js",
+    "resources/js/js.list",
 ]
