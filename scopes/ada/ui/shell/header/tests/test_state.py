@@ -6,6 +6,8 @@ from ada.contracts.tool_manifest import (
     INTEGRATED_OPERATIONS_MANIFEST,
     ProcessBodySection,
     ToolScope,
+    ToolSource,
+    ToolSourceKey,
     build_process_manifest,
 )
 from ada.ui.components.branding import ATLANTICUS_BRAND_MANIFEST, BrandContext, resolve_brand
@@ -102,6 +104,7 @@ def test_chancado_process_header_uses_only_mine_management() -> None:
     manifest = build_process_manifest(
         tool_key='chancado_stmg',
         display_name='Chancado-STMG',
+        sources=(ToolSource(ToolSourceKey.PI, stale_after_seconds=300),),
         operational_scope=ToolScope.MINE,
         body_sections=(ProcessBodySection.CENTER,),
     )
@@ -131,6 +134,7 @@ def test_selective_flotation_header_accepts_last_measurement_and_plant_scope() -
     manifest = build_process_manifest(
         tool_key='flotacion_selectiva',
         display_name='Flotación Selectiva',
+        sources=(ToolSource(ToolSourceKey.PI, stale_after_seconds=300),),
         operational_scope=ToolScope.PLANT,
         body_sections=(ProcessBodySection.CENTER,),
     )
@@ -162,6 +166,7 @@ def test_header_rejects_scope_that_disagrees_with_manifest() -> None:
     manifest = build_process_manifest(
         tool_key='flotacion_selectiva',
         display_name='Flotación Selectiva',
+        sources=(ToolSource(ToolSourceKey.PI, stale_after_seconds=300),),
         operational_scope=ToolScope.PLANT,
         body_sections=(ProcessBodySection.CENTER,),
     )

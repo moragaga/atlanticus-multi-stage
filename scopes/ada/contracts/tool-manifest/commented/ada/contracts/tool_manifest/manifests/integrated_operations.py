@@ -1,16 +1,17 @@
-from ..enums import ToolScope, ToolSectionKind, ToolTarget
-from ..models import ToolManifest, ToolSection
+from ..enums import ToolScope, ToolSectionKind, ToolSourceKey, ToolTarget
+from ..models import ToolManifest, ToolSection, ToolSource
 
-# Conjuntos inmutables reutilizados para declarar destinos permitidos.
 _KPI = frozenset({ToolTarget.KPI})
 _KPI_ALARM = frozenset({ToolTarget.KPI, ToolTarget.ALARM})
 
-# Taxonomía inicial basada en la estructura real de Operaciones Integradas.
-# Mina conserva tres bloques expandibles: General Mina, Carguío/Transporte y Chancado-STMG.
-# Planta conserva cinco: Stock Chacay, Molienda, Flotación, Transporte de Fluidos y Puerto.
+# Configuración de referencia: PI 5 minutos y Dispatch 10 minutos.
 INTEGRATED_OPERATIONS_MANIFEST = ToolManifest(
     tool_key='integrated_operations',
     display_name='Operaciones Integradas',
+    sources=(
+        ToolSource(ToolSourceKey.PI, stale_after_seconds=300),
+        ToolSource(ToolSourceKey.DISPATCH, stale_after_seconds=600),
+    ),
     sections=(
         ToolSection('header', 'Header', ToolSectionKind.REGION, ToolScope.GLOBAL),
         ToolSection(

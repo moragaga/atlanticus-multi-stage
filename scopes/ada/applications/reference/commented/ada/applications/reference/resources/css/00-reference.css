@@ -1,4 +1,3 @@
-/* Solo estiliza el shell de prueba; no modifica el menú ADA aprobado. */
 html,
 body {
     min-height: 100%;
@@ -75,4 +74,10 @@ body {
     .reference-ada__resilience-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+}
+
+/* El wrapper de configuración ocupa el viewport completo sin depender del layout funcional. */
+.reference-ada__configuration-state {
+    min-height: 100vh;
+    min-height: 100dvh;
 }

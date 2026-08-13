@@ -1,7 +1,7 @@
 from datetime import date
 
 from ada.applications.reference.runtime import ADA_RUNTIME_SERVICE
-from ada.contracts.tool_manifest import INTEGRATED_OPERATIONS_MANIFEST, ToolScope
+from ada.contracts.tool_manifest import ToolManifest, ToolScope
 from ada.runtime.web import AdaRuntime, GuardState, resolve_guard
 from ada.ui.components.branding import ATLANTICUS_BRAND_MANIFEST, BrandContext, resolve_brand
 from ada.ui.components.global_indicator import (
@@ -21,13 +21,13 @@ from ada.ui.shell.header import (
 from atlanticus.web.services import ServiceRegistry
 
 
-# La referencia combina estados sanos, degradados, stale y construction desde el primer render.
-def build_reference_header_state(services: ServiceRegistry):
+# Header consume el manifest resuelto; ya no importa una configuración global por su cuenta.
+def build_reference_header_state(services: ServiceRegistry, manifest: ToolManifest):
     runtime = services.require(ADA_RUNTIME_SERVICE, AdaRuntime)
     snapshot = runtime.current().snapshot
     indicators_guard = resolve_guard(snapshot, required_sources=('pi',))
     return create_header_state(
-        manifest=INTEGRATED_OPERATIONS_MANIFEST,
+        manifest=manifest,
         brand=resolve_brand(
             ATLANTICUS_BRAND_MANIFEST,
             BrandContext(current_date=date.today()),

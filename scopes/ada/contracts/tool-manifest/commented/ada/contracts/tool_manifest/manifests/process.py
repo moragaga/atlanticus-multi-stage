@@ -1,20 +1,20 @@
-# Espejo comentado: conserva exactamente la lógica productiva del módulo.
-# Los comentarios describen la responsabilidad sin alterar el AST ejecutable.
 from collections.abc import Iterable
 
 from ..enums import ProcessBodySection, ToolScope, ToolSectionKind, ToolTarget
 from ..errors import ToolManifestError
-from ..models import ToolManifest, ToolSection
+from ..models import ToolManifest, ToolSection, ToolSource
 
 _KPI = frozenset({ToolTarget.KPI})
 _KPI_ALARM = frozenset({ToolTarget.KPI, ToolTarget.ALARM})
 _PROCESS_SCOPES = frozenset({ToolScope.MINE, ToolScope.PLANT})
 
 
+# El caller debe declarar fuentes y umbrales; el builder no inventa defaults.
 def build_process_manifest(
     *,
     tool_key: str,
     display_name: str,
+    sources: Iterable[ToolSource],
     operational_scope: ToolScope,
     body_sections: Iterable[ProcessBodySection],
 ) -> ToolManifest:
@@ -32,6 +32,7 @@ def build_process_manifest(
     return ToolManifest(
         tool_key=tool_key,
         display_name=display_name,
+        sources=tuple(sources),
         sections=(
             ToolSection('header', 'Header', ToolSectionKind.REGION, ToolScope.GLOBAL),
             ToolSection(

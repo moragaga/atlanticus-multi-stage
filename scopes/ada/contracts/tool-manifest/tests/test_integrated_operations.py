@@ -1,6 +1,7 @@
 from ada.contracts.tool_manifest import (
     INTEGRATED_OPERATIONS_MANIFEST,
     ToolScope,
+    ToolSourceKey,
     ToolTarget,
 )
 
@@ -10,6 +11,8 @@ def test_integrated_operations_has_expected_top_level_sections() -> None:
 
     assert manifest.tool_key == 'integrated_operations'
     assert manifest.display_name == 'Operaciones Integradas'
+    assert manifest.source(ToolSourceKey.PI).stale_after_seconds == 300
+    assert manifest.source(ToolSourceKey.DISPATCH).stale_after_seconds == 600
     assert [section.key for section in manifest.roots()] == ['header', 'time_status', 'body']
 
 

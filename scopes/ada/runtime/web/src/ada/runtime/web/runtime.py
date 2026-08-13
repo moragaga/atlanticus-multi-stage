@@ -85,7 +85,10 @@ class AdaRuntime:
                 return self._result(RefreshState.NOT_DUE)
 
             candidate, error_type = self._load_safe()
-            normalized = self._shape.normalize(candidate)
+            normalized = self._shape.normalize(
+                candidate,
+                evaluated_at_utc=self._utcnow(),
+            )
             with self._state_lock:
                 changed = (
                     normalized.revision != self._snapshot.revision
@@ -113,7 +116,7 @@ class AdaRuntime:
             if not isinstance(snapshot, RuntimeSnapshot):
                 raise TypeError('Runtime loader must return RuntimeSnapshot')
             return snapshot, None
-        except Exception as error:  # Boundary intentionally contains source failures.
+        except Exception as error:
             error_type = type(error).__name__
             return (
                 self._shape.failure(

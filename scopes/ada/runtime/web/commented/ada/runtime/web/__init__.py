@@ -1,5 +1,4 @@
-# Espejo comentado del API público del runtime web ADA.
-# Mantiene el mismo AST que la implementación productiva.
+# La API pública expone la definición de fuente junto al resto del contrato runtime.
 from .errors import RuntimeDefinitionError
 from .gate import Gate
 from .guard import GuardResult, GuardState, resolve_guard
@@ -8,6 +7,7 @@ from .snapshot import (
     Freshness,
     RuntimeDefinition,
     RuntimeSnapshot,
+    RuntimeSourceDefinition,
     SourceHealth,
     SourceState,
     ValueState,
@@ -25,6 +25,7 @@ __all__ = [
     'RuntimeDefinitionError',
     'RuntimeDefinition',
     'RuntimeSnapshot',
+    'RuntimeSourceDefinition',
     'RuntimeView',
     'SourceHealth',
     'SourceState',

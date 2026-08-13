@@ -1,13 +1,14 @@
-# Espejo comentado de la composición de la aplicación de referencia.
-# Mantiene el mismo AST que la implementación productiva.
 from __future__ import annotations
 
+from functools import partial
 from pathlib import Path
 
+from ada.applications.reference.configuration import resolve_reference_tool_manifest
 from ada.applications.reference.layout import build_layout
 from ada.applications.reference.module import create_reference_module
 from ada.applications.reference.navigation import build_reference_navigation
 from ada.applications.reference.runtime import create_reference_runtime_module
+from ada.contracts.tool_manifest import ToolManifestResolution
 from ada.ui.components.global_indicator import create_ada_global_indicator_module
 from ada.ui.components.state_wrapper import create_ada_state_wrapper_module
 from ada.ui.framework.core import create_ada_ui_module
@@ -26,7 +27,15 @@ from atlanticus.web.users.resolver import UsersAccessResolver
 from atlanticus.web.users.runtime import UsersRuntime
 
 
-def build_definition() -> WebApplicationDefinition:
+def build_definition(
+    *,
+    tool_manifest_resolution: ToolManifestResolution | None = None,
+) -> WebApplicationDefinition:
+    resolution = (
+        resolve_reference_tool_manifest()
+        if tool_manifest_resolution is None
+        else tool_manifest_resolution
+    )
     profiles = ProfileCatalog()
     users_runtime = UsersRuntime()
     users_resolver = UsersAccessResolver(
@@ -34,6 +43,36 @@ def build_definition() -> WebApplicationDefinition:
         runtime=users_runtime,
         profiles=profiles,
     )
+    modules = [
+        create_users_module(users_runtime, profiles),
+        create_identity_module(
+            create_local_identity_provider(),
+            access_resolver=users_resolver,
+        ),
+        create_navigation_module(build_reference_navigation(), profiles=profiles),
+    ]
+    # Solo una configuración válida habilita los módulos funcionales de la herramienta.
+    if resolution.ready:
+        modules.extend(
+            [
+                # El runtime recibe la misma configuración que utilizará el resto de la UI.
+                create_reference_runtime_module(resolution.require_manifest()),
+                create_ada_ui_module(),
+                create_ada_navigation_module(),
+                create_ada_state_wrapper_module(),
+                create_ada_global_indicator_module(),
+                create_ada_header_module(),
+            ]
+        )
+    else:
+        modules.extend(
+            [
+                create_ada_ui_module(),
+                create_ada_state_wrapper_module(),
+            ]
+        )
+    modules.append(create_reference_module())
+
     return WebApplicationDefinition(
         import_name='ada.applications.reference',
         metadata=ApplicationMetadata(
@@ -42,22 +81,8 @@ def build_definition() -> WebApplicationDefinition:
             version='0.1.0',
         ),
         publications_root=Path.cwd() / '.runtime' / 'assets',
-        layout=build_layout,
-        modules=(
-            create_users_module(users_runtime, profiles),
-            create_identity_module(
-                create_local_identity_provider(),
-                access_resolver=users_resolver,
-            ),
-            create_navigation_module(build_reference_navigation(), profiles=profiles),
-            create_reference_runtime_module(),
-            create_ada_ui_module(),
-            create_ada_navigation_module(),
-            create_ada_state_wrapper_module(),
-            create_ada_global_indicator_module(),
-            create_ada_header_module(),
-            create_reference_module(),
-        ),
+        layout=partial(build_layout, tool_manifest_resolution=resolution),
+        modules=tuple(modules),
         index=IndexPageDefinition(language='es'),
     )
 

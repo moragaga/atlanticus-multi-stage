@@ -97,7 +97,7 @@ def test_user_fallback_uses_effective_initials_and_profile_color() -> None:
     assert 'John Doe' in payload
 
 
-def test_approved_navigation_css_is_copied_without_redesign() -> None:
+def test_desktop_trigger_stays_inside_the_shell_without_horizontal_overflow() -> None:
     css = (
         Path(__file__).parents[1]
         / 'src'
@@ -111,9 +111,12 @@ def test_approved_navigation_css_is_copied_without_redesign() -> None:
     ).read_text(encoding='utf-8')
 
     assert '.dashboard-menu-btn-desktop {' in css
-    assert 'right: -10px;' in css
+    assert 'inset-inline-end: 0;' in css
+    assert 'right: -10px;' not in css
+    assert 'right: -12px;' not in css
     assert 'width 0.18s ease' in css
-    assert '.dashboard-menu-btn-desktop:hover {' in css
-    assert 'right: -12px;' in css
+    assert 'border-radius: 0.75rem 0 0 0.75rem;' in css
+    assert 'width: 1.25rem;' in css
+    assert 'height: 2.1875rem;' in css
     assert '.app-navigation-offcanvas' in css
     assert '.app-navigation-user-avatar-fallback' in css

@@ -2,7 +2,13 @@ from datetime import date
 
 from dash.development.base_component import Component
 
-from ada.contracts.tool_manifest import ProcessBodySection, ToolScope, build_process_manifest
+from ada.contracts.tool_manifest import (
+    ProcessBodySection,
+    ToolScope,
+    ToolSource,
+    ToolSourceKey,
+    build_process_manifest,
+)
 from ada.ui.components.branding import ATLANTICUS_BRAND_MANIFEST, BrandContext, resolve_brand
 from ada.ui.components.global_indicator import (
     GlobalIndicatorMeasurementState,
@@ -23,6 +29,7 @@ def test_process_header_uses_generic_wrappers_and_operational_scope() -> None:
     manifest = build_process_manifest(
         tool_key='flotacion_selectiva',
         display_name='Flotación Selectiva',
+        sources=(ToolSource(ToolSourceKey.PI, stale_after_seconds=300),),
         operational_scope=ToolScope.PLANT,
         body_sections=(ProcessBodySection.CENTER,),
     )
@@ -135,6 +142,7 @@ def test_broken_global_indicator_is_covered_without_breaking_header(monkeypatch)
     manifest = build_process_manifest(
         tool_key='chancado_stmg',
         display_name='Chancado STMG',
+        sources=(ToolSource(ToolSourceKey.PI, stale_after_seconds=300),),
         operational_scope=ToolScope.MINE,
         body_sections=(ProcessBodySection.CENTER,),
     )

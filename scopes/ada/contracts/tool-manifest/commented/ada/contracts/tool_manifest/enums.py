@@ -1,5 +1,3 @@
-# Espejo comentado: conserva exactamente la lógica productiva del módulo.
-# Los comentarios describen la responsabilidad sin alterar el AST ejecutable.
 from enum import StrEnum
 
 
@@ -18,6 +16,20 @@ class ToolScope(StrEnum):
 class ToolTarget(StrEnum):
     KPI = 'kpi'
     ALARM = 'alarm'
+
+
+# Catálogo explícito de fuentes que hoy forman parte del contrato ADA.
+class ToolSourceKey(StrEnum):
+    PI = 'pi'
+    DISPATCH = 'dispatch'
+
+
+# Estado de la resolución externa del manifest; no degrada la validez del contrato.
+class ToolManifestResolutionStatus(StrEnum):
+    READY = 'ready'
+    NOT_PROJECTED = 'not_projected'
+    INVALID = 'invalid'
+    SOURCE_ERROR = 'source_error'
 
 
 class ProcessBodySection(StrEnum):

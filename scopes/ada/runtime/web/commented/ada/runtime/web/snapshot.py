@@ -1,5 +1,3 @@
-# Espejo comentado del snapshot inmutable y normalización defensiva.
-# Mantiene el mismo AST que la implementación productiva.
 from __future__ import annotations
 
 import re
@@ -11,6 +9,7 @@ from typing import Mapping
 
 from .errors import RuntimeDefinitionError
 
+# Las claves del runtime usan un formato estable para poder cruzar contratos y snapshots.
 _KEY_PATTERN = re.compile(r'^[a-z][a-z0-9_.-]*$')
 
 
@@ -168,20 +167,71 @@ class RuntimeSnapshot:
         return self.values.get(normalized, ValueState.not_mapped(normalized))
 
 
+# Cada fuente configurada aporta su identidad y su política de frescura.
+@dataclass(frozen=True, slots=True)
+class RuntimeSourceDefinition:
+    key: str
+    stale_after_seconds: int
+
+    def __post_init__(self) -> None:
+        _require_key(self.key, field_name='source key')
+        if isinstance(self.stale_after_seconds, bool) or not isinstance(
+            self.stale_after_seconds, int
+        ):
+            raise RuntimeDefinitionError('Source stale_after_seconds must be an integer')
+        if self.stale_after_seconds <= 0:
+            raise RuntimeDefinitionError(
+                'Source stale_after_seconds must be greater than zero'
+            )
+
+    # La frescura se calcula aquí para que ningún loader tenga que decidir FRESH o STALE.
+    def normalize(self, state: SourceState, *, evaluated_at_utc: datetime) -> SourceState:
+        # Un error de fuente conserva UNKNOWN: estar caída no es lo mismo que estar stale.
+        if state.health is not SourceHealth.HEALTHY:
+            return state
+        age_seconds = (evaluated_at_utc - state.updated_at_utc).total_seconds()
+        freshness = (
+            Freshness.STALE
+            if age_seconds >= self.stale_after_seconds
+            else Freshness.FRESH
+        )
+        return SourceState(
+            key=state.key,
+            health=state.health,
+            freshness=freshness,
+            updated_at_utc=state.updated_at_utc,
+        )
+
+
+# La forma del runtime contiene fuentes completas, no solo nombres sueltos.
 @dataclass(frozen=True, slots=True)
 class RuntimeDefinition:
-    source_keys: tuple[str, ...] = ()
+    sources: tuple[RuntimeSourceDefinition, ...] = ()
     value_keys: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, 'source_keys', _unique_keys(self.source_keys, 'source key'))
+        object.__setattr__(self, 'sources', _unique_source_definitions(self.sources))
         object.__setattr__(self, 'value_keys', _unique_keys(self.value_keys, 'value key'))
 
-    def normalize(self, snapshot: RuntimeSnapshot) -> RuntimeSnapshot:
-        sources = dict(snapshot.sources)
+    def normalize(
+        self,
+        snapshot: RuntimeSnapshot,
+        *,
+        evaluated_at_utc: datetime,
+    ) -> RuntimeSnapshot:
+        evaluated_at_utc = _as_utc(evaluated_at_utc)
+        sources: dict[str, SourceState] = {}
         values = dict(snapshot.values)
-        for key in self.source_keys:
-            sources.setdefault(key, SourceState.unavailable(key))
+        # Solo las fuentes declaradas reciben la política de frescura configurada.
+        for definition in self.sources:
+            state = snapshot.sources.get(
+                definition.key,
+                SourceState.unavailable(definition.key),
+            )
+            sources[definition.key] = definition.normalize(
+                state,
+                evaluated_at_utc=evaluated_at_utc,
+            )
         for key in self.value_keys:
             values.setdefault(key, ValueState.not_mapped(key))
         return RuntimeSnapshot(
@@ -195,7 +245,10 @@ class RuntimeDefinition:
         return RuntimeSnapshot(
             revision='bootstrap',
             loaded_at_utc=loaded_at_utc,
-            sources={key: SourceState.unavailable(key) for key in self.source_keys},
+            sources={
+                definition.key: SourceState.unavailable(definition.key)
+                for definition in self.sources
+            },
             values={key: ValueState.not_mapped(key) for key in self.value_keys},
         )
 
@@ -209,7 +262,10 @@ class RuntimeDefinition:
         return RuntimeSnapshot(
             revision=f'runtime-error:{normalized_error}',
             loaded_at_utc=loaded_at_utc,
-            sources={key: SourceState.error(key) for key in self.source_keys},
+            sources={
+                definition.key: SourceState.error(definition.key)
+                for definition in self.sources
+            },
             values={key: ValueState.error(key) for key in self.value_keys},
         )
 
@@ -228,6 +284,18 @@ def _freeze_states(
             raise RuntimeDefinitionError(f'{label.title()} state key does not match mapping key')
         normalized[key] = state
     return MappingProxyType(normalized)
+
+
+def _unique_source_definitions(
+    values: tuple[RuntimeSourceDefinition, ...],
+) -> tuple[RuntimeSourceDefinition, ...]:
+    normalized = tuple(values)
+    if not all(isinstance(value, RuntimeSourceDefinition) for value in normalized):
+        raise RuntimeDefinitionError('Runtime sources must use RuntimeSourceDefinition')
+    keys = [value.key for value in normalized]
+    if len(keys) != len(set(keys)):
+        raise RuntimeDefinitionError('Duplicate source keys are not allowed')
+    return normalized
 
 
 def _unique_keys(values: tuple[str, ...], field_name: str) -> tuple[str, ...]:

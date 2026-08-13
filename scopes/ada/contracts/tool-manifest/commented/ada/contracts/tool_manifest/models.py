@@ -3,14 +3,29 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from .enums import ToolScope, ToolSectionKind, ToolTarget
+from .enums import ToolScope, ToolSectionKind, ToolSourceKey, ToolTarget
 from .errors import ToolManifestError, ToolManifestLookupError
 
-# Las keys son identificadores técnicos estables en snake_case ASCII.
 _KEY_PATTERN = re.compile(r'^[a-z][a-z0-9_]*$')
 
 
-# Nodo canónico de la estructura de una herramienta. No contiene detalles de render.
+# Política funcional de una fuente declarada por la herramienta.
+@dataclass(frozen=True, slots=True)
+class ToolSource:
+    key: ToolSourceKey
+    stale_after_seconds: int
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.key, ToolSourceKey):
+            raise ToolManifestError(f'Invalid source key: {self.key!r}')
+        if isinstance(self.stale_after_seconds, bool) or not isinstance(
+            self.stale_after_seconds, int
+        ):
+            raise ToolManifestError('Source stale_after_seconds must be an integer')
+        if self.stale_after_seconds <= 0:
+            raise ToolManifestError('Source stale_after_seconds must be greater than zero')
+
+
 @dataclass(frozen=True, slots=True)
 class ToolSection:
     key: str
@@ -33,20 +48,32 @@ class ToolSection:
         return target in self.targets
 
 
-# Manifiesto completo de una herramienta ADA y sus secciones válidas.
+# El manifest solo existe cuando la configuración básica está completa y es válida.
 @dataclass(frozen=True, slots=True)
 class ToolManifest:
     tool_key: str
     display_name: str
+    sources: tuple[ToolSource, ...]
     sections: tuple[ToolSection, ...]
 
     def __post_init__(self) -> None:
+        object.__setattr__(self, 'sources', tuple(self.sources))
         object.__setattr__(self, 'sections', tuple(self.sections))
         _validate_key(self.tool_key, field_name='tool_key')
         _validate_display_name(self.display_name, field_name='display_name')
+        _validate_sources(self.sources)
         if not self.sections:
             raise ToolManifestError('Tool manifest requires at least one section')
         _validate_sections(self.sections)
+
+    def source(self, key: ToolSourceKey) -> ToolSource:
+        for source in self.sources:
+            if source.key is key:
+                return source
+        raise ToolManifestLookupError(f'Unknown source key: {key.value}')
+
+    def has_source(self, key: ToolSourceKey) -> bool:
+        return any(source.key is key for source in self.sources)
 
     def section(self, key: str) -> ToolSection:
         for section in self.sections:
@@ -82,7 +109,6 @@ class ToolManifest:
         return section
 
 
-# Registro liviano para resolver manifiestos sin acoplar consumidores a módulos concretos.
 @dataclass(frozen=True, slots=True)
 class ToolManifestRegistry:
     manifests: tuple[ToolManifest, ...]
@@ -107,7 +133,17 @@ class ToolManifestRegistry:
         return self.require(tool_key).sections_for_target(target)
 
 
-# Valida referencias, jerarquía, ámbitos y ciclos al construir el manifiesto.
+# PI es obligatorio en la política ADA actual; Dispatch permanece opcional.
+def _validate_sources(sources: tuple[ToolSource, ...]) -> None:
+    if not sources:
+        raise ToolManifestError('Tool manifest requires at least one source')
+    keys = [source.key for source in sources]
+    if len(keys) != len(set(keys)):
+        raise ToolManifestError('Tool manifest contains duplicate source keys')
+    if ToolSourceKey.PI not in keys:
+        raise ToolManifestError('Tool manifest requires the pi source')
+
+
 def _validate_sections(sections: tuple[ToolSection, ...]) -> None:
     by_key = {section.key: section for section in sections}
     if len(by_key) != len(sections):

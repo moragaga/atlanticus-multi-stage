@@ -1,8 +1,17 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from functools import partial
 
-from ada.runtime.web import AdaRuntime, RuntimeDefinition, RuntimeSnapshot, SourceState, ValueState
+from ada.contracts.tool_manifest import ToolManifest
+from ada.runtime.web import (
+    AdaRuntime,
+    RuntimeDefinition,
+    RuntimeSnapshot,
+    RuntimeSourceDefinition,
+    SourceState,
+    ValueState,
+)
 from atlanticus.web.modules import WebModule
 from atlanticus.web.services import ServiceRegistry
 
@@ -19,26 +28,35 @@ REFERENCE_INDICATOR_KEYS = (
 )
 
 
-def create_reference_runtime_module() -> WebModule:
+def create_reference_runtime_module(manifest: ToolManifest) -> WebModule:
     return WebModule(
         name='ada-runtime',
-        register_services=_register_runtime,
+        register_services=partial(_register_runtime, manifest=manifest),
     )
 
 
-def _register_runtime(services: ServiceRegistry) -> None:
-    runtime = _build_runtime()
+def build_reference_runtime_definition(manifest: ToolManifest) -> RuntimeDefinition:
+    return RuntimeDefinition(
+        sources=tuple(
+            RuntimeSourceDefinition(
+                key=source.key.value,
+                stale_after_seconds=source.stale_after_seconds,
+            )
+            for source in manifest.sources
+        ),
+        value_keys=REFERENCE_INDICATOR_KEYS,
+    )
+
+
+def _register_runtime(services: ServiceRegistry, *, manifest: ToolManifest) -> None:
+    runtime = _build_runtime(manifest)
     runtime.warmup()
     services.add(ADA_RUNTIME_SERVICE, runtime)
 
 
-def _build_runtime() -> AdaRuntime:
-    shape = RuntimeDefinition(
-        source_keys=('pi', 'dispatch'),
-        value_keys=REFERENCE_INDICATOR_KEYS,
-    )
+def _build_runtime(manifest: ToolManifest) -> AdaRuntime:
     return AdaRuntime(
-        shape=shape,
+        shape=build_reference_runtime_definition(manifest),
         loader=_load_reference_snapshot,
         refresh_interval_seconds=10,
     )

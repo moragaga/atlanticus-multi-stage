@@ -1,5 +1,3 @@
-# Espejo comentado del cache por worker y refresh coordinado.
-# Mantiene el mismo AST que la implementación productiva.
 from __future__ import annotations
 
 import time
@@ -86,8 +84,13 @@ class AdaRuntime:
             if not force and not self._is_due(now):
                 return self._result(RefreshState.NOT_DUE)
 
+            # El loader aporta observaciones; el runtime aplica la política temporal.
             candidate, error_type = self._load_safe()
-            normalized = self._shape.normalize(candidate)
+            # Se usa el reloj UTC inyectable para que la frontera exacta sea testeable.
+            normalized = self._shape.normalize(
+                candidate,
+                evaluated_at_utc=self._utcnow(),
+            )
             with self._state_lock:
                 changed = (
                     normalized.revision != self._snapshot.revision
@@ -115,7 +118,8 @@ class AdaRuntime:
             if not isinstance(snapshot, RuntimeSnapshot):
                 raise TypeError('Runtime loader must return RuntimeSnapshot')
             return snapshot, None
-        except Exception as error:  # Boundary intentionally contains source failures.
+        # Esta frontera transforma fallos de carga en un snapshot seguro y observable.
+        except Exception as error:
             error_type = type(error).__name__
             return (
                 self._shape.failure(
