@@ -8,11 +8,11 @@ from atlanticus.web.services import ServiceRegistry
 
 def register_ada_navigation_callbacks(app: Dash, _services: ServiceRegistry) -> None:
     app.clientside_callback(
-        '''
+        """
         function(_mobileClicks, _desktopClicks, isOpen) {
             return !Boolean(isOpen);
         }
-        ''',
+        """,
         Output(AdaNavigationIds.HEADER_OFFCANVAS, 'is_open'),
         Input(AdaNavigationIds.HEADER_MOBILE_TOGGLE, 'n_clicks'),
         Input(AdaNavigationIds.HEADER_DESKTOP_TOGGLE, 'n_clicks'),
@@ -21,14 +21,14 @@ def register_ada_navigation_callbacks(app: Dash, _services: ServiceRegistry) -> 
     )
 
     app.clientside_callback(
-        '''
+        """
         function(nClicks, isOpen) {
             if (!nClicks) {
                 return window.dash_clientside.no_update;
             }
             return !Boolean(isOpen);
         }
-        ''',
+        """,
         Output(
             {
                 'type': AdaNavigationIds.NAVIGATION_GROUP_COLLAPSE,

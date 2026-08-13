@@ -3,26 +3,17 @@ from datetime import date
 from ada.contracts.tool_manifest import INTEGRATED_OPERATIONS_MANIFEST, ToolScope
 from ada.ui.branding import ATLANTICUS_BRAND_MANIFEST, BrandContext, resolve_brand
 from ada.ui.components.global_indicator import (
-    GlobalIndicatorData,
-    IndicatorData,
-    IndicatorPropertiesData,
+    GlobalIndicatorMeasurementState,
+    GlobalIndicatorState,
 )
+from ada.ui.components.state_wrapper import StateWrapperState
 from ada.ui.header import (
     AlarmManagementSegmentState,
     AlarmManagementState,
-    AlarmStatusState,
-    HeaderGlobalIndicator,
+    HeaderIndicatorPlacement,
+    HeaderSectionStates,
     HeaderTone,
     create_header_state,
-)
-
-_PROPERTIES = IndicatorPropertiesData(
-    label='font-size-gi-300',
-    temporality='font-size-gi-200',
-    real_value='font-size-gi-100',
-    plan_value='font-size-gi-200',
-    last_measurement_label='font-size-gi-400',
-    last_measurement_value='font-size-gi-300',
 )
 
 
@@ -77,20 +68,23 @@ def build_reference_header_state():
                 AlarmManagementSegmentState(
                     section_key='alarm_management_mine',
                     scope=ToolScope.MINE,
-                    group_value='G3',
+                    group='G3',
                     management_percentage=60,
                     tone=HeaderTone.ATTENTION,
                 ),
                 AlarmManagementSegmentState(
                     section_key='alarm_management_plant',
                     scope=ToolScope.PLANT,
-                    group_value='G1',
+                    group='G1',
                     management_percentage=45,
                     tone=HeaderTone.CRITICAL,
                 ),
             )
         ),
-        alarm_status=AlarmStatusState(active_count=0, managed_count=0),
+        section_states=HeaderSectionStates(
+            global_indicators=StateWrapperState.stale(),
+            alarm_status=StateWrapperState.construction(),
+        ),
     )
 
 
@@ -101,23 +95,30 @@ def _indicator(
     scope: ToolScope,
     day_value: str,
     day_plan: str,
-) -> HeaderGlobalIndicator:
+) -> HeaderIndicatorPlacement:
     section_key = {
         ToolScope.MINE: 'global_indicators_mine',
         ToolScope.PLANT: 'global_indicators_plant',
     }[scope]
-    return HeaderGlobalIndicator(
-        key=key,
+    return HeaderIndicatorPlacement(
         section_key=section_key,
         scope=scope,
-        definition_key=key,
-        indicator=GlobalIndicatorData(
+        indicator=GlobalIndicatorState(
+            key=key,
             label=label,
             unit=unit,
-            properties=_PROPERTIES,
-            indicators=(
-                IndicatorData(day_value, temporality='Día', plan_value=day_plan),
-                IndicatorData(day_value, temporality='Semana', plan_value=day_plan),
+            definition_key=key,
+            measurements=(
+                GlobalIndicatorMeasurementState.temporal(
+                    day_value,
+                    temporality='Día',
+                    plan_value=day_plan,
+                ),
+                GlobalIndicatorMeasurementState.temporal(
+                    day_value,
+                    temporality='Semana',
+                    plan_value=day_plan,
+                ),
             ),
         ),
     )

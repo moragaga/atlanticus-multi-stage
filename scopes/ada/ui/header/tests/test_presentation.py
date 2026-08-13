@@ -1,23 +1,25 @@
 from datetime import date
 
+from dash.development.base_component import Component
+
 from ada.contracts.tool_manifest import ProcessBodySection, ToolScope, build_process_manifest
 from ada.ui.branding import ATLANTICUS_BRAND_MANIFEST, BrandContext, resolve_brand
 from ada.ui.components.global_indicator import (
-    GlobalIndicatorData,
-    IndicatorData,
-    IndicatorPropertiesData,
+    GlobalIndicatorMeasurementState,
+    GlobalIndicatorState,
 )
+from ada.ui.components.state_wrapper import StateWrapperState
 from ada.ui.header import (
     AlarmManagementSegmentState,
     AlarmManagementState,
-    AlarmStatusState,
-    HeaderGlobalIndicator,
+    HeaderIndicatorPlacement,
+    HeaderSectionStates,
     build_ada_header,
     create_header_state,
 )
 
 
-def test_process_header_marks_indicator_and_management_with_operational_scope() -> None:
+def test_process_header_uses_generic_wrappers_and_operational_scope() -> None:
     manifest = build_process_manifest(
         tool_key='flotacion_selectiva',
         display_name='Flotación Selectiva',
@@ -32,28 +34,20 @@ def test_process_header_marks_indicator_and_management_with_operational_scope() 
         ),
         application_name='ADA',
         global_indicators=(
-            HeaderGlobalIndicator(
-                key='recuperacion_cu',
+            HeaderIndicatorPlacement(
                 section_key='global_indicators',
                 scope=ToolScope.PLANT,
-                indicator=GlobalIndicatorData(
+                indicator=GlobalIndicatorState(
+                    key='recuperacion_cu',
                     label='Recuperación Cu',
                     unit='%',
-                    properties=IndicatorPropertiesData(
-                        label='font-size-gi-300',
-                        temporality='font-size-gi-200',
-                        real_value='font-size-gi-100',
-                        plan_value='font-size-gi-200',
-                        last_measurement_label='font-size-gi-400',
-                        last_measurement_value='font-size-gi-300',
-                    ),
-                    indicators=(
-                        IndicatorData('89,4', temporality='Día', plan_value='90,5'),
-                        IndicatorData(
-                            '88,9',
-                            temporality='Actual',
-                            only_last_measurement=True,
+                    measurements=(
+                        GlobalIndicatorMeasurementState.temporal(
+                            '89,4',
+                            temporality='Día',
+                            plan_value='90,5',
                         ),
+                        GlobalIndicatorMeasurementState.last_measurement('88,9'),
                     ),
                 ),
             ),
@@ -68,15 +62,68 @@ def test_process_header_marks_indicator_and_management_with_operational_scope() 
                 ),
             )
         ),
-        alarm_status=AlarmStatusState(0, 0),
+        section_states=HeaderSectionStates(
+            global_indicators=StateWrapperState.stale(),
+            alarm_status=StateWrapperState.construction(),
+        ),
     )
 
     component = build_ada_header(state)
-    header_inner = component.children[0]
-    indicators = header_inner.children[1]
-    management = header_inner.children[2]
-    status = header_inner.children[3]
+    indicator = _require_by_class(component, 'ada-header__global-indicator')
+    management = _require_by_class(component, 'ada-header__management-segment')
+    indicators_wrapper = _require_descendant(
+        _require_by_class(component, 'ada-header__indicators-slot'),
+        'ada-state-wrapper',
+    )
+    status_wrapper = _require_descendant(
+        _require_by_class(component, 'ada-header__alarm-status-slot'),
+        'ada-state-wrapper',
+    )
 
-    assert indicators.children[0].kwargs['data-scope'] == 'plant'
-    assert management.children[0].kwargs['data-scope'] == 'plant'
-    assert status.kwargs['data-scope'] == 'global'
+    assert _prop(indicator, 'data-scope') == 'plant'
+    assert _prop(management, 'data-scope') == 'plant'
+    assert _prop(indicators_wrapper, 'data-freshness') == 'stale'
+    assert _prop(status_wrapper, 'data-availability') == 'construction'
+
+
+def _require_by_class(component: Component, class_name: str) -> Component:
+    result = _find_by_class(component, class_name)
+    if result is None:
+        raise AssertionError(f'Component with class {class_name!r} was not found')
+    return result
+
+
+def _require_descendant(component: Component, class_name: str) -> Component:
+    children = getattr(component, 'children', None)
+    if children is None:
+        raise AssertionError(f'Descendant with class {class_name!r} was not found')
+    if not isinstance(children, (list, tuple)):
+        children = [children]
+    for child in children:
+        if not isinstance(child, Component):
+            continue
+        result = _find_by_class(child, class_name)
+        if result is not None:
+            return result
+    raise AssertionError(f'Descendant with class {class_name!r} was not found')
+
+
+def _find_by_class(component: Component, class_name: str) -> Component | None:
+    classes = getattr(component, 'className', '') or ''
+    if class_name in classes.split():
+        return component
+    children = getattr(component, 'children', None)
+    if children is None:
+        return None
+    if not isinstance(children, (list, tuple)):
+        children = [children]
+    for child in children:
+        if isinstance(child, Component):
+            result = _find_by_class(child, class_name)
+            if result is not None:
+                return result
+    return None
+
+
+def _prop(component: Component, name: str):
+    return component.to_plotly_json()['props'][name]

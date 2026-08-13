@@ -242,9 +242,7 @@ def _build_link_node(link: NavigationLink, *, is_child: bool):
     )
 
     disabled = '' if link.enabled else 'disabled'
-    class_name = (
-        'app-navigation-link-wrapper d-block text-decoration-none {0}'.format(disabled)
-    )
+    class_name = 'app-navigation-link-wrapper d-block text-decoration-none {0}'.format(disabled)
 
     if link.new_tab or link.is_external:
         return html.A(

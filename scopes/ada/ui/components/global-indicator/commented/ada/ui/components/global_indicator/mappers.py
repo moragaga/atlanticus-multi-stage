@@ -1,63 +1,67 @@
-# Espejo comentado: conserva exactamente la lógica productiva del módulo.
-# Los comentarios describen la responsabilidad sin alterar el AST ejecutable.
+# Espejo comentado: convierte definiciones y snapshots KPI en estados listos para presentación.
+# La lógica ejecutable es idéntica al archivo productivo.
 from __future__ import annotations
 
 from collections.abc import Mapping
 from typing import Any
 
-from .definitions import GlobalIndicatorDefinition, IndicatorDefinition
+from .definitions import GlobalIndicatorDefinition, GlobalIndicatorMeasurementDefinition
 from .models import (
-    GlobalIndicatorData,
-    GlobalIndicatorsData,
-    IndicatorData,
-    IndicatorPropertiesData,
+    GlobalIndicatorCollection,
+    GlobalIndicatorMeasurementKind,
+    GlobalIndicatorMeasurementState,
+    GlobalIndicatorState,
 )
 
 
-def map_indicator_data(
+def map_global_indicator_measurement(
     *,
-    indicator: IndicatorDefinition,
+    definition: GlobalIndicatorMeasurementDefinition,
+    default_key: str,
     kpis: Mapping[str, Any],
-) -> IndicatorData:
-    return IndicatorData(
-        real_value=kpis.get(indicator.real_kpi_key),
-        color_value=kpis.get(indicator.color_kpi_key),
-        temporality=indicator.temporality_label,
-        plan_value=kpis.get(indicator.plan_kpi_key),
-        only_last_measurement=indicator.only_last_measurement,
+) -> GlobalIndicatorMeasurementState:
+    is_last_measurement = definition.kind is GlobalIndicatorMeasurementKind.LAST_MEASUREMENT
+    return GlobalIndicatorMeasurementState(
+        real_value=kpis.get(definition.real_kpi_key(default_key=default_key)),
+        color_class=kpis.get(definition.color_kpi_key(default_key=default_key)),
+        temporality=None if is_last_measurement else definition.temporality_label,
+        plan_value=(
+            None
+            if is_last_measurement
+            else kpis.get(definition.plan_kpi_key(default_key=default_key))
+        ),
+        kind=definition.kind,
     )
 
 
-def map_global_indicator_data(
+def map_global_indicator_state(
     *,
     definition: GlobalIndicatorDefinition,
     kpis: Mapping[str, Any],
-) -> GlobalIndicatorData:
-    properties = definition.properties
-    return GlobalIndicatorData.from_iterable(
+) -> GlobalIndicatorState:
+    return GlobalIndicatorState.from_iterable(
+        key=definition.key,
         label=definition.label,
         unit=definition.unit,
-        properties=IndicatorPropertiesData(
-            label=properties.label,
-            temporality=properties.temporality,
-            real_value=properties.real_value,
-            plan_value=properties.plan_value,
-            last_measurement_label=properties.last_measurement_label,
-            last_measurement_value=properties.last_measurement_value,
-        ),
-        indicators=(
-            map_indicator_data(indicator=indicator, kpis=kpis)
-            for indicator in definition.indicators
+        definition_key=definition.definition_key,
+        style=definition.style,
+        measurements=(
+            map_global_indicator_measurement(
+                definition=measurement,
+                default_key=definition.key,
+                kpis=kpis,
+            )
+            for measurement in definition.measurements
         ),
     )
 
 
-def map_global_indicators_data(
+def map_global_indicator_collection(
     *,
     definitions: tuple[GlobalIndicatorDefinition, ...],
     kpis: Mapping[str, Any],
-) -> GlobalIndicatorsData:
-    return GlobalIndicatorsData.from_iterable(
-        map_global_indicator_data(definition=definition, kpis=kpis)
+) -> GlobalIndicatorCollection:
+    return GlobalIndicatorCollection.from_iterable(
+        map_global_indicator_state(definition=definition, kpis=kpis)
         for definition in definitions
     )

@@ -1,5 +1,5 @@
-# Espejo comentado: conserva exactamente la lógica productiva del módulo.
-# Los comentarios describen la responsabilidad sin alterar el AST ejecutable.
+# Espejo comentado de la implementación productiva.
+# Conserva el mismo AST; los comentarios documentan la frontera del Header.
 from __future__ import annotations
 
 import re
@@ -8,7 +8,8 @@ from enum import StrEnum
 
 from ada.contracts.tool_manifest import ToolScope
 from ada.ui.branding import BrandState
-from ada.ui.components.global_indicator import GlobalIndicatorData
+from ada.ui.components.global_indicator import GlobalIndicatorState
+from ada.ui.components.state_wrapper import StateWrapperState
 
 from .errors import HeaderDefinitionError
 
@@ -22,31 +23,26 @@ class HeaderTone(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
-class HeaderGlobalIndicator:
-    key: str
+class HeaderIndicatorPlacement:
     section_key: str
     scope: ToolScope
-    indicator: GlobalIndicatorData
-    definition_key: str | None = None
+    indicator: GlobalIndicatorState
 
     def __post_init__(self) -> None:
-        _require_key(self.key, field_name='indicator key')
         _require_key(self.section_key, field_name='indicator section_key')
-        if self.definition_key is not None:
-            _require_key(self.definition_key, field_name='indicator definition_key')
 
 
 @dataclass(frozen=True, slots=True)
 class AlarmManagementSegmentState:
     section_key: str
     scope: ToolScope
-    group_value: str
+    group: str
     management_percentage: float
     tone: HeaderTone = HeaderTone.NEUTRAL
 
     def __post_init__(self) -> None:
         _require_key(self.section_key, field_name='alarm management section_key')
-        _require_text(self.group_value, field_name='alarm management group_value')
+        _require_text(self.group, field_name='alarm management group')
         if self.scope is ToolScope.GLOBAL:
             raise HeaderDefinitionError('Alarm management segment must be mine or plant')
         if not 0 <= self.management_percentage <= 100:
@@ -78,7 +74,7 @@ class AlarmStatusState:
 
 @dataclass(frozen=True, slots=True)
 class HeaderBrandState:
-    brand: BrandState
+    resolved_brand: BrandState
     application_name: str
     tool_name: str
     assistant_label: str = 'Asistente de decisiones ágiles'
@@ -90,17 +86,25 @@ class HeaderBrandState:
 
 
 @dataclass(frozen=True, slots=True)
+class HeaderSectionStates:
+    global_indicators: StateWrapperState = field(default_factory=StateWrapperState.ready)
+    alarm_management: StateWrapperState = field(default_factory=StateWrapperState.ready)
+    alarm_status: StateWrapperState = field(default_factory=StateWrapperState.ready)
+
+
+@dataclass(frozen=True, slots=True)
 class HeaderState:
     tool_key: str
     brand: HeaderBrandState
-    global_indicators: tuple[HeaderGlobalIndicator, ...] = field(default_factory=tuple)
+    global_indicators: tuple[HeaderIndicatorPlacement, ...] = field(default_factory=tuple)
     alarm_management: AlarmManagementState | None = None
     alarm_status: AlarmStatusState | None = None
+    section_states: HeaderSectionStates = field(default_factory=HeaderSectionStates)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, 'global_indicators', tuple(self.global_indicators))
         _require_key(self.tool_key, field_name='tool_key')
-        keys = [indicator.key for indicator in self.global_indicators]
+        keys = [placement.indicator.key for placement in self.global_indicators]
         if len(keys) != len(set(keys)):
             raise HeaderDefinitionError('Header contains duplicate global indicator keys')
 

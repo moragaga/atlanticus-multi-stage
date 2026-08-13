@@ -1,5 +1,5 @@
-# Espejo comentado: conserva exactamente la lógica productiva del módulo.
-# Los comentarios describen la responsabilidad sin alterar el AST ejecutable.
+# Espejo comentado de la implementación productiva.
+# Conserva el mismo AST; los comentarios documentan la frontera del Header.
 from __future__ import annotations
 
 from ada.contracts.tool_manifest import ToolManifest, ToolScope, ToolTarget
@@ -10,7 +10,8 @@ from .models import (
     AlarmManagementState,
     AlarmStatusState,
     HeaderBrandState,
-    HeaderGlobalIndicator,
+    HeaderIndicatorPlacement,
+    HeaderSectionStates,
     HeaderState,
 )
 
@@ -20,9 +21,10 @@ def create_header_state(
     manifest: ToolManifest,
     brand: BrandState,
     application_name: str,
-    global_indicators: tuple[HeaderGlobalIndicator, ...] = (),
+    global_indicators: tuple[HeaderIndicatorPlacement, ...] = (),
     alarm_management: AlarmManagementState | None = None,
     alarm_status: AlarmStatusState | None = None,
+    section_states: HeaderSectionStates | None = None,
     assistant_label: str = 'Asistente de decisiones ágiles',
 ) -> HeaderState:
     _require_header_structure(manifest)
@@ -46,7 +48,7 @@ def create_header_state(
     return HeaderState(
         tool_key=manifest.tool_key,
         brand=HeaderBrandState(
-            brand=brand,
+            resolved_brand=brand,
             application_name=application_name,
             tool_name=manifest.display_name,
             assistant_label=assistant_label,
@@ -54,6 +56,7 @@ def create_header_state(
         global_indicators=global_indicators,
         alarm_management=alarm_management,
         alarm_status=alarm_status,
+        section_states=section_states or HeaderSectionStates(),
     )
 
 

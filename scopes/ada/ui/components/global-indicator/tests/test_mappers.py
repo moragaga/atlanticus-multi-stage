@@ -1,30 +1,23 @@
 from ada.ui.components.global_indicator import (
     GlobalIndicatorDefinition,
-    IndicatorDefinition,
-    IndicatorPropertiesDefinition,
-    map_global_indicator_data,
+    GlobalIndicatorMeasurementDefinition,
+    map_global_indicator_state,
 )
 
 
 def test_mapper_supports_last_measurement_without_special_tool_logic() -> None:
     definition = GlobalIndicatorDefinition(
+        key='recuperacion_cu',
         label='Recuperación Cu',
         unit='%',
-        properties=IndicatorPropertiesDefinition(
-            label='font-size-gi-300',
-            temporality='font-size-gi-200',
-            real_value='font-size-gi-100',
-            plan_value='font-size-gi-200',
-            last_measurement_label='font-size-gi-400',
-            last_measurement_value='font-size-gi-300',
-        ),
-        indicators=(
-            IndicatorDefinition('Día', 'recuperacion_cu'),
-            IndicatorDefinition('Semana', 'recuperacion_cu'),
-            IndicatorDefinition('actual', 'recuperacion_cu', only_last_measurement=True),
+        definition_key='recuperacion_cu',
+        measurements=(
+            GlobalIndicatorMeasurementDefinition.temporal('Día'),
+            GlobalIndicatorMeasurementDefinition.temporal('Semana'),
+            GlobalIndicatorMeasurementDefinition.last_measurement(),
         ),
     )
-    data = map_global_indicator_data(
+    state = map_global_indicator_state(
         definition=definition,
         kpis={
             'recuperacion_cu_dia_real_inst': '89,4',
@@ -35,6 +28,7 @@ def test_mapper_supports_last_measurement_without_special_tool_logic() -> None:
         },
     )
 
-    assert [item.temporality for item in data.indicators] == ['Día', 'Semana', 'Actual']
-    assert data.indicators[-1].only_last_measurement is True
-    assert data.indicators[-1].real_value == '88,9'
+    assert [item.temporality for item in state.measurements] == ['Día', 'Semana', None]
+    assert state.measurements[-1].is_last_measurement is True
+    assert state.measurements[-1].real_value == '88,9'
+    assert state.definition_key == 'recuperacion_cu'

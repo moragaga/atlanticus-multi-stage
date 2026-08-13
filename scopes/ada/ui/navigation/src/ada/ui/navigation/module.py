@@ -1,9 +1,8 @@
 from __future__ import annotations
 
+from ada.ui.navigation.callbacks import register_ada_navigation_callbacks
 from atlanticus.web.assets import AssetLayer
 from atlanticus.web.modules import WebModule
-
-from ada.ui.navigation.callbacks import register_ada_navigation_callbacks
 
 ADA_NAVIGATION_ASSET_LAYER = AssetLayer(
     name='ada_ui_navigation',

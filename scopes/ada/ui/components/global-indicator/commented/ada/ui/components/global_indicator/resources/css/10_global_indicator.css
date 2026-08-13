@@ -3,7 +3,9 @@
     --global-indicator-ink: var(--custom-text-color, #4D4D4D);
     display: flex;
     width: 100%;
+    height: 100%;
     min-width: 0;
+    min-height: 0;
     align-items: stretch;
     justify-content: center;
     flex-wrap: wrap;
@@ -13,25 +15,20 @@
     display: flex;
     flex: 1 1 0;
     min-width: 0;
+    min-height: 5.5rem;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: var(--global-indicator-ink);
+    gap: .3rem;
+    padding: 0 .35rem;
+    box-sizing: border-box;
     overflow: hidden;
+    color: var(--global-indicator-ink);
 }
 
 .global-indicator p {
     margin: 0;
     color: inherit;
-}
-
-.global-indicator__content {
-    display: flex;
-    width: 100%;
-    min-width: 0;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
 }
 
 .global-indicator__heading {
@@ -40,13 +37,11 @@
     min-width: 0;
     align-items: center;
     justify-content: center;
-    gap: .3rem;
-    padding-inline: .5rem;
+    gap: .2rem;
     font-weight: 600;
 }
 
 .global-indicator__label {
-    flex: 0 1 auto;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -57,6 +52,15 @@
 .global-indicator__unit {
     flex: 0 0 auto;
     white-space: nowrap;
+}
+
+.global-indicator__content {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
 }
 
 .global-indicator__table {
@@ -103,6 +107,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    padding-left: .35rem;
+    border-left: 1px solid var(--global-indicator-border);
 }
 
 .global-indicator__last-measurement-label {
@@ -115,19 +121,19 @@
 }
 
 .font-size-gi-100 {
-    font-size: 12px;
+    font-size: .7rem;
 }
 
 .font-size-gi-200 {
-    font-size: 9px;
+    font-size: .6rem;
 }
 
 .font-size-gi-300 {
-    font-size: 11px;
+    font-size: .5rem;
 }
 
 .font-size-gi-400 {
-    font-size: 7px;
+    font-size: .4rem;
 }
 
 @media (min-width: 1280px) {
@@ -141,5 +147,29 @@
 
     .global-indicators > .global-indicator:first-child {
         border-inline-start: 1px solid var(--global-indicator-border);
+    }
+}
+
+@media (min-width: 1920px) {
+    .font-size-gi-100 {
+        font-size: .75rem;
+    }
+
+    .font-size-gi-200 {
+        font-size: .65rem;
+    }
+
+    .font-size-gi-300 {
+        font-size: .55rem;
+    }
+
+    .font-size-gi-400 {
+        font-size: .45rem;
+    }
+}
+
+@media (max-width: 1279.98px) {
+    .global-indicator {
+        flex: 1 1 50%;
     }
 }

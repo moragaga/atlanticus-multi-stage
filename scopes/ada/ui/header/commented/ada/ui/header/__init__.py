@@ -1,12 +1,13 @@
-# Espejo comentado: conserva exactamente la lógica productiva del módulo.
-# Los comentarios describen la responsabilidad sin alterar el AST ejecutable.
+# Espejo comentado de la implementación productiva.
+# Conserva el mismo AST; los comentarios documentan la frontera del Header.
 from .errors import HeaderDefinitionError, HeaderPresentationError
 from .models import (
     AlarmManagementSegmentState,
     AlarmManagementState,
     AlarmStatusState,
     HeaderBrandState,
-    HeaderGlobalIndicator,
+    HeaderIndicatorPlacement,
+    HeaderSectionStates,
     HeaderState,
     HeaderTone,
 )
@@ -21,8 +22,9 @@ __all__ = [
     'AlarmStatusState',
     'HeaderBrandState',
     'HeaderDefinitionError',
-    'HeaderGlobalIndicator',
+    'HeaderIndicatorPlacement',
     'HeaderPresentationError',
+    'HeaderSectionStates',
     'HeaderState',
     'HeaderTone',
     'build_ada_header',

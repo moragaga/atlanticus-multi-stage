@@ -1,5 +1,5 @@
-# Espejo comentado: conserva exactamente la lógica productiva del módulo.
-# Los comentarios describen la responsabilidad sin alterar el AST ejecutable.
+# Espejo comentado de la implementación productiva.
+# Conserva el mismo AST; los comentarios documentan la frontera del Header.
 from __future__ import annotations
 
 import base64
@@ -11,13 +11,14 @@ from dash.development.base_component import Component
 
 from ada.ui.branding import brand_asset_resource
 from ada.ui.components.global_indicator import build_global_indicator
+from ada.ui.components.state_wrapper import build_state_wrapper
 
 from .errors import HeaderPresentationError
 from .models import (
     AlarmManagementSegmentState,
     AlarmManagementState,
     AlarmStatusState,
-    HeaderGlobalIndicator,
+    HeaderIndicatorPlacement,
     HeaderState,
 )
 
@@ -38,38 +39,38 @@ def build_ada_header(
     desktop_navigation_trigger: Component | None = None,
     mobile_navigation_trigger: Component | None = None,
 ) -> html.Header:
+    inner_children: list[Component] = [
+        _build_brand(state),
+        _build_indicators_slot(state),
+        _build_management_slot(state),
+        _build_alarm_status_slot(state),
+    ]
+    if mobile_navigation_trigger is not None:
+        inner_children.append(
+            html.Div(
+                mobile_navigation_trigger,
+                className='app-header-mobile-toggle ada-header__mobile-navigation',
+            )
+        )
+
+    children: list[Component] = [
+        html.Div(
+            className='dashboard-header-inner ada-header',
+            children=inner_children,
+        )
+    ]
+    if desktop_navigation_trigger is not None:
+        children.append(desktop_navigation_trigger)
+
     return html.Header(
         className='dashboard-header-shell ada-header-shell',
         **{
             'data-tool-key': state.tool_key,
             'data-application-name': state.brand.application_name,
-            'data-brand-key': state.brand.brand.brand_key,
-            'data-brand-variant': state.brand.brand.variant_key,
+            'data-brand-key': state.brand.resolved_brand.brand_key,
+            'data-brand-variant': state.brand.resolved_brand.variant_key,
         },
-        children=[
-            html.Div(
-                className='dashboard-header-inner ada-header',
-                children=[
-                    _build_brand(state),
-                    html.Div(
-                        className='ada-header__indicators',
-                        children=[
-                            _build_global_indicator_placement(placement)
-                            for placement in state.global_indicators
-                        ],
-                    ),
-                    build_alarm_management(state.alarm_management),
-                    build_alarm_status(state.alarm_status),
-                    html.Div(
-                        mobile_navigation_trigger,
-                        className='app-header-mobile-toggle ada-header__mobile-navigation',
-                    )
-                    if mobile_navigation_trigger is not None
-                    else None,
-                ],
-            ),
-            desktop_navigation_trigger,
-        ],
+        children=children,
     )
 
 
@@ -96,18 +97,64 @@ def build_alarm_status(state: AlarmStatusState | None) -> html.Div | None:
     )
 
 
-def _build_global_indicator_placement(placement: HeaderGlobalIndicator) -> html.Div:
+def _build_indicators_slot(state: HeaderState) -> html.Div:
+    content = html.Div(
+        className='ada-header__indicators',
+        children=[
+            _build_global_indicator_placement(placement)
+            for placement in state.global_indicators
+        ],
+    )
+    return html.Div(
+        className='ada-header__indicators-slot',
+        **{'data-section-key': 'global_indicators'},
+        children=[
+            build_state_wrapper(
+                content=content,
+                state=state.section_states.global_indicators,
+            )
+        ],
+    )
+
+
+def _build_management_slot(state: HeaderState) -> html.Div:
+    return html.Div(
+        className='ada-header__management-slot',
+        **{'data-section-key': 'alarm_management'},
+        children=[
+            build_state_wrapper(
+                content=build_alarm_management(state.alarm_management),
+                state=state.section_states.alarm_management,
+            )
+        ],
+    )
+
+
+def _build_alarm_status_slot(state: HeaderState) -> html.Div:
+    return html.Div(
+        className='ada-header__alarm-status-slot',
+        **{'data-section-key': 'alarm_status'},
+        children=[
+            build_state_wrapper(
+                content=build_alarm_status(state.alarm_status),
+                state=state.section_states.alarm_status,
+            )
+        ],
+    )
+
+
+def _build_global_indicator_placement(placement: HeaderIndicatorPlacement) -> html.Div:
     attributes = {
-        'data-indicator-key': placement.key,
+        'data-indicator-key': placement.indicator.key,
         'data-section-key': placement.section_key,
         'data-scope': placement.scope.value,
     }
-    if placement.definition_key is not None:
-        attributes['data-definition-key'] = placement.definition_key
+    if placement.indicator.definition_key is not None:
+        attributes['data-definition-key'] = placement.indicator.definition_key
     return html.Div(
         className='ada-header__global-indicator',
         **attributes,
-        children=[build_global_indicator(model=placement.indicator)],
+        children=[build_global_indicator(state=placement.indicator)],
     )
 
 
@@ -117,7 +164,7 @@ def _build_brand(state: HeaderState) -> html.Div:
         className='ada-header__brand',
         children=[
             html.Img(
-                src=_brand_asset_data_uri(brand.brand.asset_resource),
+                src=_brand_asset_data_uri(brand.resolved_brand.asset_resource),
                 alt=brand.application_name,
                 title=brand.application_name,
                 className='ada-header__brand-logo',
@@ -154,7 +201,7 @@ def _build_management_segment(item: AlarmManagementSegmentState) -> html.Div:
                 className='ada-header__management-group',
                 children=[
                     html.Span(f'Grupo {scope_label}', className='ada-header__management-label'),
-                    html.Strong(item.group_value, className='ada-header__management-value'),
+                    html.Strong(item.group, className='ada-header__management-value'),
                 ],
             ),
             html.Div(

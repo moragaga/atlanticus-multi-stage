@@ -14,6 +14,7 @@ dependencies = [
     "ada-contracts-tool-manifest==0.1.0",
     "ada-ui-branding==0.1.0",
     "ada-ui-component-global-indicator==0.1.0",
+    "ada-ui-component-state-wrapper==0.1.0",
     "ada-ui-core==0.1.0",
     "atlanticus-web==0.1.0",
     "dash==4.4.1",
@@ -23,6 +24,7 @@ dependencies = [
 ada-contracts-tool-manifest = { path = "../../contracts/tool-manifest", editable = true }
 ada-ui-branding = { workspace = true }
 ada-ui-component-global-indicator = { workspace = true }
+ada-ui-component-state-wrapper = { workspace = true }
 ada-ui-core = { workspace = true }
 
 [tool.setuptools]

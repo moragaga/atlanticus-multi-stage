@@ -5,7 +5,12 @@ import re
 from dash import html
 from dash.development.base_component import Component
 
-from .models import IndicatorData, IndicatorPropertiesData, IndicatorValue
+from .models import (
+    GlobalIndicatorMeasurementState,
+    GlobalIndicatorStyle,
+    IndicatorColorClass,
+    IndicatorValue,
+)
 
 _CLASS_TOKEN = re.compile(r'^[A-Za-z_][A-Za-z0-9_-]*$')
 
@@ -27,24 +32,29 @@ def build_label(*, label: str, unit: str, class_name: str) -> Component:
 
 def build_indicator_content(
     *,
-    indicators: tuple[IndicatorData, ...],
-    properties: IndicatorPropertiesData,
-) -> tuple[Component, Component | None]:
-    last_measurement_component = None
+    measurements: tuple[GlobalIndicatorMeasurementState, ...],
+    style: GlobalIndicatorStyle,
+) -> tuple[Component, ...]:
     table_rows: list[Component] = []
+    last_measurement: Component | None = None
 
-    for indicator in indicators:
-        if indicator.only_last_measurement:
-            last_measurement_component = _build_last_measurement(
-                label_class_name=properties.last_measurement_label,
-                value=indicator.real_value,
-                value_class_name=properties.last_measurement_value,
-                color=indicator.color_value,
+    for measurement in measurements:
+        if measurement.is_last_measurement:
+            last_measurement = _build_last_measurement(
+                label_class_name=style.last_measurement_label_class,
+                value=measurement.real_value,
+                value_class_name=style.last_measurement_value_class,
+                color_class=measurement.color_class,
             )
             continue
-        table_rows.append(_build_table_row(model=indicator, properties=properties))
+        table_rows.append(_build_table_row(state=measurement, style=style))
 
-    return _build_table(rows=table_rows), last_measurement_component
+    content: list[Component] = []
+    if table_rows:
+        content.append(_build_table(rows=table_rows))
+    if last_measurement is not None:
+        content.append(last_measurement)
+    return tuple(content)
 
 
 def _build_table(*, rows: list[Component]) -> Component:
@@ -54,27 +64,30 @@ def _build_table(*, rows: list[Component]) -> Component:
     )
 
 
-def _build_table_row(*, model: IndicatorData, properties: IndicatorPropertiesData) -> Component:
+def _build_table_row(
+    *,
+    state: GlobalIndicatorMeasurementState,
+    style: GlobalIndicatorStyle,
+) -> Component:
     return html.Tr(
         className='global-indicator__row',
         children=[
             _build_table_value_cell(
-                value=model.temporality,
+                value=state.temporality,
                 value_class_name=(
-                    'global-indicator__value--temporality '
-                    f'{properties.temporality}'
+                    f'global-indicator__value--temporality {style.temporality_class}'
                 ),
                 is_header=True,
             ),
             _build_table_value_cell(
-                value=model.real_value,
-                color=model.color_value,
-                value_class_name=f'global-indicator__value--real {properties.real_value}',
+                value=state.real_value,
+                color_class=state.color_class,
+                value_class_name=f'global-indicator__value--real {style.real_value_class}',
             ),
-            _build_table_separator_cell(class_name=properties.plan_value),
+            _build_table_separator_cell(class_name=style.plan_value_class),
             _build_table_value_cell(
-                value=model.plan_value,
-                value_class_name=f'global-indicator__value--plan {properties.plan_value}',
+                value=state.plan_value,
+                value_class_name=f'global-indicator__value--plan {style.plan_value_class}',
             ),
         ],
     )
@@ -83,7 +96,7 @@ def _build_table_row(*, model: IndicatorData, properties: IndicatorPropertiesDat
 def _build_table_value_cell(
     *,
     value: IndicatorValue,
-    color: str | Component | None = None,
+    color_class: IndicatorColorClass = None,
     value_class_name: str = '',
     is_header: bool = False,
 ) -> Component:
@@ -98,7 +111,7 @@ def _build_table_value_cell(
                     for part in (
                         'global-indicator__value',
                         value_class_name,
-                        _safe_color(color=color),
+                        _safe_class_names(value=color_class),
                     )
                     if part
                 ),
@@ -126,7 +139,7 @@ def _build_last_measurement(
     label_class_name: str,
     value: IndicatorValue,
     value_class_name: str,
-    color: str | Component | None = None,
+    color_class: IndicatorColorClass = None,
 ) -> Component:
     return html.Div(
         className='global-indicator__last-measurement',
@@ -137,7 +150,7 @@ def _build_last_measurement(
                     for part in (
                         'global-indicator__last-measurement-value',
                         value_class_name,
-                        _safe_color(color=color),
+                        _safe_class_names(value=color_class),
                     )
                     if part
                 ),
@@ -159,10 +172,10 @@ def _safe_value(*, value: IndicatorValue) -> str | Component:
     return str(value)
 
 
-def _safe_color(*, color: str | Component | None = None) -> str:
-    if not isinstance(color, str):
+def _safe_class_names(*, value: IndicatorColorClass) -> str:
+    if not isinstance(value, str):
         return ''
-    tokens = color.split()
+    tokens = value.split()
     if tokens and all(_CLASS_TOKEN.fullmatch(token) for token in tokens):
         return ' '.join(tokens)
     return ''
