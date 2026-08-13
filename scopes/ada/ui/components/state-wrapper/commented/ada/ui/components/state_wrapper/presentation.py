@@ -1,4 +1,5 @@
-# Implementación comentada del State Wrapper transversal ADA.
+# Espejo comentado del renderer transversal de cobertura y readiness.
+# Mantiene el mismo AST que la implementación productiva.
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -6,73 +7,69 @@ from collections.abc import Sequence
 from dash import html
 from dash.development.base_component import Component
 
-from .models import StateWrapperState
+from .models import ComponentCover
 
-# Contenido que puede ocupar el wrapper: un componente, una secuencia o ausencia de contenido.
 StateWrapperContent = Component | Sequence[Component] | None
 
 
 def build_state_wrapper(
     *,
     content: StateWrapperContent = None,
-    state: StateWrapperState | None = None,
+    cover: ComponentCover | None = None,
     component_id: str | dict | None = None,
     class_name: str | None = None,
+    ready: bool = True,
+    ready_name: str | None = None,
 ) -> html.Div:
-    # Si no se declara estado, el componente se considera disponible y fresco.
-    resolved_state = state or StateWrapperState.ready()
+    resolved_cover = cover or ComponentCover.none()
     children: list[Component] = [
         html.Div(
             className='ada-state-wrapper__content',
             children=content,
         )
     ]
-
-    # El overlay es opcional y se agrega sobre el contenido sin alterar su geometría.
-    overlay = _build_overlay(resolved_state)
+    overlay = _build_overlay(resolved_cover)
     if overlay is not None:
         children.append(overlay)
 
-    # Dash no acepta id=None. La propiedad id solo se incorpora cuando existe un id real.
     properties = {
         'className': _join_classes('ada-state-wrapper', class_name),
-        'data-availability': resolved_state.availability.value,
-        'data-freshness': resolved_state.freshness.value,
+        'data-cover': resolved_cover.state.value,
+        'data-ready': 'true' if ready else 'false',
         'children': children,
     }
     if component_id is not None:
         properties['id'] = component_id
+    if ready_name is not None:
+        normalized_name = ready_name.strip()
+        if normalized_name:
+            properties['data-ready-name'] = normalized_name
 
     return html.Div(**properties)
 
 
-def _build_overlay(state: StateWrapperState) -> html.Div | None:
-    # READY + FRESH no requiere overlay.
-    if not state.has_overlay:
-        return None
-    kind = state.overlay_kind
-    if kind is None:
+def _build_overlay(cover: ComponentCover) -> html.Div | None:
+    if not cover.covered:
         return None
 
     content: list[Component] = []
-    if state.icon_class is not None:
+    if cover.icon_class is not None:
         content.append(
             html.I(
-                className=f'{state.icon_class} ada-state-wrapper__overlay-icon',
+                className=f'{cover.icon_class} ada-state-wrapper__overlay-icon',
                 **{'aria-hidden': 'true'},
             )
         )
-    if state.message is not None:
+    if cover.message is not None:
         content.append(
             html.P(
-                state.message,
+                cover.message,
                 className='ada-state-wrapper__overlay-message',
             )
         )
-
     return html.Div(
-        className=f'ada-state-wrapper__overlay ada-state-wrapper__overlay--{kind}',
-        **{'data-overlay-kind': kind},
+        className=f'ada-state-wrapper__overlay ada-state-wrapper__overlay--{cover.state.value}',
+        **{'data-overlay-kind': cover.state.value},
         children=[
             html.Div(
                 className='ada-state-wrapper__overlay-content',
@@ -83,5 +80,4 @@ def _build_overlay(state: StateWrapperState) -> html.Div | None:
 
 
 def _join_classes(*values: str | None) -> str:
-    # Evita espacios sobrantes cuando no se entrega una clase adicional.
     return ' '.join(value.strip() for value in values if value and value.strip())

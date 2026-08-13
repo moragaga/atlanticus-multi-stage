@@ -1,7 +1,7 @@
 import pytest
 
 from ada.contracts.tool_manifest import ToolScope
-from ada.ui.components.state_wrapper import DataFreshness, StateWrapperState
+from ada.ui.components.state_wrapper import ComponentCover, CoverState
 from ada.ui.header import (
     AlarmManagementSegmentState,
     AlarmManagementState,
@@ -37,7 +37,7 @@ def test_alarm_status_rejects_negative_counts() -> None:
         AlarmStatusState(-1, 0)
 
 
-def test_header_section_states_can_mark_whole_global_indicator_collection_stale() -> None:
-    states = HeaderSectionStates(global_indicators=StateWrapperState.stale())
+def test_header_section_states_can_cover_whole_global_indicator_collection() -> None:
+    states = HeaderSectionStates(global_indicators=ComponentCover.stale())
 
-    assert states.global_indicators.freshness is DataFreshness.STALE
+    assert states.global_indicators.state is CoverState.STALE

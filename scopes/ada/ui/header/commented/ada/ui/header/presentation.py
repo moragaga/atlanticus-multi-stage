@@ -1,5 +1,5 @@
-# Espejo comentado de la implementación productiva.
-# Conserva el mismo AST; los comentarios documentan la frontera del Header.
+# Espejo comentado del renderer del Header.
+# Mantiene el mismo AST que la implementación productiva.
 from __future__ import annotations
 
 import base64
@@ -101,8 +101,7 @@ def _build_indicators_slot(state: HeaderState) -> html.Div:
     content = html.Div(
         className='ada-header__indicators',
         children=[
-            _build_global_indicator_placement(placement)
-            for placement in state.global_indicators
+            _build_global_indicator_placement(placement) for placement in state.global_indicators
         ],
     )
     return html.Div(
@@ -111,7 +110,7 @@ def _build_indicators_slot(state: HeaderState) -> html.Div:
         children=[
             build_state_wrapper(
                 content=content,
-                state=state.section_states.global_indicators,
+                cover=state.section_states.global_indicators,
             )
         ],
     )
@@ -124,7 +123,7 @@ def _build_management_slot(state: HeaderState) -> html.Div:
         children=[
             build_state_wrapper(
                 content=build_alarm_management(state.alarm_management),
-                state=state.section_states.alarm_management,
+                cover=state.section_states.alarm_management,
             )
         ],
     )
@@ -137,7 +136,7 @@ def _build_alarm_status_slot(state: HeaderState) -> html.Div:
         children=[
             build_state_wrapper(
                 content=build_alarm_status(state.alarm_status),
-                state=state.section_states.alarm_status,
+                cover=state.section_states.alarm_status,
             )
         ],
     )

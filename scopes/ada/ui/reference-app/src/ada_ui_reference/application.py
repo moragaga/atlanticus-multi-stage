@@ -10,6 +10,7 @@ from ada.ui.navigation import create_ada_navigation_module
 from ada_ui_reference.layout import build_layout
 from ada_ui_reference.module import create_reference_module
 from ada_ui_reference.navigation import build_reference_navigation
+from ada_ui_reference.runtime import create_reference_runtime_module
 from atlanticus.web.application import create_web_application
 from atlanticus.web.identity.local import create_local_identity_provider
 from atlanticus.web.identity.module import create_identity_module
@@ -47,6 +48,7 @@ def build_definition() -> WebApplicationDefinition:
                 access_resolver=users_resolver,
             ),
             create_navigation_module(build_reference_navigation(), profiles=profiles),
+            create_reference_runtime_module(),
             create_ada_ui_module(),
             create_ada_navigation_module(),
             create_ada_state_wrapper_module(),

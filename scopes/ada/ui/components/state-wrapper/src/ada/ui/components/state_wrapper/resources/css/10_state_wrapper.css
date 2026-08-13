@@ -1,6 +1,6 @@
 .ada-state-wrapper {
     --ada-state-wrapper-overlay-background: rgba(75, 75, 75, .32);
-    --ada-state-wrapper-construction-background: rgba(75, 75, 75, .62);
+    --ada-state-wrapper-strong-background: rgba(75, 75, 75, .62);
     --ada-state-wrapper-overlay-color: #FFFFFF;
     --ada-state-wrapper-overlay-icon-size: 1.5rem;
     --ada-state-wrapper-overlay-message-size: .9rem;
@@ -20,8 +20,7 @@
     min-height: 0;
 }
 
-.ada-state-wrapper[data-freshness='stale'] .ada-state-wrapper__content,
-.ada-state-wrapper[data-availability='construction'] .ada-state-wrapper__content {
+.ada-state-wrapper:not([data-cover='none']) .ada-state-wrapper__content {
     filter: grayscale(1);
 }
 
@@ -40,8 +39,10 @@
     pointer-events: auto;
 }
 
-.ada-state-wrapper__overlay--construction {
-    background: var(--ada-state-wrapper-construction-background);
+.ada-state-wrapper__overlay--construction,
+.ada-state-wrapper__overlay--source_error,
+.ada-state-wrapper__overlay--component_error {
+    background: var(--ada-state-wrapper-strong-background);
 }
 
 .ada-state-wrapper__overlay-content {

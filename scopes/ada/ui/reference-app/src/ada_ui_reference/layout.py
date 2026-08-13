@@ -16,7 +16,7 @@ def build_layout(services: ServiceRegistry) -> object:
     return html.Div(
         [
             build_ada_header(
-                build_reference_header_state(),
+                build_reference_header_state(services),
                 desktop_navigation_trigger=build_ada_navigation_desktop_trigger(),
                 mobile_navigation_trigger=build_ada_navigation_mobile_trigger(),
             ),

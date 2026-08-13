@@ -1,12 +1,13 @@
 from datetime import date
 
 from ada.contracts.tool_manifest import INTEGRATED_OPERATIONS_MANIFEST, ToolScope
+from ada.runtime.web import AdaRuntime, GuardState, resolve_guard
 from ada.ui.branding import ATLANTICUS_BRAND_MANIFEST, BrandContext, resolve_brand
 from ada.ui.components.global_indicator import (
     GlobalIndicatorMeasurementState,
     GlobalIndicatorState,
 )
-from ada.ui.components.state_wrapper import StateWrapperState
+from ada.ui.components.state_wrapper import ComponentCover
 from ada.ui.header import (
     AlarmManagementSegmentState,
     AlarmManagementState,
@@ -15,9 +16,14 @@ from ada.ui.header import (
     HeaderTone,
     create_header_state,
 )
+from ada_ui_reference.runtime import ADA_RUNTIME_SERVICE
+from atlanticus.web.services import ServiceRegistry
 
 
-def build_reference_header_state():
+def build_reference_header_state(services: ServiceRegistry):
+    runtime = services.require(ADA_RUNTIME_SERVICE, AdaRuntime)
+    snapshot = runtime.current().snapshot
+    indicators_guard = resolve_guard(snapshot, required_sources=('pi',))
     return create_header_state(
         manifest=INTEGRATED_OPERATIONS_MANIFEST,
         brand=resolve_brand(
@@ -82,10 +88,20 @@ def build_reference_header_state():
             )
         ),
         section_states=HeaderSectionStates(
-            global_indicators=StateWrapperState.stale(),
-            alarm_status=StateWrapperState.construction(),
+            global_indicators=_cover_from_guard(indicators_guard.state),
+            alarm_status=ComponentCover.construction(),
         ),
     )
+
+
+def _cover_from_guard(state: GuardState) -> ComponentCover:
+    return {
+        GuardState.READY: ComponentCover.none,
+        GuardState.CONSTRUCTION: ComponentCover.construction,
+        GuardState.STALE: ComponentCover.stale,
+        GuardState.SOURCE_ERROR: ComponentCover.source_error,
+        GuardState.COMPONENT_ERROR: ComponentCover.component_error,
+    }[state]()
 
 
 def _indicator(

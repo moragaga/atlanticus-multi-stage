@@ -9,38 +9,31 @@ from .errors import StateWrapperDefinitionError
 _CLASS_TOKEN = re.compile(r'^[A-Za-z_][A-Za-z0-9_-]*$')
 
 
-class ComponentAvailability(StrEnum):
-    READY = 'ready'
+class CoverState(StrEnum):
+    NONE = 'none'
     CONSTRUCTION = 'construction'
-
-
-class DataFreshness(StrEnum):
-    FRESH = 'fresh'
     STALE = 'stale'
+    SOURCE_ERROR = 'source_error'
+    COMPONENT_ERROR = 'component_error'
 
 
 @dataclass(frozen=True, slots=True)
-class StateWrapperState:
-    availability: ComponentAvailability = ComponentAvailability.READY
-    freshness: DataFreshness = DataFreshness.FRESH
+class ComponentCover:
+    state: CoverState = CoverState.NONE
     message: str | None = None
     icon_class: str | None = None
 
     def __post_init__(self) -> None:
-        if (
-            self.availability is ComponentAvailability.CONSTRUCTION
-            and self.freshness is DataFreshness.STALE
-        ):
-            raise StateWrapperDefinitionError(
-                'Construction state cannot declare stale data freshness'
-            )
+        has_overlay_content = self.message is not None or self.icon_class is not None
+        if self.state is CoverState.NONE and has_overlay_content:
+            raise StateWrapperDefinitionError('Uncovered component cannot declare overlay content')
         if self.message is not None and not self.message.strip():
             raise StateWrapperDefinitionError('State wrapper message cannot be empty')
         if self.icon_class is not None:
             _require_class_tokens(self.icon_class)
 
     @classmethod
-    def ready(cls) -> StateWrapperState:
+    def none(cls) -> ComponentCover:
         return cls()
 
     @classmethod
@@ -49,12 +42,8 @@ class StateWrapperState:
         *,
         message: str = 'Datos desactualizados',
         icon_class: str = 'bi bi-cloud-slash',
-    ) -> StateWrapperState:
-        return cls(
-            freshness=DataFreshness.STALE,
-            message=message,
-            icon_class=icon_class,
-        )
+    ) -> ComponentCover:
+        return cls(CoverState.STALE, message, icon_class)
 
     @classmethod
     def construction(
@@ -62,27 +51,30 @@ class StateWrapperState:
         *,
         message: str = 'En construcción',
         icon_class: str = 'bi bi-hammer',
-    ) -> StateWrapperState:
-        return cls(
-            availability=ComponentAvailability.CONSTRUCTION,
-            message=message,
-            icon_class=icon_class,
-        )
+    ) -> ComponentCover:
+        return cls(CoverState.CONSTRUCTION, message, icon_class)
+
+    @classmethod
+    def source_error(
+        cls,
+        *,
+        message: str = 'Problemas con la fuente de datos',
+        icon_class: str = 'bi bi-cloud-slash',
+    ) -> ComponentCover:
+        return cls(CoverState.SOURCE_ERROR, message, icon_class)
+
+    @classmethod
+    def component_error(
+        cls,
+        *,
+        message: str = 'No fue posible mostrar este componente',
+        icon_class: str = 'bi bi-exclamation-triangle',
+    ) -> ComponentCover:
+        return cls(CoverState.COMPONENT_ERROR, message, icon_class)
 
     @property
-    def has_overlay(self) -> bool:
-        return (
-            self.availability is ComponentAvailability.CONSTRUCTION
-            or self.freshness is DataFreshness.STALE
-        )
-
-    @property
-    def overlay_kind(self) -> str | None:
-        if self.availability is ComponentAvailability.CONSTRUCTION:
-            return ComponentAvailability.CONSTRUCTION.value
-        if self.freshness is DataFreshness.STALE:
-            return DataFreshness.STALE.value
-        return None
+    def covered(self) -> bool:
+        return self.state is not CoverState.NONE
 
 
 def _require_class_tokens(value: str) -> None:

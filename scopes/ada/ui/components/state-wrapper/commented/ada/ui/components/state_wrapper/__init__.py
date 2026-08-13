@@ -1,16 +1,15 @@
-# Espejo comentado de la implementación productiva.
-# Mantiene exactamente el mismo contrato y comportamiento del archivo en src/.
+# Espejo comentado del API público del State Wrapper.
+# Mantiene el mismo AST que la implementación productiva.
 from .errors import StateWrapperDefinitionError
-from .models import ComponentAvailability, DataFreshness, StateWrapperState
+from .models import ComponentCover, CoverState
 from .module import ADA_STATE_WRAPPER_ASSET_LAYER, create_ada_state_wrapper_module
 from .presentation import build_state_wrapper
 
 __all__ = [
     'ADA_STATE_WRAPPER_ASSET_LAYER',
-    'ComponentAvailability',
-    'DataFreshness',
+    'ComponentCover',
+    'CoverState',
     'StateWrapperDefinitionError',
-    'StateWrapperState',
     'build_state_wrapper',
     'create_ada_state_wrapper_module',
 ]

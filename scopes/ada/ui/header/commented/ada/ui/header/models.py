@@ -1,5 +1,5 @@
-# Espejo comentado de la implementación productiva.
-# Conserva el mismo AST; los comentarios documentan la frontera del Header.
+# Espejo comentado de los modelos del Header.
+# Mantiene el mismo AST que la implementación productiva.
 from __future__ import annotations
 
 import re
@@ -9,7 +9,7 @@ from enum import StrEnum
 from ada.contracts.tool_manifest import ToolScope
 from ada.ui.branding import BrandState
 from ada.ui.components.global_indicator import GlobalIndicatorState
-from ada.ui.components.state_wrapper import StateWrapperState
+from ada.ui.components.state_wrapper import ComponentCover
 
 from .errors import HeaderDefinitionError
 
@@ -87,9 +87,9 @@ class HeaderBrandState:
 
 @dataclass(frozen=True, slots=True)
 class HeaderSectionStates:
-    global_indicators: StateWrapperState = field(default_factory=StateWrapperState.ready)
-    alarm_management: StateWrapperState = field(default_factory=StateWrapperState.ready)
-    alarm_status: StateWrapperState = field(default_factory=StateWrapperState.ready)
+    global_indicators: ComponentCover = field(default_factory=ComponentCover.none)
+    alarm_management: ComponentCover = field(default_factory=ComponentCover.none)
+    alarm_status: ComponentCover = field(default_factory=ComponentCover.none)
 
 
 @dataclass(frozen=True, slots=True)

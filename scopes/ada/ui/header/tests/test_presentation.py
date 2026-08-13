@@ -8,7 +8,7 @@ from ada.ui.components.global_indicator import (
     GlobalIndicatorMeasurementState,
     GlobalIndicatorState,
 )
-from ada.ui.components.state_wrapper import StateWrapperState
+from ada.ui.components.state_wrapper import ComponentCover
 from ada.ui.header import (
     AlarmManagementSegmentState,
     AlarmManagementState,
@@ -63,8 +63,8 @@ def test_process_header_uses_generic_wrappers_and_operational_scope() -> None:
             )
         ),
         section_states=HeaderSectionStates(
-            global_indicators=StateWrapperState.stale(),
-            alarm_status=StateWrapperState.construction(),
+            global_indicators=ComponentCover.stale(),
+            alarm_status=ComponentCover.construction(),
         ),
     )
 
@@ -82,8 +82,8 @@ def test_process_header_uses_generic_wrappers_and_operational_scope() -> None:
 
     assert _prop(indicator, 'data-scope') == 'plant'
     assert _prop(management, 'data-scope') == 'plant'
-    assert _prop(indicators_wrapper, 'data-freshness') == 'stale'
-    assert _prop(status_wrapper, 'data-availability') == 'construction'
+    assert _prop(indicators_wrapper, 'data-cover') == 'stale'
+    assert _prop(status_wrapper, 'data-cover') == 'construction'
 
 
 def _require_by_class(component: Component, class_name: str) -> Component:

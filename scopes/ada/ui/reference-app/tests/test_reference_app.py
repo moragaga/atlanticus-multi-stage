@@ -8,7 +8,7 @@ from ada_ui_reference.navigation import build_reference_navigation
 from atlanticus.web.navigation import NavigationDefinition
 
 
-def test_reference_composes_transversal_components_in_asset_order() -> None:
+def test_reference_composes_runtime_and_transversal_components_in_order() -> None:
     definition = build_definition()
     modules = {module.name: module for module in definition.modules}
 
@@ -16,6 +16,7 @@ def test_reference_composes_transversal_components_in_asset_order() -> None:
         'users',
         'identity',
         'navigation',
+        'ada-runtime',
         'ada-ui',
         'ada-navigation',
         'ada-state-wrapper',
@@ -24,6 +25,7 @@ def test_reference_composes_transversal_components_in_asset_order() -> None:
         'reference',
     )
     assert modules['navigation'].asset_layers == ()
+    assert modules['ada-runtime'].asset_layers == ()
     assert modules['ada-ui'].asset_layers == (ADA_UI_ASSET_LAYER,)
     assert modules['ada-navigation'].asset_layers == (ADA_NAVIGATION_ASSET_LAYER,)
     assert modules['ada-state-wrapper'].asset_layers == (ADA_STATE_WRAPPER_ASSET_LAYER,)
