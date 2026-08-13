@@ -17,9 +17,7 @@ from atlanticus.web.services import ServiceRegistry
 def test_reference_runtime_definition_uses_manifest_source_policies() -> None:
     definition = build_reference_runtime_definition(INTEGRATED_OPERATIONS_MANIFEST)
 
-    assert tuple(
-        (source.key, source.stale_after_seconds) for source in definition.sources
-    ) == (
+    assert tuple((source.key, source.stale_after_seconds) for source in definition.sources) == (
         ('pi', 300),
         ('dispatch', 600),
     )
@@ -33,9 +31,9 @@ def test_reference_runtime_definition_does_not_invent_optional_sources() -> None
 
     definition = build_reference_runtime_definition(manifest)
 
-    assert tuple(
-        (source.key, source.stale_after_seconds) for source in definition.sources
-    ) == (('pi', 420),)
+    assert tuple((source.key, source.stale_after_seconds) for source in definition.sources) == (
+        ('pi', 420),
+    )
 
 
 def test_reference_runtime_only_publishes_sources_declared_by_manifest() -> None:

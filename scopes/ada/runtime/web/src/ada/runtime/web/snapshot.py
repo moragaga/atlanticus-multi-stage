@@ -178,19 +178,18 @@ class RuntimeSourceDefinition:
         ):
             raise RuntimeDefinitionError('Source stale_after_seconds must be an integer')
         if self.stale_after_seconds <= 0:
-            raise RuntimeDefinitionError(
-                'Source stale_after_seconds must be greater than zero'
-            )
+            raise RuntimeDefinitionError('Source stale_after_seconds must be greater than zero')
 
-    def normalize(self, state: SourceState, *, evaluated_at_utc: datetime) -> SourceState:
+    def normalize(
+        self,
+        state: SourceState,
+        *,
+        evaluated_at_utc: datetime,
+    ) -> SourceState:
         if state.health is not SourceHealth.HEALTHY:
             return state
         age_seconds = (evaluated_at_utc - state.updated_at_utc).total_seconds()
-        freshness = (
-            Freshness.STALE
-            if age_seconds >= self.stale_after_seconds
-            else Freshness.FRESH
-        )
+        freshness = Freshness.STALE if age_seconds >= self.stale_after_seconds else Freshness.FRESH
         return SourceState(
             key=state.key,
             health=state.health,
@@ -257,8 +256,7 @@ class RuntimeDefinition:
             revision=f'runtime-error:{normalized_error}',
             loaded_at_utc=loaded_at_utc,
             sources={
-                definition.key: SourceState.error(definition.key)
-                for definition in self.sources
+                definition.key: SourceState.error(definition.key) for definition in self.sources
             },
             values={key: ValueState.error(key) for key in self.value_keys},
         )

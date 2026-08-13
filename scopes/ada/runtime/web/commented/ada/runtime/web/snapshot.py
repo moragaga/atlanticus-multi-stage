@@ -119,7 +119,9 @@ class ValueState:
         if self.status is ValueStatus.OK and self.value is None:
             raise RuntimeDefinitionError('OK value requires a concrete value')
         if self.status is not ValueStatus.OK and self.value is not None:
-            raise RuntimeDefinitionError('Degraded value cannot expose a fallback value')
+            raise RuntimeDefinitionError(
+                'Degraded value cannot expose a fallback value'
+            )
 
     @classmethod
     def ok(cls, key: str, value: object) -> ValueState:
@@ -155,8 +157,12 @@ class RuntimeSnapshot:
             raise RuntimeDefinitionError('Runtime snapshot revision cannot be empty')
         object.__setattr__(self, 'revision', revision)
         object.__setattr__(self, 'loaded_at_utc', _as_utc(self.loaded_at_utc))
-        object.__setattr__(self, 'sources', _freeze_states(self.sources, SourceState, 'source'))
-        object.__setattr__(self, 'values', _freeze_states(self.values, ValueState, 'value'))
+        object.__setattr__(
+            self, 'sources', _freeze_states(self.sources, SourceState, 'source')
+        )
+        object.__setattr__(
+            self, 'values', _freeze_states(self.values, ValueState, 'value')
+        )
 
     def source(self, key: str) -> SourceState:
         normalized = _normalized_key(key, field_name='source key')
@@ -178,14 +184,21 @@ class RuntimeSourceDefinition:
         if isinstance(self.stale_after_seconds, bool) or not isinstance(
             self.stale_after_seconds, int
         ):
-            raise RuntimeDefinitionError('Source stale_after_seconds must be an integer')
+            raise RuntimeDefinitionError(
+                'Source stale_after_seconds must be an integer'
+            )
         if self.stale_after_seconds <= 0:
             raise RuntimeDefinitionError(
                 'Source stale_after_seconds must be greater than zero'
             )
 
     # La frescura se calcula aquí para que ningún loader tenga que decidir FRESH o STALE.
-    def normalize(self, state: SourceState, *, evaluated_at_utc: datetime) -> SourceState:
+    def normalize(
+        self,
+        state: SourceState,
+        *,
+        evaluated_at_utc: datetime,
+    ) -> SourceState:
         # Un error de fuente conserva UNKNOWN: estar caída no es lo mismo que estar stale.
         if state.health is not SourceHealth.HEALTHY:
             return state
@@ -211,7 +224,9 @@ class RuntimeDefinition:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, 'sources', _unique_source_definitions(self.sources))
-        object.__setattr__(self, 'value_keys', _unique_keys(self.value_keys, 'value key'))
+        object.__setattr__(
+            self, 'value_keys', _unique_keys(self.value_keys, 'value key')
+        )
 
     def normalize(
         self,
@@ -281,7 +296,9 @@ def _freeze_states(
         if not isinstance(state, expected_type):
             raise RuntimeDefinitionError(f'Invalid {label} state for {key!r}')
         if state.key != key:
-            raise RuntimeDefinitionError(f'{label.title()} state key does not match mapping key')
+            raise RuntimeDefinitionError(
+                f'{label.title()} state key does not match mapping key'
+            )
         normalized[key] = state
     return MappingProxyType(normalized)
 
@@ -299,7 +316,9 @@ def _unique_source_definitions(
 
 
 def _unique_keys(values: tuple[str, ...], field_name: str) -> tuple[str, ...]:
-    normalized = tuple(_normalized_key(value, field_name=field_name) for value in values)
+    normalized = tuple(
+        _normalized_key(value, field_name=field_name) for value in values
+    )
     if len(normalized) != len(set(normalized)):
         raise RuntimeDefinitionError(f'Duplicate {field_name}s are not allowed')
     return normalized

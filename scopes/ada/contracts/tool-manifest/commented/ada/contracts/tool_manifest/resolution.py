@@ -15,10 +15,14 @@ class ToolManifestResolution:
 
     def __post_init__(self) -> None:
         if not isinstance(self.status, ToolManifestResolutionStatus):
-            raise ToolManifestError(f'Invalid tool manifest resolution status: {self.status!r}')
+            raise ToolManifestError(
+                f'Invalid tool manifest resolution status: {self.status!r}'
+            )
         if self.status is ToolManifestResolutionStatus.READY:
             if self.manifest is None:
-                raise ToolManifestError('Ready tool manifest resolution requires a manifest')
+                raise ToolManifestError(
+                    'Ready tool manifest resolution requires a manifest'
+                )
             return
         if self.manifest is not None:
             raise ToolManifestError(

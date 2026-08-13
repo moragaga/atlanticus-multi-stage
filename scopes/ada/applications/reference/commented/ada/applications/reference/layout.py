@@ -3,8 +3,13 @@ from __future__ import annotations
 from dash import html, page_container
 
 from ada.applications.reference.header import build_reference_header_state
+from ada.applications.reference.time_status import build_reference_time_status_state
 from ada.contracts.tool_manifest import ToolManifestResolution, ToolManifestResolutionStatus
-from ada.ui.components.state_wrapper import ComponentCover, build_state_wrapper
+from ada.ui.components.state_wrapper import (
+    ComponentCover,
+    build_safe_state_wrapper,
+    build_state_wrapper,
+)
 from ada.ui.framework.core import build_ready_scope, ready_attributes
 from ada.ui.shell.header import build_ada_header
 from ada.ui.shell.navigation import (
@@ -12,6 +17,7 @@ from ada.ui.shell.navigation import (
     build_ada_navigation_mobile_trigger,
     build_ada_navigation_offcanvas_from_services,
 )
+from ada.ui.shell.time_status import build_ada_time_status
 from atlanticus.web.services import ServiceRegistry
 
 
@@ -32,6 +38,14 @@ def build_layout(
                 desktop_navigation_trigger=build_ada_navigation_desktop_trigger(),
                 mobile_navigation_trigger=build_ada_navigation_mobile_trigger(),
             ),
+            # El wrapper de Time Status permanece montado; el ticker solo cambia su contenido temporal.
+            build_safe_state_wrapper(
+                build_content=lambda: build_ada_time_status(
+                    build_reference_time_status_state(services, manifest)
+                ),
+                class_name='reference-ada__time-status',
+                ready_name='time-status',
+            ),
             html.Div(
                 build_ada_navigation_offcanvas_from_services(services),
                 **ready_attributes('navigation', ready=True),
@@ -50,6 +64,7 @@ def build_layout(
             'alarm-management',
             'alarm-status',
             'navigation',
+            'time-status',
             'page-content',
         ),
     )

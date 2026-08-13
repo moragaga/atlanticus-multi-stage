@@ -14,6 +14,7 @@ from ada.ui.components.state_wrapper import create_ada_state_wrapper_module
 from ada.ui.framework.core import create_ada_ui_module
 from ada.ui.shell.header import create_ada_header_module
 from ada.ui.shell.navigation import create_ada_navigation_module
+from ada.ui.shell.time_status import create_ada_time_status_module
 from atlanticus.web.application import create_web_application
 from atlanticus.web.identity.local import create_local_identity_provider
 from atlanticus.web.identity.module import create_identity_module
@@ -62,6 +63,8 @@ def build_definition(
                 create_ada_state_wrapper_module(),
                 create_ada_global_indicator_module(),
                 create_ada_header_module(),
+                # Time Status es parte del shell y solo existe con configuración válida.
+                create_ada_time_status_module(),
             ]
         )
     else:

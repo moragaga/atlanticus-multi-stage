@@ -28,6 +28,7 @@ ada-ui-component-global-indicator = { workspace = true }
 ada-ui-component-state-wrapper = { workspace = true }
 ada-ui-shell-header = { workspace = true }
 ada-ui-shell-navigation = { workspace = true }
+ada-ui-shell-time-status = { workspace = true }
 atlanticus-web = { path = "../../web/framework/core", editable = true }
 atlanticus-web-observability = { path = "../../web/framework/observability", editable = true }
 atlanticus-web-navigation = { path = "../../web/capabilities/navigation", editable = true }
@@ -46,6 +47,7 @@ members = [
     "ui/components/state-wrapper",
     "ui/shell/header",
     "ui/shell/navigation",
+    "ui/shell/time-status",
     "applications/reference",
 ]
 
@@ -84,6 +86,7 @@ testpaths = [
     "ui/components/state-wrapper/tests",
     "ui/shell/header/tests",
     "ui/shell/navigation/tests",
+    "ui/shell/time-status/tests",
     "applications/reference/tests",
 ]
 addopts = "-q --import-mode=importlib"

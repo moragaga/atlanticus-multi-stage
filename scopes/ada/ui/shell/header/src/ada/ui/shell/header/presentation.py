@@ -9,7 +9,7 @@ from dash.development.base_component import Component
 
 from ada.ui.components.branding import brand_asset_resource
 from ada.ui.components.global_indicator import build_global_indicator
-from ada.ui.components.state_wrapper import build_safe_state_wrapper, build_state_wrapper
+from ada.ui.components.state_wrapper import build_safe_state_wrapper
 
 from .errors import HeaderPresentationError
 from .models import (

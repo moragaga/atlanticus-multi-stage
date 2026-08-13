@@ -26,13 +26,7 @@ def test_ada_ui_framework_core_declares_foundational_assets_only() -> None:
 
 def test_ada_ui_framework_core_preserves_approved_bootstrap_and_tokens() -> None:
     resources = (
-        Path(__file__).parents[1]
-        / 'src'
-        / 'ada'
-        / 'ui'
-        / 'framework'
-        / 'core'
-        / 'resources'
+        Path(__file__).parents[1] / 'src' / 'ada' / 'ui' / 'framework' / 'core' / 'resources'
     )
     bootstrap = (resources / 'css' / '00-bootstrap.min.css').read_text(encoding='utf-8')
     tokens = (resources / 'css' / '10-tokens.css').read_text(encoding='utf-8')
@@ -45,13 +39,7 @@ def test_ada_ui_framework_core_preserves_approved_bootstrap_and_tokens() -> None
 
 def test_status_visuals_use_approved_kebab_case_assets() -> None:
     resources = (
-        Path(__file__).parents[1]
-        / 'src'
-        / 'ada'
-        / 'ui'
-        / 'framework'
-        / 'core'
-        / 'resources'
+        Path(__file__).parents[1] / 'src' / 'ada' / 'ui' / 'framework' / 'core' / 'resources'
     )
     expected = {
         'not-mapped.svg',
@@ -93,13 +81,7 @@ def test_ready_scope_requires_named_components() -> None:
 
 def test_status_icons_use_shared_rem_tokens_and_scalable_svg_canvas() -> None:
     resources = (
-        Path(__file__).parents[1]
-        / 'src'
-        / 'ada'
-        / 'ui'
-        / 'framework'
-        / 'core'
-        / 'resources'
+        Path(__file__).parents[1] / 'src' / 'ada' / 'ui' / 'framework' / 'core' / 'resources'
     )
     tokens = (resources / 'css' / '10-tokens.css').read_text(encoding='utf-8')
     status_css = (resources / 'css' / '20-status.css').read_text(encoding='utf-8')
@@ -119,3 +101,18 @@ def test_status_icons_use_shared_rem_tokens_and_scalable_svg_canvas() -> None:
         encoding='utf-8'
     )
     assert 'viewBox="0 0 16 16"' in internal_error
+
+
+def test_app_ticker_uses_one_second_aligned_timeout_and_isolates_subscribers() -> None:
+    resources = (
+        Path(__file__).parents[1] / 'src' / 'ada' / 'ui' / 'framework' / 'core' / 'resources'
+    )
+    script = (resources / 'js' / '20-app-ticker.js').read_text(encoding='utf-8')
+    js_list = (resources / 'js' / 'js.list').read_text(encoding='utf-8').splitlines()
+
+    assert js_list == ['10-page-ready.js', '20-app-ticker.js']
+    assert 'window.AppTicker = Object.freeze' in script
+    assert '1000 - (Date.now() % 1000)' in script
+    assert 'setInterval' not in script
+    assert "console.error('[ERROR] AppTicker subscriber failed:'" in script
+    assert 'subscribers.delete(callback)' in script

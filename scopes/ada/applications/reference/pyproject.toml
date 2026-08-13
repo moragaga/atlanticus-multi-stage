@@ -18,6 +18,7 @@ dependencies = [
     "ada-ui-framework-core==0.1.0",
     "ada-ui-shell-header==0.1.0",
     "ada-ui-shell-navigation==0.1.0",
+    "ada-ui-shell-time-status==0.1.0",
     "atlanticus-web==0.1.0",
     "atlanticus-web-navigation==0.1.0",
     "atlanticus-web-identity-local==0.1.0",
@@ -34,6 +35,7 @@ ada-ui-component-state-wrapper = { workspace = true }
 ada-ui-framework-core = { workspace = true }
 ada-ui-shell-header = { workspace = true }
 ada-ui-shell-navigation = { workspace = true }
+ada-ui-shell-time-status = { workspace = true }
 
 [tool.setuptools]
 package-dir = {"" = "src"}

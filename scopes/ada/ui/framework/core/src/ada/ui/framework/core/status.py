@@ -55,10 +55,7 @@ class StatusVisual:
 
     @property
     def asset_url(self) -> str:
-        return (
-            f'/assets/{ADA_UI_ASSET_LAYER.target_name}/img/status/'
-            f'{self.asset_name}'
-        )
+        return f'/assets/{ADA_UI_ASSET_LAYER.target_name}/img/status/{self.asset_name}'
 
 
 _STATUS_VISUALS = {
@@ -116,7 +113,7 @@ def _read_status(value: Any) -> DisplayStatus | None:
             return None
         raw_status = value.get('status')
     elif hasattr(value, 'status'):
-        raw_status = getattr(value, 'status')
+        raw_status = value.status
     else:
         return None
 

@@ -30,9 +30,7 @@ class ToolManifestResolution:
 
     def require_manifest(self) -> ToolManifest:
         if self.manifest is None:
-            raise ToolManifestLookupError(
-                f'Tool manifest is not available: {self.status.value}'
-            )
+            raise ToolManifestLookupError(f'Tool manifest is not available: {self.status.value}')
         return self.manifest
 
     @classmethod
