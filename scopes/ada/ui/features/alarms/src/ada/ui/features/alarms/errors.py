@@ -1,0 +1,2 @@
+class AlarmDefinitionError(ValueError):
+    pass

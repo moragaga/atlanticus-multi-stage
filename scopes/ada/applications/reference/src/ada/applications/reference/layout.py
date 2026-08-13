@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from dash import html, page_container
 
+from ada.applications.reference.alarms import (
+    build_reference_alarm_management_summary,
+    build_reference_alarm_status,
+)
 from ada.applications.reference.header import build_reference_header_state
 from ada.applications.reference.time_status import build_reference_time_status_state
 from ada.contracts.tool_manifest import ToolManifestResolution, ToolManifestResolutionStatus
@@ -34,6 +38,8 @@ def build_layout(
         [
             build_ada_header(
                 build_reference_header_state(services, manifest),
+                alarm_management_slot=build_reference_alarm_management_summary(manifest),
+                alarm_status_slot=build_reference_alarm_status(),
                 desktop_navigation_trigger=build_ada_navigation_desktop_trigger(),
                 mobile_navigation_trigger=build_ada_navigation_mobile_trigger(),
             ),

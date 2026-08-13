@@ -1,5 +1,6 @@
 from datetime import date
 
+from dash import html
 from dash.development.base_component import Component
 
 from ada.contracts.tool_manifest import (
@@ -16,8 +17,6 @@ from ada.ui.components.global_indicator import (
 )
 from ada.ui.components.state_wrapper import ComponentCover
 from ada.ui.shell.header import (
-    AlarmManagementSegmentState,
-    AlarmManagementState,
     HeaderIndicatorPlacement,
     HeaderSectionStates,
     build_ada_header,
@@ -25,7 +24,7 @@ from ada.ui.shell.header import (
 )
 
 
-def test_process_header_uses_generic_wrappers_and_operational_scope() -> None:
+def test_process_header_owns_slots_but_not_alarm_presentations() -> None:
     manifest = build_process_manifest(
         tool_key='flotacion_selectiva',
         display_name='Flotación Selectiva',
@@ -54,86 +53,34 @@ def test_process_header_uses_generic_wrappers_and_operational_scope() -> None:
                             temporality='Día',
                             plan_value='90,5',
                         ),
-                        GlobalIndicatorMeasurementState.last_measurement('88,9'),
                     ),
                 ),
             ),
         ),
-        alarm_management=AlarmManagementState(
-            segments=(
-                AlarmManagementSegmentState(
-                    'alarm_management',
-                    ToolScope.PLANT,
-                    'G1',
-                    50,
-                ),
-            )
-        ),
         section_states=HeaderSectionStates(
             global_indicators=ComponentCover.stale(),
-            alarm_status=ComponentCover.construction(),
         ),
     )
+    management = html.Div('management', id='test-management')
+    status = html.Div('status', id='test-status')
 
-    component = build_ada_header(state)
-    indicator = _require_by_class(component, 'ada-header__global-indicator')
-    management = _require_by_class(component, 'ada-header__management-segment')
+    component = build_ada_header(
+        state,
+        alarm_management_slot=management,
+        alarm_status_slot=status,
+    )
     indicators_wrapper = _require_descendant(
         _require_by_class(component, 'ada-header__indicators-slot'),
         'ada-state-wrapper',
     )
-    status_wrapper = _require_descendant(
-        _require_by_class(component, 'ada-header__alarm-status-slot'),
-        'ada-state-wrapper',
-    )
+    management_slot = _require_by_class(component, 'ada-header__management-slot')
+    status_slot = _require_by_class(component, 'ada-header__alarm-status-slot')
 
-    assert _prop(indicator, 'data-scope') == 'plant'
-    assert _prop(management, 'data-scope') == 'plant'
     assert _prop(indicators_wrapper, 'data-cover') == 'stale'
-    assert _prop(status_wrapper, 'data-cover') == 'construction'
-
-
-def _require_by_class(component: Component, class_name: str) -> Component:
-    result = _find_by_class(component, class_name)
-    if result is None:
-        raise AssertionError(f'Component with class {class_name!r} was not found')
-    return result
-
-
-def _require_descendant(component: Component, class_name: str) -> Component:
-    children = getattr(component, 'children', None)
-    if children is None:
-        raise AssertionError(f'Descendant with class {class_name!r} was not found')
-    if not isinstance(children, (list, tuple)):
-        children = [children]
-    for child in children:
-        if not isinstance(child, Component):
-            continue
-        result = _find_by_class(child, class_name)
-        if result is not None:
-            return result
-    raise AssertionError(f'Descendant with class {class_name!r} was not found')
-
-
-def _find_by_class(component: Component, class_name: str) -> Component | None:
-    classes = getattr(component, 'className', '') or ''
-    if class_name in classes.split():
-        return component
-    children = getattr(component, 'children', None)
-    if children is None:
-        return None
-    if not isinstance(children, (list, tuple)):
-        children = [children]
-    for child in children:
-        if isinstance(child, Component):
-            result = _find_by_class(child, class_name)
-            if result is not None:
-                return result
-    return None
-
-
-def _prop(component: Component, name: str):
-    return component.to_plotly_json()['props'][name]
+    assert _find_by_id(management_slot, 'test-management') is not None
+    assert _find_by_id(status_slot, 'test-status') is not None
+    assert _find_by_class(component, 'ada-alarm-management-summary') is None
+    assert _find_by_class(component, 'ada-alarm-notifications-status') is None
 
 
 def test_broken_global_indicator_is_covered_without_breaking_header(monkeypatch) -> None:
@@ -182,3 +129,51 @@ def test_broken_global_indicator_is_covered_without_breaking_header(monkeypatch)
 
     assert _prop(wrapper, 'data-cover') == 'component-error'
     assert _prop(wrapper, 'data-ready') == 'true'
+
+
+def _require_by_class(component: Component, class_name: str) -> Component:
+    result = _find_by_class(component, class_name)
+    if result is None:
+        raise AssertionError(f'Component with class {class_name!r} was not found')
+    return result
+
+
+def _require_descendant(component: Component, class_name: str) -> Component:
+    result = _find_by_class(component, class_name)
+    if result is None or result is component:
+        raise AssertionError(f'Descendant with class {class_name!r} was not found')
+    return result
+
+
+def _find_by_class(component: Component, class_name: str) -> Component | None:
+    classes = getattr(component, 'className', '') or ''
+    if class_name in classes.split():
+        return component
+    for child in _children(component):
+        result = _find_by_class(child, class_name)
+        if result is not None:
+            return result
+    return None
+
+
+def _find_by_id(component: Component, component_id: str) -> Component | None:
+    if getattr(component, 'id', None) == component_id:
+        return component
+    for child in _children(component):
+        result = _find_by_id(child, component_id)
+        if result is not None:
+            return result
+    return None
+
+
+def _children(component: Component) -> list[Component]:
+    children = getattr(component, 'children', None)
+    if children is None:
+        return []
+    if not isinstance(children, (list, tuple)):
+        children = [children]
+    return [child for child in children if isinstance(child, Component)]
+
+
+def _prop(component: Component, name: str):
+    return component.to_plotly_json()['props'][name]

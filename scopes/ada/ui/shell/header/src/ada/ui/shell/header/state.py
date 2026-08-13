@@ -4,14 +4,7 @@ from ada.contracts.tool_manifest import ToolManifest, ToolScope, ToolTarget
 from ada.ui.components.branding import BrandState
 
 from .errors import HeaderDefinitionError
-from .models import (
-    AlarmManagementState,
-    AlarmStatusState,
-    HeaderBrandState,
-    HeaderIndicatorPlacement,
-    HeaderSectionStates,
-    HeaderState,
-)
+from .models import HeaderBrandState, HeaderIndicatorPlacement, HeaderSectionStates, HeaderState
 
 
 def create_header_state(
@@ -20,8 +13,6 @@ def create_header_state(
     brand: BrandState,
     application_name: str,
     global_indicators: tuple[HeaderIndicatorPlacement, ...] = (),
-    alarm_management: AlarmManagementState | None = None,
-    alarm_status: AlarmStatusState | None = None,
     section_states: HeaderSectionStates | None = None,
     assistant_label: str = 'Asistente de decisiones ágiles',
 ) -> HeaderState:
@@ -34,14 +25,6 @@ def create_header_state(
             required_ancestor='global_indicators',
             required_target=ToolTarget.KPI,
         )
-    if alarm_management is not None:
-        for segment in alarm_management.segments:
-            _validate_scoped_section(
-                manifest=manifest,
-                section_key=segment.section_key,
-                expected_scope=segment.scope,
-                required_ancestor='alarm_management',
-            )
 
     return HeaderState(
         tool_key=manifest.tool_key,
@@ -52,8 +35,6 @@ def create_header_state(
             assistant_label=assistant_label,
         ),
         global_indicators=global_indicators,
-        alarm_management=alarm_management,
-        alarm_status=alarm_status,
         section_states=section_states or HeaderSectionStates(),
     )
 
@@ -62,11 +43,6 @@ def _require_header_structure(manifest: ToolManifest) -> None:
     header = manifest.section('header')
     if header.scope is not ToolScope.GLOBAL:
         raise HeaderDefinitionError('Tool manifest header must use global scope')
-    alarm_status = manifest.section('alarm_status')
-    if alarm_status.parent_key != header.key or alarm_status.scope is not ToolScope.GLOBAL:
-        raise HeaderDefinitionError(
-            'Tool manifest alarm_status must be global and belong to header'
-        )
 
 
 def _validate_scoped_section(

@@ -1,7 +1,13 @@
+# Espejo pedagógico de la implementación productiva.
+# Conserva la misma estructura y comportamiento; los comentarios documentan su responsabilidad.
 from __future__ import annotations
 
 from dash import html, page_container
 
+from ada.applications.reference.alarms import (
+    build_reference_alarm_management_summary,
+    build_reference_alarm_status,
+)
 from ada.applications.reference.header import build_reference_header_state
 from ada.applications.reference.time_status import build_reference_time_status_state
 from ada.contracts.tool_manifest import ToolManifestResolution, ToolManifestResolutionStatus
@@ -26,7 +32,6 @@ def build_layout(
     *,
     tool_manifest_resolution: ToolManifestResolution,
 ) -> object:
-    # La falta de configuración básica es un estado controlado y listo, no un fallo de startup.
     if not tool_manifest_resolution.ready:
         return _build_configuration_fallback(tool_manifest_resolution)
 
@@ -35,10 +40,11 @@ def build_layout(
         [
             build_ada_header(
                 build_reference_header_state(services, manifest),
+                alarm_management_slot=build_reference_alarm_management_summary(manifest),
+                alarm_status_slot=build_reference_alarm_status(),
                 desktop_navigation_trigger=build_ada_navigation_desktop_trigger(),
                 mobile_navigation_trigger=build_ada_navigation_mobile_trigger(),
             ),
-            # El wrapper de Time Status permanece montado; el ticker solo cambia su contenido temporal.
             build_safe_state_wrapper(
                 build_content=lambda: build_ada_time_status(
                     build_reference_time_status_state(services, manifest)
@@ -70,7 +76,6 @@ def build_layout(
     )
 
 
-# El wrapper superior evita montar componentes cuya configuración aún no conocemos.
 def _build_configuration_fallback(resolution: ToolManifestResolution) -> object:
     cover = {
         ToolManifestResolutionStatus.NOT_PROJECTED: ComponentCover.construction(

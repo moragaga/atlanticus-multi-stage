@@ -1,3 +1,5 @@
+# Espejo pedagógico de la implementación productiva.
+# Conserva la misma estructura y comportamiento; los comentarios documentan su responsabilidad.
 from __future__ import annotations
 
 from functools import partial
@@ -11,6 +13,7 @@ from ada.applications.reference.runtime import create_reference_runtime_module
 from ada.contracts.tool_manifest import ToolManifestResolution
 from ada.ui.components.global_indicator import create_ada_global_indicator_module
 from ada.ui.components.state_wrapper import create_ada_state_wrapper_module
+from ada.ui.features.alarms import create_ada_alarms_module
 from ada.ui.framework.core import create_ada_ui_module
 from ada.ui.shell.header import create_ada_header_module
 from ada.ui.shell.navigation import create_ada_navigation_module
@@ -52,18 +55,16 @@ def build_definition(
         ),
         create_navigation_module(build_reference_navigation(), profiles=profiles),
     ]
-    # Solo una configuración válida habilita los módulos funcionales de la herramienta.
     if resolution.ready:
         modules.extend(
             [
-                # El runtime recibe la misma configuración que utilizará el resto de la UI.
                 create_reference_runtime_module(resolution.require_manifest()),
                 create_ada_ui_module(),
                 create_ada_navigation_module(),
                 create_ada_state_wrapper_module(),
                 create_ada_global_indicator_module(),
+                create_ada_alarms_module(),
                 create_ada_header_module(),
-                # Time Status es parte del shell y solo existe con configuración válida.
                 create_ada_time_status_module(),
             ]
         )

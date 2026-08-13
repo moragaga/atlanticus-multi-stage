@@ -1,35 +1,25 @@
-# Espejo comentado de la implementación productiva.
-# Conserva el mismo AST; los comentarios documentan la frontera del Header.
+# Espejo pedagógico de la implementación productiva.
+# Conserva la misma estructura y comportamiento; los comentarios documentan su responsabilidad.
 from .errors import HeaderDefinitionError, HeaderPresentationError
 from .models import (
-    AlarmManagementSegmentState,
-    AlarmManagementState,
-    AlarmStatusState,
     HeaderBrandState,
     HeaderIndicatorPlacement,
     HeaderSectionStates,
     HeaderState,
-    HeaderTone,
 )
 from .module import ADA_HEADER_ASSET_LAYER, create_ada_header_module
-from .presentation import build_ada_header, build_alarm_management, build_alarm_status
+from .presentation import build_ada_header
 from .state import create_header_state
 
 __all__ = [
     'ADA_HEADER_ASSET_LAYER',
-    'AlarmManagementSegmentState',
-    'AlarmManagementState',
-    'AlarmStatusState',
     'HeaderBrandState',
     'HeaderDefinitionError',
     'HeaderIndicatorPlacement',
     'HeaderPresentationError',
     'HeaderSectionStates',
     'HeaderState',
-    'HeaderTone',
     'build_ada_header',
-    'build_alarm_management',
-    'build_alarm_status',
     'create_ada_header_module',
     'create_header_state',
 ]

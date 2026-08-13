@@ -12,36 +12,28 @@ from ada.ui.components.global_indicator import build_global_indicator
 from ada.ui.components.state_wrapper import build_safe_state_wrapper
 
 from .errors import HeaderPresentationError
-from .models import (
-    AlarmManagementSegmentState,
-    AlarmManagementState,
-    AlarmStatusState,
-    HeaderIndicatorPlacement,
-    HeaderState,
-)
+from .models import HeaderIndicatorPlacement, HeaderState
 
 _MIME_TYPES = {
     '.png': 'image/png',
     '.svg': 'image/svg+xml',
     '.webp': 'image/webp',
 }
-_SCOPE_LABELS = {
-    'mine': 'Mina',
-    'plant': 'Planta',
-}
 
 
 def build_ada_header(
     state: HeaderState,
     *,
+    alarm_management_slot: Component | None = None,
+    alarm_status_slot: Component | None = None,
     desktop_navigation_trigger: Component | None = None,
     mobile_navigation_trigger: Component | None = None,
 ) -> html.Header:
     inner_children: list[Component] = [
         _build_brand(state),
         _build_indicators_slot(state),
-        _build_management_slot(state),
-        _build_alarm_status_slot(state),
+        _build_management_slot(alarm_management_slot),
+        _build_alarm_status_slot(alarm_status_slot),
     ]
     if mobile_navigation_trigger is not None:
         inner_children.append(
@@ -72,29 +64,6 @@ def build_ada_header(
     )
 
 
-def build_alarm_management(state: AlarmManagementState | None) -> html.Div | None:
-    if state is None:
-        return None
-    return html.Div(
-        className='ada-header__management',
-        children=[_build_management_segment(item) for item in state.segments],
-    )
-
-
-def build_alarm_status(state: AlarmStatusState | None) -> html.Div | None:
-    if state is None:
-        return None
-    return html.Div(
-        className='ada-header__alarm-status',
-        **{'data-section-key': 'alarm_status', 'data-scope': 'global'},
-        children=[
-            html.Div('Alarmas', className='ada-header__alarm-status-label'),
-            _build_alarm_status_chip(label='Activas', count=state.active_count),
-            _build_alarm_status_chip(label='Gestionadas', count=state.managed_count),
-        ],
-    )
-
-
 def _build_indicators_slot(state: HeaderState) -> html.Div:
     content = html.Div(
         className='ada-header__indicators',
@@ -115,31 +84,19 @@ def _build_indicators_slot(state: HeaderState) -> html.Div:
     )
 
 
-def _build_management_slot(state: HeaderState) -> html.Div:
+def _build_management_slot(content: Component | None) -> html.Div:
     return html.Div(
         className='ada-header__management-slot',
         **{'data-section-key': 'alarm_management'},
-        children=[
-            build_safe_state_wrapper(
-                build_content=lambda: build_alarm_management(state.alarm_management),
-                cover=state.section_states.alarm_management,
-                ready_name='alarm-management',
-            )
-        ],
+        children=[] if content is None else [content],
     )
 
 
-def _build_alarm_status_slot(state: HeaderState) -> html.Div:
+def _build_alarm_status_slot(content: Component | None) -> html.Div:
     return html.Div(
         className='ada-header__alarm-status-slot',
         **{'data-section-key': 'alarm_status'},
-        children=[
-            build_safe_state_wrapper(
-                build_content=lambda: build_alarm_status(state.alarm_status),
-                cover=state.section_states.alarm_status,
-                ready_name='alarm-status',
-            )
-        ],
+        children=[] if content is None else [content],
     )
 
 
@@ -187,53 +144,6 @@ def _build_brand(state: HeaderState) -> html.Div:
                     ),
                 ],
             ),
-        ],
-    )
-
-
-def _build_management_segment(item: AlarmManagementSegmentState) -> html.Div:
-    scope_label = _SCOPE_LABELS[item.scope.value]
-    return html.Div(
-        className='ada-header__management-segment',
-        **{
-            'data-section-key': item.section_key,
-            'data-scope': item.scope.value,
-            'data-tone': item.tone.value,
-        },
-        children=[
-            html.Div(
-                className='ada-header__management-group',
-                children=[
-                    html.Span(f'Grupo {scope_label}', className='ada-header__management-label'),
-                    html.Strong(item.group, className='ada-header__management-value'),
-                ],
-            ),
-            html.Div(
-                className='ada-header__management-progress-block',
-                children=[
-                    html.Span(f'Gestión {scope_label}', className='ada-header__management-label'),
-                    html.Strong(
-                        f'{item.management_percentage:g}%',
-                        className='ada-header__management-value',
-                    ),
-                    html.Progress(
-                        value=item.management_percentage,
-                        max=100,
-                        className='ada-header__management-progress',
-                        title=f'Gestión {scope_label}: {item.management_percentage:g}%',
-                    ),
-                ],
-            ),
-        ],
-    )
-
-
-def _build_alarm_status_chip(*, label: str, count: int) -> html.Div:
-    return html.Div(
-        className='ada-header__alarm-status-chip',
-        children=[
-            html.Span(str(count), className='ada-header__alarm-status-count'),
-            html.Span(label, className='ada-header__alarm-status-text'),
         ],
     )
 

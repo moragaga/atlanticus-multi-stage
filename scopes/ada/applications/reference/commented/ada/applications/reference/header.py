@@ -1,3 +1,5 @@
+# Espejo pedagógico de la implementación productiva.
+# Conserva la misma estructura y comportamiento; los comentarios documentan su responsabilidad.
 from datetime import date
 
 from ada.applications.reference.runtime import ADA_RUNTIME_SERVICE
@@ -10,18 +12,10 @@ from ada.ui.components.global_indicator import (
 )
 from ada.ui.components.state_wrapper import ComponentCover
 from ada.ui.framework.core import coerce_display_value
-from ada.ui.shell.header import (
-    AlarmManagementSegmentState,
-    AlarmManagementState,
-    HeaderIndicatorPlacement,
-    HeaderSectionStates,
-    HeaderTone,
-    create_header_state,
-)
+from ada.ui.shell.header import HeaderIndicatorPlacement, HeaderSectionStates, create_header_state
 from atlanticus.web.services import ServiceRegistry
 
 
-# Header consume el manifest resuelto; ya no importa una configuración global por su cuenta.
 def build_reference_header_state(services: ServiceRegistry, manifest: ToolManifest):
     runtime = services.require(ADA_RUNTIME_SERVICE, AdaRuntime)
     snapshot = runtime.current().snapshot
@@ -71,28 +65,8 @@ def build_reference_header_state(services: ServiceRegistry, manifest: ToolManife
                 '1.784',
             ),
         ),
-        alarm_management=AlarmManagementState(
-            segments=(
-                AlarmManagementSegmentState(
-                    section_key='alarm_management_mine',
-                    scope=ToolScope.MINE,
-                    group='G3',
-                    management_percentage=60,
-                    tone=HeaderTone.ATTENTION,
-                ),
-                AlarmManagementSegmentState(
-                    section_key='alarm_management_plant',
-                    scope=ToolScope.PLANT,
-                    group='G1',
-                    management_percentage=45,
-                    tone=HeaderTone.CRITICAL,
-                ),
-            )
-        ),
         section_states=HeaderSectionStates(
             global_indicators=_cover_from_guard(indicators_guard.state),
-            alarm_management=ComponentCover.stale(),
-            alarm_status=ComponentCover.construction(),
         ),
     )
 

@@ -1,3 +1,4 @@
+/* Espejo pedagógico del asset productivo; conserva el mismo comportamiento visual. */
 .ada-header-shell {
     --ada-header-surface: var(--tertiary-background, #E1E1E1);
     --ada-header-border: var(--primary-border-color, #BDBDBD);
@@ -136,90 +137,12 @@
     border-right: 1px solid var(--ada-header-border);
     --ada-state-wrapper-overlay-icon-size: 1.1rem;
     --ada-state-wrapper-overlay-message-size: .68rem;
-}
-
-.ada-header__management {
-    display: flex;
-    width: 100%;
-    height: 100%;
-    min-width: 0;
-    align-items: stretch;
-    gap: .5rem;
-    padding: .45rem .55rem;
-}
-
-.ada-header__management-segment {
-    display: flex;
-    flex: 1 1 0;
-    min-width: 0;
-    flex-direction: column;
-    justify-content: center;
-    gap: .35rem;
-}
-
-.ada-header__management-group,
-.ada-header__management-progress-block {
-    display: flex;
-    min-width: 0;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: .08rem;
-}
-
-.ada-header__management-label {
-    max-width: 100%;
-    overflow: hidden;
-    color: var(--ada-header-ink);
-    font-size: .46rem;
-    font-weight: 400;
-    line-height: 1;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.ada-header__management-value {
-    color: var(--ada-header-ink);
-    font-size: .62rem;
-    font-weight: 700;
-    line-height: 1.2;
-}
-
-.ada-header__management-segment[data-tone='attention'] .ada-header__management-value {
-    color: var(--ada-header-attention);
-}
-
-.ada-header__management-segment[data-tone='critical'] .ada-header__management-value {
-    color: var(--ada-header-critical);
-}
-
-.ada-header__management-progress {
-    width: 100%;
-    height: .15rem;
-    margin-top: .08rem;
-    overflow: hidden;
-    appearance: none;
-    background: #D0D0D0;
-    border: 0;
-    border-radius: .08rem;
-}
-
-.ada-header__management-progress::-webkit-progress-bar {
-    background: #D0D0D0;
-}
-
-.ada-header__management-progress::-webkit-progress-value,
-.ada-header__management-progress::-moz-progress-bar {
-    background: var(--ada-header-ink);
-}
-
-.ada-header__management-segment[data-tone='attention'] .ada-header__management-progress::-webkit-progress-value,
-.ada-header__management-segment[data-tone='attention'] .ada-header__management-progress::-moz-progress-bar {
-    background: var(--ada-header-attention);
-}
-
-.ada-header__management-segment[data-tone='critical'] .ada-header__management-progress::-webkit-progress-value,
-.ada-header__management-segment[data-tone='critical'] .ada-header__management-progress::-moz-progress-bar {
-    background: var(--ada-header-critical);
+    --ada-alarm-header-ink: var(--ada-header-ink);
+    --ada-alarm-header-dark: var(--ada-header-dark);
+    --ada-alarm-header-muted: var(--ada-header-muted);
+    --ada-alarm-header-attention: var(--ada-header-attention);
+    --ada-alarm-header-critical: var(--ada-header-critical);
+    --ada-alarm-header-count-bg: var(--ada-header-count-bg);
 }
 
 .ada-header__alarm-status-slot {
@@ -230,62 +153,12 @@
     align-items: stretch;
     --ada-state-wrapper-overlay-icon-size: 1.1rem;
     --ada-state-wrapper-overlay-message-size: .68rem;
-}
-
-.ada-header__alarm-status {
-    display: flex;
-    width: 100%;
-    height: 100%;
-    min-width: 0;
-    flex-direction: column;
-    align-items: stretch;
-    justify-content: center;
-    gap: .3rem;
-    padding: 0 .65rem;
-}
-
-.ada-header__alarm-status-label {
-    padding-left: .05rem;
-    color: var(--ada-header-muted);
-    font-size: .42rem;
-    font-weight: 600;
-    line-height: 1;
-    letter-spacing: .025rem;
-    text-transform: uppercase;
-}
-
-.ada-header__alarm-status-chip {
-    display: flex;
-    height: 1.45rem;
-    align-items: stretch;
-    overflow: hidden;
-    border: 1px solid var(--ada-header-muted);
-    border-radius: .35rem;
-}
-
-.ada-header__alarm-status-count {
-    display: flex;
-    width: 1.45rem;
-    flex: 0 0 1.45rem;
-    align-items: center;
-    justify-content: center;
-    background: var(--ada-header-count-bg);
-    color: var(--ada-header-dark);
-    font-size: .7rem;
-    font-weight: 800;
-}
-
-.ada-header__alarm-status-text {
-    display: flex;
-    min-width: 0;
-    align-items: center;
-    padding: 0 .55rem;
-    overflow: hidden;
-    color: var(--ada-header-dark);
-    font-size: .62rem;
-    font-weight: 600;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    --ada-alarm-header-ink: var(--ada-header-ink);
+    --ada-alarm-header-dark: var(--ada-header-dark);
+    --ada-alarm-header-muted: var(--ada-header-muted);
+    --ada-alarm-header-attention: var(--ada-header-attention);
+    --ada-alarm-header-critical: var(--ada-header-critical);
+    --ada-alarm-header-count-bg: var(--ada-header-count-bg);
 }
 
 .ada-header__mobile-navigation {
@@ -302,17 +175,6 @@
 .ada-header-shell.ada-header--expanded-mine .ada-header__global-indicator[data-scope='mine'],
 .ada-header-shell.ada-header--expanded-plant .ada-header__global-indicator[data-scope='plant'] {
     flex: 1 1 0;
-}
-
-@media (min-width: 1920px) {
-    .ada-header__management-label {
-        font-size: .5rem;
-    }
-
-    .ada-header__management-value,
-    .ada-header__alarm-status-text {
-        font-size: .68rem;
-    }
 }
 
 @media (max-width: 991.98px) {

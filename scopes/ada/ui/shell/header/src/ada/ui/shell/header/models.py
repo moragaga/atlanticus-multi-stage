@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from enum import StrEnum
 
 from ada.contracts.tool_manifest import ToolScope
 from ada.ui.components.branding import BrandState
@@ -14,12 +13,6 @@ from .errors import HeaderDefinitionError
 _KEY_PATTERN = re.compile(r'^[a-z][a-z0-9_]*$')
 
 
-class HeaderTone(StrEnum):
-    NEUTRAL = 'neutral'
-    ATTENTION = 'attention'
-    CRITICAL = 'critical'
-
-
 @dataclass(frozen=True, slots=True)
 class HeaderIndicatorPlacement:
     section_key: str
@@ -28,46 +21,6 @@ class HeaderIndicatorPlacement:
 
     def __post_init__(self) -> None:
         _require_key(self.section_key, field_name='indicator section_key')
-
-
-@dataclass(frozen=True, slots=True)
-class AlarmManagementSegmentState:
-    section_key: str
-    scope: ToolScope
-    group: str
-    management_percentage: float
-    tone: HeaderTone = HeaderTone.NEUTRAL
-
-    def __post_init__(self) -> None:
-        _require_key(self.section_key, field_name='alarm management section_key')
-        _require_text(self.group, field_name='alarm management group')
-        if self.scope is ToolScope.GLOBAL:
-            raise HeaderDefinitionError('Alarm management segment must be mine or plant')
-        if not 0 <= self.management_percentage <= 100:
-            raise HeaderDefinitionError('Alarm management percentage must be between 0 and 100')
-
-
-@dataclass(frozen=True, slots=True)
-class AlarmManagementState:
-    segments: tuple[AlarmManagementSegmentState, ...]
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, 'segments', tuple(self.segments))
-        if not self.segments:
-            raise HeaderDefinitionError('Alarm management requires at least one segment')
-        scope_values = [item.scope for item in self.segments]
-        if len(scope_values) != len(set(scope_values)):
-            raise HeaderDefinitionError('Alarm management contains duplicate scopes')
-
-
-@dataclass(frozen=True, slots=True)
-class AlarmStatusState:
-    active_count: int
-    managed_count: int
-
-    def __post_init__(self) -> None:
-        if self.active_count < 0 or self.managed_count < 0:
-            raise HeaderDefinitionError('Alarm status counts cannot be negative')
 
 
 @dataclass(frozen=True, slots=True)
@@ -86,8 +39,6 @@ class HeaderBrandState:
 @dataclass(frozen=True, slots=True)
 class HeaderSectionStates:
     global_indicators: ComponentCover = field(default_factory=ComponentCover.none)
-    alarm_management: ComponentCover = field(default_factory=ComponentCover.none)
-    alarm_status: ComponentCover = field(default_factory=ComponentCover.none)
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,8 +46,6 @@ class HeaderState:
     tool_key: str
     brand: HeaderBrandState
     global_indicators: tuple[HeaderIndicatorPlacement, ...] = field(default_factory=tuple)
-    alarm_management: AlarmManagementState | None = None
-    alarm_status: AlarmStatusState | None = None
     section_states: HeaderSectionStates = field(default_factory=HeaderSectionStates)
 
     def __post_init__(self) -> None:
