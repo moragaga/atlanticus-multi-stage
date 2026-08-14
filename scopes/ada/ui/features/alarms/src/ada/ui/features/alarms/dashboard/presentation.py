@@ -34,22 +34,34 @@ def build_alarm_dashboard_baseline(
 
 
 def build_alarm_dashboard_route_layer(
-    definition: AlarmDashboardRouteDefinition,
+    definition: AlarmDashboardRouteDefinition | None = None,
 ) -> html.Div:
-    impacts = '|'.join(f'{target.kind.value}:{target.key}' for target in definition.impacts)
+    attributes = {
+        'aria-hidden': 'true',
+        'data-ada-alarm-route': 'active',
+        'data-ada-alarm-route-state': 'idle',
+        'data-ada-alarm-route-replay': '0',
+    }
+    if definition is not None:
+        impacts = '|'.join(f'{target.kind.value}:{target.key}' for target in definition.impacts)
+        attributes.update(
+            {
+                'data-ada-alarm-route-event-id': definition.event_id,
+                'data-ada-alarm-route-assignment-key': definition.assignment_key,
+                'data-ada-alarm-route-card-key': definition.card_key,
+                'data-ada-alarm-route-origin': (
+                    f'{definition.origin.kind.value}:{definition.origin.key}'
+                ),
+                'data-ada-alarm-route-impacts': impacts,
+                'data-ada-alarm-route-tone': definition.tone.value,
+                'data-ada-alarm-route-state': 'active',
+                'data-ada-alarm-route-replay': '1',
+            }
+        )
     return html.Div(
         html.Span(className='ada-alarm-dashboard-route__measure'),
         className='ada-alarm-dashboard-route',
-        **{
-            'aria-hidden': 'true',
-            'data-ada-alarm-route': definition.route_key,
-            'data-ada-alarm-route-card-key': definition.card_key,
-            'data-ada-alarm-route-origin': (
-                f'{definition.origin.kind.value}:{definition.origin.key}'
-            ),
-            'data-ada-alarm-route-impacts': impacts,
-            'data-ada-alarm-route-tone': definition.tone.value,
-        },
+        **attributes,
     )
 
 

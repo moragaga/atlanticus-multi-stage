@@ -1,0 +1,27 @@
+/*
+Espejo pedagógico de presentación.
+Seleccionar una alarma no añade un segundo borde: la card ya expresa su severidad con
+su borde y banda roja/amarilla; el foco se comunica mediante la traza persistente.
+*/
+[data-ada-alarm-card-tone='critical'] {
+    --ada-alarm-card-color: #C82333;
+    --ada-alarm-card-foreground: #FFFFFF;
+}
+
+[data-ada-alarm-card-tone='attention'] {
+    --ada-alarm-card-color: #E0A800;
+    --ada-alarm-card-foreground: #212529;
+}
+
+
+[data-ada-alarm-interaction='interactive'] [data-ada-alarm-event-id] {
+    cursor: pointer;
+}
+
+[data-ada-alarm-interaction='interactive'] [data-ada-alarm-event-id] button,
+[data-ada-alarm-interaction='interactive'] [data-ada-alarm-event-id] a,
+[data-ada-alarm-interaction='interactive'] [data-ada-alarm-event-id] input,
+[data-ada-alarm-interaction='interactive'] [data-ada-alarm-event-id] select,
+[data-ada-alarm-interaction='interactive'] [data-ada-alarm-event-id] textarea {
+    cursor: default;
+}

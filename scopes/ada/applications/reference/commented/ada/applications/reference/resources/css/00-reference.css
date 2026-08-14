@@ -1,3 +1,8 @@
+/*
+Espejo pedagógico del harness visual de referencia.
+Las seis posiciones de Process pertenecen siempre a una sola fila. El harness no
+puede modificar el placement aprobado mientras prueba scheduler y animación.
+*/
 html,
 body {
     min-height: 100%;
@@ -105,7 +110,6 @@ body {
     gap: 1rem;
 }
 
-/* Scope exterior: la baseline ocupa este ancho y no hereda el gutter de cards/body. */
 .reference-ada__alarm-geometry-scope {
     --reference-alarm-frame-padding: .75rem;
     --reference-alarm-layout-gap: .35rem;
@@ -121,7 +125,6 @@ body {
     border-radius: .5rem;
 }
 
-/* Cards de alarmas y body comparten el mismo frame horizontal. */
 .reference-ada__alarm-example-label,
 .reference-ada__alarm-content-frame,
 .reference-ada__alarm-body-frame {
@@ -154,7 +157,7 @@ body {
     min-width: 0;
     overflow: hidden;
     background: #EBEBEB;
-    border: .1125rem solid var(--primary-border-color);
+    border: .1125rem solid var(--ada-alarm-card-color);
     border-radius: .6rem;
 }
 
@@ -163,8 +166,8 @@ body {
     min-height: 1.1rem;
     align-items: center;
     padding: 0 .45rem;
-    background: var(--ada-alarm-active-color, #BDBDBD);
-    color: var(--ada-alarm-active-foreground, #FFFFFF);
+    background: var(--ada-alarm-card-color);
+    color: var(--ada-alarm-card-foreground);
     font-size: .5rem;
     font-weight: 700;
     letter-spacing: .03rem;
@@ -180,7 +183,6 @@ body {
     line-height: 1.2;
 }
 
-/* IO reutiliza exactamente la misma definición de columnas arriba y abajo. */
 .reference-ada__alarm-io-placement-grid,
 .reference-ada__alarm-io-grid {
     display: grid;
@@ -196,7 +198,6 @@ body {
     gap: var(--reference-alarm-layout-gap);
 }
 
-/* Process mantiene seis slots de alarmas iguales en cualquier variante del body. */
 .reference-ada__alarm-process-placement-grid {
     display: grid;
     min-width: 0;
@@ -264,4 +265,45 @@ body {
 
 .reference-ada__alarm-target--right {
     grid-area: right;
+}
+
+.reference-ada__alarm-behavior-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+}
+
+.reference-ada__alarm-queue-lane {
+    display: grid;
+    min-width: 0;
+}
+
+.reference-ada__alarm-card-footer {
+    display: flex;
+    min-height: 1.5rem;
+    align-items: center;
+    justify-content: flex-end;
+    padding: .2rem .35rem .3rem;
+    border-top: 1px solid #D5D5D5;
+}
+
+.reference-ada__alarm-card-action {
+    min-height: 1.1rem;
+    padding: 0 .4rem;
+    background: #FFFFFF;
+    border: 1px solid #BEBEBE;
+    border-radius: .3rem;
+    color: #595959;
+    font-size: .5rem;
+    font-weight: 600;
+}
+
+.reference-ada__alarm-process-placement-grid[data-ada-alarm-process-queue] {
+    min-height: 4.9rem;
+    align-items: start;
+}
+
+.reference-ada__alarm-process-placement-grid[data-ada-alarm-process-queue]
+    > [data-ada-alarm-event-id] {
+    grid-row: 1;
 }

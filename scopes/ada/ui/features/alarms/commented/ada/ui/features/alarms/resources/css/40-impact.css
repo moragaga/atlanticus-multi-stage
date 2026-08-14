@@ -1,4 +1,4 @@
-/* Espejo pedagógico: baseline estable, ruta activa y borde semántico sin alterar el contenido. */
+/* Espejo pedagógico: el target solo ancla el overlay; el borde coloreado se dibuja con SVG. */
 [data-ada-alarm-impact='active'] {
-    border-color: var(--ada-alarm-active-color) !important;
+    position: relative;
 }

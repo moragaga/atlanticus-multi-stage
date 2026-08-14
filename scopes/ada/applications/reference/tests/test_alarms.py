@@ -59,7 +59,7 @@ def test_alarm_header_ownership_is_not_exposed_by_header_shell() -> None:
         assert not hasattr(header, legacy_name)
 
 
-def test_reference_exposes_route_semantics_and_all_process_geometry_variants() -> None:
+def test_reference_exposes_geometry_and_behavior_harnesses() -> None:
     from ada.applications.reference.alarm_dashboard import (
         build_reference_alarm_dashboard_baselines,
     )
@@ -81,7 +81,9 @@ def test_reference_exposes_route_semantics_and_all_process_geometry_variants() -
         if _optional_prop(item, 'data-ada-alarm-geometry-scope') == 'true'
     ]
 
-    assert [_prop(item, 'data-ada-alarm-baseline') for item in baselines] == [
+    assert len(scopes) == 10
+    assert len(routes) == 10
+    assert [_prop(item, 'data-ada-alarm-baseline') for item in baselines[:6]] == [
         'integrated-operations',
         'integrated-operations',
         'process',
@@ -89,7 +91,7 @@ def test_reference_exposes_route_semantics_and_all_process_geometry_variants() -
         'process',
         'process',
     ]
-    assert [_prop(item, 'data-ada-alarm-route-tone') for item in routes] == [
+    assert [_prop(item, 'data-ada-alarm-route-tone') for item in routes[:6]] == [
         'critical',
         'attention',
         'critical',
@@ -97,33 +99,22 @@ def test_reference_exposes_route_semantics_and_all_process_geometry_variants() -
         'critical',
         'critical',
     ]
-    assert len(scopes) == 6
 
-    io_card_keys = [
-        [
-            _optional_prop(item, 'data-ada-alarm-card-key')
+    static_process_scopes = scopes[2:6]
+    slot_sets = [
+        {
+            _optional_prop(item, 'data-ada-slot-key')
             for item in _walk(scope)
-            if _optional_prop(item, 'data-ada-alarm-card-key') is not None
-        ]
-        for scope in scopes[:2]
+            if _optional_prop(item, 'data-ada-slot-key') is not None
+        }
+        for scope in static_process_scopes
     ]
-    assert io_card_keys == [
-        ['io_same_point_alarm'],
-        [
-            'io_general_mine_alarm',
-            'io_loading_alarm',
-            'io_transport_alarm',
-            'io_crushing_alarm',
-            'io_flotation_alarm',
-            'io_port_alarm',
-        ],
+    assert slot_sets == [
+        {'left', 'center', 'right'},
+        {'left', 'center'},
+        {'center', 'right'},
+        {'center'},
     ]
-
-    process_scopes = scopes[2:]
-    assert all(
-        any(_optional_prop(item, 'data-ada-slot-key') == 'center' for item in _walk(scope))
-        for scope in process_scopes
-    )
     assert all(
         len(
             [
@@ -133,22 +124,36 @@ def test_reference_exposes_route_semantics_and_all_process_geometry_variants() -
             ]
         )
         == 6
-        for scope in process_scopes
+        for scope in static_process_scopes
     )
-    slot_sets = [
-        {
-            _optional_prop(item, 'data-ada-slot-key')
-            for item in _walk(scope)
-            if _optional_prop(item, 'data-ada-slot-key') is not None
-        }
-        for scope in process_scopes
+
+    behavior_scopes = scopes[6:]
+    assert _prop(behavior_scopes[0], 'data-ada-alarm-visibility-strategy') == 'queue-in-queue'
+    assert _prop(behavior_scopes[1], 'data-ada-alarm-visibility-strategy') == 'process'
+    assert _prop(behavior_scopes[2], 'data-ada-alarm-visibility-strategy') == 'process'
+    assert _optional_prop(behavior_scopes[3], 'data-ada-alarm-visibility-strategy') is None
+    assert all(
+        _prop(scope, 'data-ada-alarm-presentation-scope') == 'true' for scope in behavior_scopes
+    )
+    assert all(
+        _prop(scope, 'data-ada-alarm-interaction') == 'interactive' for scope in behavior_scopes
+    )
+    assert all(
+        _prop(scope, 'data-ada-alarm-trace-dwell-ms') == '15000' for scope in behavior_scopes
+    )
+
+    distributed_cards = [
+        item
+        for item in _walk(behavior_scopes[2])
+        if _optional_prop(item, 'data-ada-alarm-distributed') == 'true'
     ]
-    assert slot_sets == [
-        {'left', 'center', 'right'},
-        {'left', 'center'},
-        {'center', 'right'},
-        {'center'},
+    assert len(distributed_cards) == 3
+    singleton_events = [
+        item
+        for item in _walk(behavior_scopes[3])
+        if _optional_prop(item, 'data-ada-alarm-event-id') is not None
     ]
+    assert len(singleton_events) == 1
 
 
 def test_reference_alarm_harness_separates_baseline_from_card_and_body_frames() -> None:
@@ -164,6 +169,9 @@ def test_reference_alarm_harness_separates_baseline_from_card_and_body_frames() 
     assert 'grid-template-columns: var(--reference-alarm-io-columns);' in css
     assert '.reference-ada__alarm-process-placement-grid {' in css
     assert 'grid-template-columns: repeat(6, minmax(0, 1fr));' in css
+    assert '[data-ada-alarm-process-queue]\n    > [data-ada-alarm-event-id]' in css
+    assert 'grid-row: 1;' in css
+    assert 'var(--ada-alarm-card-color, #BDBDBD)' not in css
     assert 'width: min(13.5rem, 70%);' not in css
 
 

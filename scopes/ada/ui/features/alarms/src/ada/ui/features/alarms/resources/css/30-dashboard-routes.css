@@ -1,5 +1,7 @@
 .ada-alarm-dashboard-route {
     --ada-alarm-route-track-offset: 1.25rem;
+    --ada-alarm-route-context-color: #F4F4F4;
+    --ada-alarm-route-context-opacity: .78;
     position: absolute;
     z-index: 2;
     inset: 0;
@@ -25,20 +27,71 @@
 
 .ada-alarm-dashboard-route__svg {
     position: absolute;
+    z-index: 0;
     inset: 0;
     width: 100%;
     height: 100%;
     overflow: visible;
+    pointer-events: none;
+}
+
+.ada-alarm-dashboard-route__context-svg {
+    z-index: 0;
+}
+
+.ada-alarm-dashboard-route__active-svg {
+    z-index: 2;
+    opacity: 1;
+    transition: opacity .18s ease;
+}
+
+.ada-alarm-dashboard-route__impact-svg {
+    z-index: 4;
+    opacity: 1;
+    transition: opacity .18s ease;
+}
+
+.ada-alarm-dashboard-route[data-ada-alarm-route-state='exiting']
+    .ada-alarm-dashboard-route__active-svg,
+.ada-alarm-dashboard-route[data-ada-alarm-route-state='exiting']
+    .ada-alarm-dashboard-route__impact-svg {
+    opacity: 0;
+}
+
+.ada-alarm-dashboard-route__context-path,
+.ada-alarm-dashboard-route__path,
+.ada-alarm-dashboard-route__impact-path {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+}
+
+.ada-alarm-dashboard-route__context-path {
+    stroke: var(--ada-alarm-route-context-color);
+    stroke-width: .0875rem;
+    opacity: var(--ada-alarm-route-context-opacity);
 }
 
 .ada-alarm-dashboard-route__path {
-    fill: none;
     stroke: var(--ada-alarm-route-color);
     stroke-width: .1rem;
-    stroke-linecap: round;
-    stroke-linejoin: round;
 }
 
-[data-ada-alarm-card-key][data-ada-alarm-active='true'] {
-    border-color: var(--ada-alarm-active-color) !important;
+.ada-alarm-dashboard-route__impact-path {
+    stroke: var(--ada-alarm-route-color);
+    stroke-width: .1125rem;
+}
+
+@keyframes adaAlarmFlow {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ada-alarm-dashboard-route__active-svg,
+    .ada-alarm-dashboard-route__impact-svg {
+        transition-duration: .01ms;
+    }
 }
