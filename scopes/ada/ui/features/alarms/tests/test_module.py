@@ -28,6 +28,4 @@ def test_alarms_asset_lists_publish_dashboard_layers_in_order() -> None:
     assert (resources / 'js' / 'js.list').read_text(encoding='utf-8').splitlines() == [
         '10-dashboard-geometry.js',
         '20-dashboard-routes.js',
-        '30-dashboard-presentation.js',
-        '40-dashboard-scheduling.js',
     ]

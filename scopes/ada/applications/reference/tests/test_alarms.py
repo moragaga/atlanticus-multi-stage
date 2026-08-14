@@ -59,7 +59,7 @@ def test_alarm_header_ownership_is_not_exposed_by_header_shell() -> None:
         assert not hasattr(header, legacy_name)
 
 
-def test_reference_exposes_geometry_and_behavior_harnesses() -> None:
+def test_reference_exposes_geometry_and_isolated_trace_player_harnesses() -> None:
     from ada.applications.reference.alarm_dashboard import (
         build_reference_alarm_dashboard_baselines,
     )
@@ -81,8 +81,8 @@ def test_reference_exposes_geometry_and_behavior_harnesses() -> None:
         if _optional_prop(item, 'data-ada-alarm-geometry-scope') == 'true'
     ]
 
-    assert len(scopes) == 10
-    assert len(routes) == 10
+    assert len(scopes) == 8
+    assert len(routes) == 8
     assert [_prop(item, 'data-ada-alarm-baseline') for item in baselines[:6]] == [
         'integrated-operations',
         'integrated-operations',
@@ -127,33 +127,31 @@ def test_reference_exposes_geometry_and_behavior_harnesses() -> None:
         for scope in static_process_scopes
     )
 
-    behavior_scopes = scopes[6:]
-    assert _prop(behavior_scopes[0], 'data-ada-alarm-visibility-strategy') == 'queue-in-queue'
-    assert _prop(behavior_scopes[1], 'data-ada-alarm-visibility-strategy') == 'process'
-    assert _prop(behavior_scopes[2], 'data-ada-alarm-visibility-strategy') == 'process'
-    assert _optional_prop(behavior_scopes[3], 'data-ada-alarm-visibility-strategy') is None
-    assert all(
-        _prop(scope, 'data-ada-alarm-presentation-scope') == 'true' for scope in behavior_scopes
-    )
-    assert all(
-        _prop(scope, 'data-ada-alarm-interaction') == 'interactive' for scope in behavior_scopes
-    )
-    assert all(
-        _prop(scope, 'data-ada-alarm-trace-dwell-ms') == '15000' for scope in behavior_scopes
-    )
+    io_player, process_player = scopes[6:]
+    for scope in (io_player, process_player):
+        assert _prop(scope, 'data-ada-alarm-presentation-scope') == 'true'
+        assert _prop(scope, 'data-ada-alarm-interaction') == 'interactive'
+        assert _prop(scope, 'data-ada-alarm-trace-dwell-ms') == '15000'
+        assert _optional_prop(scope, 'data-ada-alarm-visibility-strategy') is None
 
-    distributed_cards = [
+    io_events = [
         item
-        for item in _walk(behavior_scopes[2])
-        if _optional_prop(item, 'data-ada-alarm-distributed') == 'true'
-    ]
-    assert len(distributed_cards) == 3
-    singleton_events = [
-        item
-        for item in _walk(behavior_scopes[3])
+        for item in _walk(io_player)
         if _optional_prop(item, 'data-ada-alarm-event-id') is not None
     ]
-    assert len(singleton_events) == 1
+    process_events = [
+        item
+        for item in _walk(process_player)
+        if _optional_prop(item, 'data-ada-alarm-event-id') is not None
+    ]
+    assert len(io_events) == 6
+    assert len(process_events) == 6
+    loading = next(
+        item for item in io_events if _prop(item, 'data-ada-alarm-event-id') == 'io-player-load-001'
+    )
+    assert _prop(loading, 'data-ada-alarm-route-impacts') == (
+        'component:flotation|component:fluid_transport|component:port'
+    )
 
 
 def test_reference_alarm_harness_separates_baseline_from_card_and_body_frames() -> None:

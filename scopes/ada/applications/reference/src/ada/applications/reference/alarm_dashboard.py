@@ -6,13 +6,10 @@ from ada.ui.features.alarms.dashboard import (
     AlarmDashboardRouteDefinition,
     AlarmPresentationInteraction,
     AlarmRouteTone,
-    AlarmVisibilityStrategy,
     alarm_card_identity_attributes,
     alarm_card_presentation_attributes,
     alarm_geometry_scope_attributes,
     alarm_presentation_scope_attributes,
-    alarm_queue_lane_attributes,
-    alarm_visibility_scope_attributes,
     build_alarm_dashboard_route_layer,
     build_integrated_operations_alarm_baseline,
     build_process_alarm_baseline,
@@ -33,8 +30,6 @@ _IO_COMPONENTS = (
 _PROCESS_ALARM_COUNT = 6
 _PROCESS_ACTIVE_ALARM_INDEX = 2
 _TRACE_DWELL_MS = 15_000
-_PROCESS_ROTATION_INTERVAL_MS = 14_000
-_PROCESS_DISTRIBUTED_INTERVAL_MS = 8_500
 
 
 def build_reference_alarm_dashboard_baselines() -> html.Section:
@@ -72,17 +67,16 @@ def build_reference_alarm_dashboard_baselines() -> html.Section:
             ),
             html.Div(
                 [
-                    html.H3('Behavior Harness'),
+                    html.H3('Trace Player Reset'),
                     html.P(
-                        'Los tiempos están comprimidos para revisión visual. '
-                        'Click en una card fija la traza; los botones internos no cambian el foco.'
+                        'Sin scheduler de visibilidad: todas las rutas permanecen blancas, '
+                        'la ruta activa avanza en rojo/amarillo, los impactos del body se '
+                        'marcan progresivamente y el estado completo permanece 15 segundos.'
                     ),
                     html.Div(
                         [
-                            _build_integrated_operations_behavior_reference(),
-                            _build_process_behavior_reference(),
-                            _build_process_distributed_behavior_reference(),
-                            _build_singleton_behavior_reference(),
+                            _build_integrated_operations_player_reference(),
+                            _build_process_player_reference(),
                         ],
                         className='reference-ada__alarm-behavior-grid',
                     ),
@@ -167,11 +161,7 @@ def _build_integrated_operations_static_alarm_grid(
     active_route: AlarmDashboardRouteDefinition,
 ) -> html.Div:
     return _build_integrated_operations_grid(
-        lambda component_key: _static_io_alarm_slot(
-            component_key,
-            alarm_cards,
-            active_route,
-        )
+        lambda component_key: _static_io_alarm_slot(component_key, alarm_cards, active_route)
     )
 
 
@@ -191,125 +181,76 @@ def _static_io_alarm_slot(
     )
 
 
-def _build_integrated_operations_behavior_reference() -> html.Div:
-    lane_events = {
-        'general_mine': (
-            _route_definition(
-                event_id='io-gm-001',
-                assignment_key='component:general_mine',
-                card_key='io_gm_001',
-                origin=_component_target_definition('general_mine'),
-                impacts=(_component_target_definition('general_mine'),),
-                tone=AlarmRouteTone.CRITICAL,
-            ),
-            _route_definition(
-                event_id='io-gm-002',
-                assignment_key='component:general_mine',
-                card_key='io_gm_002',
-                origin=_component_target_definition('general_mine'),
-                impacts=(_component_target_definition('general_mine'),),
-                tone=AlarmRouteTone.ATTENTION,
-            ),
+def _build_integrated_operations_player_reference() -> html.Div:
+    definitions = {
+        'general_mine': _route_definition(
+            event_id='io-player-gm-001',
+            assignment_key='component:general_mine',
+            card_key='io_player_gm_001',
+            origin=_component_target_definition('general_mine'),
+            impacts=(_component_target_definition('general_mine'),),
+            tone=AlarmRouteTone.CRITICAL,
         ),
-        'loading': (
-            _route_definition(
-                event_id='io-load-001',
-                assignment_key='component:loading',
-                card_key='io_load_001',
-                origin=_component_target_definition('loading'),
-                impacts=(
-                    _component_target_definition('flotation'),
-                    _component_target_definition('port'),
-                ),
-                tone=AlarmRouteTone.ATTENTION,
+        'loading': _route_definition(
+            event_id='io-player-load-001',
+            assignment_key='component:loading',
+            card_key='io_player_load_001',
+            origin=_component_target_definition('loading'),
+            impacts=(
+                _component_target_definition('flotation'),
+                _component_target_definition('fluid_transport'),
+                _component_target_definition('port'),
             ),
+            tone=AlarmRouteTone.ATTENTION,
         ),
-        'transport': (
-            _route_definition(
-                event_id='io-transport-001',
-                assignment_key='component:transport',
-                card_key='io_transport_001',
-                origin=_component_target_definition('transport'),
-                impacts=(_component_target_definition('transport'),),
-                tone=AlarmRouteTone.CRITICAL,
-            ),
-            _route_definition(
-                event_id='io-transport-002',
-                assignment_key='component:transport',
-                card_key='io_transport_002',
-                origin=_component_target_definition('transport'),
-                impacts=(_component_target_definition('transport'),),
-                tone=AlarmRouteTone.ATTENTION,
-            ),
+        'transport': _route_definition(
+            event_id='io-player-transport-001',
+            assignment_key='component:transport',
+            card_key='io_player_transport_001',
+            origin=_component_target_definition('transport'),
+            impacts=(_component_target_definition('transport'),),
+            tone=AlarmRouteTone.CRITICAL,
         ),
-        'crushing_stmg': (
-            _route_definition(
-                event_id='io-crushing-001',
-                assignment_key='component:crushing_stmg',
-                card_key='io_crushing_001',
-                origin=_component_target_definition('crushing_stmg'),
-                impacts=(_component_target_definition('crushing_stmg'),),
-                tone=AlarmRouteTone.CRITICAL,
-            ),
+        'crushing_stmg': _route_definition(
+            event_id='io-player-crushing-001',
+            assignment_key='component:crushing_stmg',
+            card_key='io_player_crushing_001',
+            origin=_component_target_definition('crushing_stmg'),
+            impacts=(_component_target_definition('crushing_stmg'),),
+            tone=AlarmRouteTone.CRITICAL,
         ),
-        'flotation': (
-            _route_definition(
-                event_id='io-flotation-001',
-                assignment_key='component:flotation',
-                card_key='io_flotation_001',
-                origin=_component_target_definition('flotation'),
-                impacts=(_component_target_definition('flotation'),),
-                tone=AlarmRouteTone.ATTENTION,
+        'flotation': _route_definition(
+            event_id='io-player-flotation-001',
+            assignment_key='component:flotation',
+            card_key='io_player_flotation_001',
+            origin=_component_target_definition('flotation'),
+            impacts=(
+                _component_target_definition('grinding'),
+                _component_target_definition('flotation'),
             ),
-            _route_definition(
-                event_id='io-flotation-002',
-                assignment_key='component:flotation',
-                card_key='io_flotation_002',
-                origin=_component_target_definition('flotation'),
-                impacts=(_component_target_definition('flotation'),),
-                tone=AlarmRouteTone.CRITICAL,
-            ),
+            tone=AlarmRouteTone.ATTENTION,
         ),
-        'port': (
-            _route_definition(
-                event_id='io-port-001',
-                assignment_key='component:port',
-                card_key='io_port_001',
-                origin=_component_target_definition('port'),
-                impacts=(_component_target_definition('port'),),
-                tone=AlarmRouteTone.CRITICAL,
-            ),
+        'port': _route_definition(
+            event_id='io-player-port-001',
+            assignment_key='component:port',
+            card_key='io_player_port_001',
+            origin=_component_target_definition('port'),
+            impacts=(_component_target_definition('port'),),
+            tone=AlarmRouteTone.CRITICAL,
         ),
-    }
-    lane_intervals = {
-        'general_mine': 9_000,
-        'loading': 11_000,
-        'transport': 12_500,
-        'crushing_stmg': 10_000,
-        'flotation': 14_000,
-        'port': 13_000,
     }
     component_keys = tuple(key for key, _ in _IO_COMPONENTS)
-    attributes = {
-        **alarm_geometry_scope_attributes(),
-        **alarm_presentation_scope_attributes(
-            trace_dwell_ms=_TRACE_DWELL_MS,
-            interaction=AlarmPresentationInteraction.INTERACTIVE,
-        ),
-        **alarm_visibility_scope_attributes(AlarmVisibilityStrategy.QUEUE_IN_QUEUE),
-    }
     return html.Div(
         [
             html.Div(
-                'IO · queue-in-queue · relojes independientes por posición',
+                'IO · player aislado · incluye impactos de 1, 2 y 3 cards del body',
                 className='reference-ada__alarm-example-label',
             ),
             html.Div(
                 _build_integrated_operations_grid(
-                    lambda component_key: _behavior_io_alarm_slot(
+                    lambda component_key: _player_io_alarm_slot(
                         component_key,
-                        lane_events,
-                        lane_intervals,
+                        definitions,
                     )
                 ),
                 className='reference-ada__alarm-content-frame',
@@ -322,17 +263,22 @@ def _build_integrated_operations_behavior_reference() -> html.Div:
             ),
         ],
         className='reference-ada__alarm-geometry-scope',
-        **attributes,
+        **{
+            **alarm_geometry_scope_attributes(),
+            **alarm_presentation_scope_attributes(
+                trace_dwell_ms=_TRACE_DWELL_MS,
+                interaction=AlarmPresentationInteraction.INTERACTIVE,
+            ),
+        },
     )
 
 
-def _behavior_io_alarm_slot(
+def _player_io_alarm_slot(
     component_key: str,
-    lane_events: dict[str, tuple[AlarmDashboardRouteDefinition, ...]],
-    lane_intervals: dict[str, int],
+    definitions: dict[str, AlarmDashboardRouteDefinition],
 ) -> html.Div:
-    definitions = lane_events.get(component_key, ())
-    if not definitions:
+    definition = definitions.get(component_key)
+    if definition is None:
         return html.Div(className='reference-ada__alarm-card-slot')
     return html.Div(
         [
@@ -341,68 +287,10 @@ def _behavior_io_alarm_slot(
                 definition.event_id,
                 definition.tone,
                 definition=definition,
-                hidden=index > 0,
                 include_button=True,
             )
-            for index, definition in enumerate(definitions)
         ],
-        className='reference-ada__alarm-card-slot reference-ada__alarm-queue-lane',
-        **alarm_queue_lane_attributes(
-            component_key,
-            interval_ms=lane_intervals[component_key],
-        ),
-    )
-
-
-def _build_integrated_operations_grid(slot_builder) -> html.Div:
-    return html.Div(
-        [
-            slot_builder('general_mine'),
-            html.Div(
-                [slot_builder('loading'), slot_builder('transport')],
-                className='reference-ada__alarm-io-double',
-            ),
-            *(
-                slot_builder(key)
-                for key in (
-                    'crushing_stmg',
-                    'stock_chacay',
-                    'grinding',
-                    'flotation',
-                    'fluid_transport',
-                    'port',
-                )
-            ),
-        ],
-        className='reference-ada__alarm-io-placement-grid',
-    )
-
-
-def _build_integrated_operations_body_grid() -> html.Div:
-    by_key = dict(_IO_COMPONENTS)
-    return html.Div(
-        [
-            _component_target('general_mine', by_key['general_mine']),
-            html.Div(
-                [
-                    _component_target('loading', by_key['loading']),
-                    _component_target('transport', by_key['transport']),
-                ],
-                className='reference-ada__alarm-io-double',
-            ),
-            *(
-                _component_target(key, by_key[key])
-                for key in (
-                    'crushing_stmg',
-                    'stock_chacay',
-                    'grinding',
-                    'flotation',
-                    'fluid_transport',
-                    'port',
-                )
-            ),
-        ],
-        className='reference-ada__alarm-io-grid',
+        className='reference-ada__alarm-card-slot',
     )
 
 
@@ -462,85 +350,25 @@ def _build_static_process_alarm_grid(
     return html.Div(cards, className='reference-ada__alarm-process-placement-grid')
 
 
-def _build_process_behavior_reference() -> html.Div:
+def _build_process_player_reference() -> html.Div:
     center = AlarmBaselineTarget(AlarmBaselineTargetKind.SLOT, 'center')
     definitions = tuple(
         _route_definition(
-            event_id=f'process-normal-{index:03d}',
-            assignment_key='process_pending',
-            card_key=f'process_normal_{index:03d}',
+            event_id=f'process-player-{index:03d}',
+            assignment_key=f'process_slot_{index}',
+            card_key=f'process_player_{index:03d}',
             origin=center,
             impacts=(center,),
-            tone=AlarmRouteTone.CRITICAL if index in {1, 4, 7} else AlarmRouteTone.ATTENTION,
+            tone=AlarmRouteTone.CRITICAL if index in {1, 4} else AlarmRouteTone.ATTENTION,
         )
-        for index in range(1, 9)
+        for index in range(1, _PROCESS_ALARM_COUNT + 1)
     )
-    return _build_dynamic_process_scope(
-        'Process · cola normal · 8 alarmas / 6 slots',
-        definitions,
-        distributed_definitions=(),
-        rotation_interval_ms=_PROCESS_ROTATION_INTERVAL_MS,
-        distributed_interval_ms=None,
-    )
-
-
-def _build_process_distributed_behavior_reference() -> html.Div:
-    center = AlarmBaselineTarget(AlarmBaselineTargetKind.SLOT, 'center')
-    normal = tuple(
-        _route_definition(
-            event_id=f'process-distributed-normal-{index:03d}',
-            assignment_key='process_pending',
-            card_key=f'process_distributed_normal_{index:03d}',
-            origin=center,
-            impacts=(center,),
-            tone=AlarmRouteTone.CRITICAL if index % 3 == 0 else AlarmRouteTone.ATTENTION,
-        )
-        for index in range(1, 7)
-    )
-    distributed = tuple(
-        _route_definition(
-            event_id=f'process-distributed-special-{index:03d}',
-            assignment_key='process_pending',
-            card_key=f'process_distributed_special_{index:03d}',
-            origin=center,
-            impacts=(center,),
-            tone=AlarmRouteTone.CRITICAL if index == 2 else AlarmRouteTone.ATTENTION,
-        )
-        for index in range(1, 4)
-    )
-    return _build_dynamic_process_scope(
-        'Process distribuido · slot 6 reservado · dos relojes independientes',
-        normal,
-        distributed_definitions=distributed,
-        rotation_interval_ms=_PROCESS_ROTATION_INTERVAL_MS,
-        distributed_interval_ms=_PROCESS_DISTRIBUTED_INTERVAL_MS,
-    )
-
-
-def _build_dynamic_process_scope(
-    label: str,
-    normal_definitions: tuple[AlarmDashboardRouteDefinition, ...],
-    *,
-    distributed_definitions: tuple[AlarmDashboardRouteDefinition, ...],
-    rotation_interval_ms: int,
-    distributed_interval_ms: int | None,
-) -> html.Div:
-    definitions = normal_definitions + distributed_definitions
-    attributes = {
-        **alarm_geometry_scope_attributes(),
-        **alarm_presentation_scope_attributes(
-            trace_dwell_ms=_TRACE_DWELL_MS,
-            interaction=AlarmPresentationInteraction.INTERACTIVE,
-        ),
-        **alarm_visibility_scope_attributes(
-            AlarmVisibilityStrategy.PROCESS,
-            rotation_interval_ms=rotation_interval_ms,
-            distributed_interval_ms=distributed_interval_ms,
-        ),
-    }
     return html.Div(
         [
-            html.Div(label, className='reference-ada__alarm-example-label'),
+            html.Div(
+                'Process · player aislado · 6 slots fijos · sin rotación de cards',
+                className='reference-ada__alarm-example-label',
+            ),
             html.Div(
                 html.Div(
                     [
@@ -549,14 +377,11 @@ def _build_dynamic_process_scope(
                             definition.event_id,
                             definition.tone,
                             definition=definition,
-                            distributed=definition in distributed_definitions,
-                            hidden=True,
                             include_button=True,
                         )
                         for definition in definitions
                     ],
                     className='reference-ada__alarm-process-placement-grid',
-                    **{'data-ada-alarm-process-queue': 'true'},
                 ),
                 className='reference-ada__alarm-content-frame',
             ),
@@ -568,57 +393,65 @@ def _build_dynamic_process_scope(
             ),
         ],
         className='reference-ada__alarm-geometry-scope',
-        **attributes,
+        **{
+            **alarm_geometry_scope_attributes(),
+            **alarm_presentation_scope_attributes(
+                trace_dwell_ms=_TRACE_DWELL_MS,
+                interaction=AlarmPresentationInteraction.INTERACTIVE,
+            ),
+        },
     )
 
 
-def _build_singleton_behavior_reference() -> html.Div:
-    center = AlarmBaselineTarget(AlarmBaselineTargetKind.SLOT, 'center')
-    definition = _route_definition(
-        event_id='process-singleton-001',
-        assignment_key='process_slot_1',
-        card_key='process_singleton_001',
-        origin=center,
-        impacts=(center,),
-        tone=AlarmRouteTone.CRITICAL,
-    )
-    attributes = {
-        **alarm_geometry_scope_attributes(),
-        **alarm_presentation_scope_attributes(
-            trace_dwell_ms=_TRACE_DWELL_MS,
-            interaction=AlarmPresentationInteraction.INTERACTIVE,
-        ),
-    }
+def _build_integrated_operations_grid(slot_builder) -> html.Div:
     return html.Div(
         [
+            slot_builder('general_mine'),
             html.Div(
-                'Singleton global · la traza permanece y el click no cambia el estado',
-                className='reference-ada__alarm-example-label',
+                [slot_builder('loading'), slot_builder('transport')],
+                className='reference-ada__alarm-io-double',
             ),
-            html.Div(
-                html.Div(
-                    [
-                        _reference_alarm_card(
-                            definition.card_key,
-                            'Única alarma activa',
-                            definition.tone,
-                            definition=definition,
-                            include_button=True,
-                        )
-                    ],
-                    className='reference-ada__alarm-process-placement-grid',
-                ),
-                className='reference-ada__alarm-content-frame',
-            ),
-            build_alarm_dashboard_route_layer(),
-            build_process_alarm_baseline(),
-            html.Div(
-                _build_process_body_grid('center-only', ('center',)),
-                className='reference-ada__alarm-body-frame',
+            *(
+                slot_builder(key)
+                for key in (
+                    'crushing_stmg',
+                    'stock_chacay',
+                    'grinding',
+                    'flotation',
+                    'fluid_transport',
+                    'port',
+                )
             ),
         ],
-        className='reference-ada__alarm-geometry-scope',
-        **attributes,
+        className='reference-ada__alarm-io-placement-grid',
+    )
+
+
+def _build_integrated_operations_body_grid() -> html.Div:
+    by_key = dict(_IO_COMPONENTS)
+    return html.Div(
+        [
+            _component_target('general_mine', by_key['general_mine']),
+            html.Div(
+                [
+                    _component_target('loading', by_key['loading']),
+                    _component_target('transport', by_key['transport']),
+                ],
+                className='reference-ada__alarm-io-double',
+            ),
+            *(
+                _component_target(key, by_key[key])
+                for key in (
+                    'crushing_stmg',
+                    'stock_chacay',
+                    'grinding',
+                    'flotation',
+                    'fluid_transport',
+                    'port',
+                )
+            ),
+        ],
+        className='reference-ada__alarm-io-grid',
     )
 
 
@@ -637,22 +470,14 @@ def _reference_alarm_card(
     tone: AlarmRouteTone,
     *,
     definition: AlarmDashboardRouteDefinition | None = None,
-    distributed: bool = False,
-    hidden: bool = False,
     include_button: bool = False,
 ) -> html.Div:
-    attributes: dict[str, str | bool] = {
+    attributes: dict[str, str] = {
         **alarm_card_identity_attributes(card_key),
         'data-ada-alarm-card-tone': tone.value,
-        'hidden': hidden,
     }
     if definition is not None:
-        attributes.update(
-            alarm_card_presentation_attributes(
-                definition,
-                distributed=distributed,
-            )
-        )
+        attributes.update(alarm_card_presentation_attributes(definition))
     children = [
         html.Div(
             'CRITICAL' if tone is AlarmRouteTone.CRITICAL else 'ATTENTION',
@@ -701,10 +526,7 @@ def _component_target(key: str, label: str) -> html.Div:
     return html.Div(
         label,
         className='reference-ada__alarm-target',
-        **{
-            **component_identity_attributes(key),
-            'data-ada-alarm-impact': 'none',
-        },
+        **component_identity_attributes(key),
     )
 
 
@@ -712,8 +534,5 @@ def _slot_target(key: str, label: str) -> html.Div:
     return html.Div(
         label,
         className=f'reference-ada__alarm-target reference-ada__alarm-target--{key}',
-        **{
-            **slot_identity_attributes(key),
-            'data-ada-alarm-impact': 'none',
-        },
+        **slot_identity_attributes(key),
     )
