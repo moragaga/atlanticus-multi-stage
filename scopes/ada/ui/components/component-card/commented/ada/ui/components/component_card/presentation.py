@@ -1,0 +1,134 @@
+from __future__ import annotations
+
+import logging
+from typing import Any
+
+from dash import html
+
+from ada.contracts.tool_manifest import ToolManifest, ToolSectionKind
+from ada.ui.framework.core import subcomponent_identity_attributes
+
+from .errors import ComponentCardDefinitionError
+
+# El logger solo reporta condiciones degradadas; nunca decide el estado visual de la card.
+_LOGGER = logging.getLogger(__name__)
+# El sentinel permite distinguir "no entregado" de un valor vacío explícito.
+_MISSING = object()
+
+
+def build_component_card(
+    manifest: ToolManifest,
+    *,
+    component: str,
+    subcomponent: str,
+    content: Any = None,
+    label: str | None = None,
+    corner: bool = False,
+    corner_value: Any = _MISSING,
+    class_name: str | None = None,
+) -> html.Div:
+    # La identidad funcional siempre se valida contra el manifest; el integrador no inventa keys.
+    component_section = manifest.section(component)
+    if component_section.kind is not ToolSectionKind.COMPONENT:
+        raise ComponentCardDefinitionError(f'Section {component!r} is not a component')
+
+    # El manifest genera internamente la key técnica a partir de component + subcomponent.
+    section = manifest.subcomponent(component=component, subcomponent=subcomponent)
+    if section.kind is not ToolSectionKind.SUBCOMPONENT:
+        raise ComponentCardDefinitionError(
+            f'Section {section.key!r} is not a subcomponent'
+        )
+
+    # El corner es opcional e independiente del label.
+    resolved_corner_value = _resolve_corner_value(
+        component=component,
+        subcomponent=subcomponent,
+        corner=corner,
+        corner_value=corner_value,
+    )
+    footer = _build_footer(
+        label=label,
+        corner=corner,
+        corner_value=resolved_corner_value,
+    )
+    # El contenido es una caja negra para ComponentCard: puede ser cualquier árbol Dash válido.
+    children: list[Any] = [
+        html.Div(
+            content,
+            className='ada-component-card__content',
+        )
+    ]
+    if footer is not None:
+        children.append(footer)
+
+    # Las marcas DOM son estables para que alarmas y otras capacidades encuentren la card.
+    return html.Div(
+        children,
+        className=_join_classes('ada-component-card', class_name),
+        **{
+            'aria-label': section.display_name,
+            'data-ada-component-card': 'true',
+            'data-ada-component-card-component-key': component,
+            **subcomponent_identity_attributes(section.key),
+        },
+    )
+
+
+def _resolve_corner_value(
+    *,
+    component: str,
+    subcomponent: str,
+    corner: bool,
+    corner_value: Any,
+) -> Any:
+    # Si la card no habilita corner, cualquier valor recibido queda fuera de su contrato y se ignora.
+    if not corner:
+        return _MISSING
+    # Un string vacío explícito es una instrucción válida para limpiar el corner.
+    if corner_value is not _MISSING:
+        return corner_value
+    # La ausencia accidental no rompe la UI: se degrada a vacío y queda trazada como warning.
+    _LOGGER.warning(
+        'ComponentCard corner value was not provided; rendering an empty value. '
+        'component=%s subcomponent=%s',
+        component,
+        subcomponent,
+    )
+    return ''
+
+
+def _build_footer(
+    *,
+    label: str | None,
+    corner: bool,
+    corner_value: Any,
+) -> html.Div | None:
+    # Sin label ni corner no existe footer; no se reserva espacio artificial.
+    if label is None and not corner:
+        return None
+
+    children: list[Any] = []
+    if label is not None:
+        children.append(
+            html.Span(
+                label,
+                className='ada-component-card__footer-label',
+            )
+        )
+    if corner:
+        children.append(
+            html.Span(
+                corner_value,
+                className='ada-component-card__footer-corner',
+                **{'data-ada-component-card-corner': 'true'},
+            )
+        )
+    return html.Div(
+        children,
+        className='ada-component-card__footer',
+    )
+
+
+def _join_classes(*values: str | None) -> str:
+    # Se conserva una composición de clases simple y determinista.
+    return ' '.join(value.strip() for value in values if value and value.strip())

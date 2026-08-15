@@ -1,0 +1,49 @@
+.ada-process-layout {
+    --ada-process-layout-gap: .2rem;
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    gap: var(--ada-process-layout-gap);
+}
+
+.ada-process-layout__main,
+.ada-process-layout__bottom {
+    --bs-gutter-x: var(--ada-process-layout-gap);
+    --bs-gutter-y: var(--ada-process-layout-gap);
+    min-width: 0;
+}
+
+.ada-process-layout__region {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex-direction: column;
+}
+
+.ada-process-layout__region-title {
+    flex: 0 0 auto;
+    min-width: 0;
+    padding: .2rem .35rem;
+    overflow-wrap: anywhere;
+    background: var(--secondary-background);
+    border: 1px solid var(--primary-border-color);
+    border-bottom: 0;
+    border-radius: .35rem .35rem 0 0;
+    font-size: .68rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.ada-process-layout__region-content {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+}
+
+.ada-process-layout__region-content > * {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+}

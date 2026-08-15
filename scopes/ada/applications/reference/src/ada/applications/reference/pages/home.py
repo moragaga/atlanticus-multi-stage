@@ -1,9 +1,10 @@
 from dash import html, register_page
 
-from ada.applications.reference.alarm_dashboard import build_reference_alarm_dashboard_baselines
+from ada.applications.reference.alarm_dashboard import build_reference_alarm_interaction
 from ada.applications.reference.integrated_operations import (
     build_reference_integrated_operations_layout,
 )
+from ada.applications.reference.process import build_reference_process_layout
 from ada.ui.components.state_wrapper import (
     ComponentCover,
     build_safe_state_wrapper,
@@ -20,8 +21,8 @@ def _broken_component():
 
 layout = html.Div(
     [
-        html.H1('ADA UI Resilience'),
-        html.P('Referencia visual de estados controlados sin alterar la geometría.'),
+        html.H1('ADA UI Reference'),
+        html.P('Estados, layouts y alarmas interactivas de referencia para ADA.'),
         html.Div(
             className='reference-ada__resilience-grid',
             children=[
@@ -46,7 +47,8 @@ layout = html.Div(
             ],
         ),
         build_reference_integrated_operations_layout(),
-        build_reference_alarm_dashboard_baselines(),
+        build_reference_process_layout(),
+        build_reference_alarm_interaction(),
     ],
     className='reference-ada__page',
     **ready_attributes('page-content', ready=True),

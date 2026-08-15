@@ -1,0 +1,2 @@
+class ComponentCardDefinitionError(ValueError):
+    pass

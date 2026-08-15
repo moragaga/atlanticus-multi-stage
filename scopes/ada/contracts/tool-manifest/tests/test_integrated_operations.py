@@ -5,6 +5,19 @@ from ada.contracts.tool_manifest import (
     ToolTarget,
 )
 
+_EXPECTED_SUBCOMPONENTS = {
+    'general_mina': ('movimiento_mina', 'remanentes', 'perforacion', 'mp10'),
+    'carguio': ('equipos_servicio', 'mezcla_hacia_chancado'),
+    'transporte': ('transporte_global', 'numero_operativos', 'tiempos_y_colas'),
+    'carguio_transporte': ('gestion_carguio_turno',),
+    'chancado_stmg': ('chancado_stmg',),
+    'stockpile_chacay': ('stockpile_chacay', 'tendencia_alimentado'),
+    'molienda': ('molienda',),
+    'flotacion': ('colectiva', 'selectiva'),
+    'transporte_fluidos': ('str', 'stc', 'tranque', 'sta'),
+    'puerto': ('puerto', 'desaladora'),
+}
+
 
 def test_integrated_operations_has_expected_top_level_sections() -> None:
     manifest = INTEGRATED_OPERATIONS_MANIFEST
@@ -27,7 +40,7 @@ def test_integrated_operations_preserves_macro_components_and_shared_component()
         'chancado_stmg',
     ]
     assert [section.key for section in manifest.children('plant')] == [
-        'stock_chacay',
+        'stockpile_chacay',
         'molienda',
         'flotacion',
         'transporte_fluidos',
@@ -50,6 +63,19 @@ def test_integrated_operations_shared_component_links_carguio_and_transporte() -
     ]
 
 
+def test_integrated_operations_declares_all_real_component_cards() -> None:
+    manifest = INTEGRATED_OPERATIONS_MANIFEST
+
+    for component, subcomponents in _EXPECTED_SUBCOMPONENTS.items():
+        sections = manifest.children(component)
+        assert [section.subcomponent for section in sections] == list(subcomponents)
+        assert [section.key for section in sections] == [
+            f'{component}_{subcomponent}' for subcomponent in subcomponents
+        ]
+
+    assert sum(len(items) for items in _EXPECTED_SUBCOMPONENTS.values()) == 22
+
+
 def test_integrated_operations_subcomponent_keys_are_derived_internally() -> None:
     manifest = INTEGRATED_OPERATIONS_MANIFEST
 
@@ -59,10 +85,6 @@ def test_integrated_operations_subcomponent_keys_are_derived_internally() -> Non
     assert colectiva.key == 'flotacion_colectiva'
     assert colectiva.parent_key == 'flotacion'
     assert selectiva.key == 'flotacion_selectiva'
-    assert [section.key for section in manifest.children('flotacion')] == [
-        'flotacion_colectiva',
-        'flotacion_selectiva',
-    ]
 
 
 def test_global_indicators_and_time_status_are_configurable_alarm_units() -> None:
@@ -97,48 +119,32 @@ def test_alarm_management_groups_remain_structural_and_not_alarm_targets() -> No
 def test_kpi_configuration_accepts_all_integrated_operations_components() -> None:
     manifest = INTEGRATED_OPERATIONS_MANIFEST
     keys = {section.key for section in manifest.sections_for_target(ToolTarget.KPI)}
-
-    expected_components = {
-        'general_mina',
-        'carguio',
-        'transporte',
-        'carguio_transporte',
-        'chancado_stmg',
-        'stock_chacay',
-        'molienda',
-        'flotacion',
-        'transporte_fluidos',
-        'puerto',
-    }
+    expected_components = set(_EXPECTED_SUBCOMPONENTS)
 
     assert expected_components <= keys
     assert {'global_indicators', 'time_status'} <= keys
-    assert 'flotacion_colectiva' not in keys
-    assert 'flotacion_selectiva' not in keys
+    assert all(
+        f'{component}_{subcomponent}' not in keys
+        for component, subcomponents in _EXPECTED_SUBCOMPONENTS.items()
+        for subcomponent in subcomponents
+    )
     assert 'alarm_management' not in keys
     assert 'alarm_status' not in keys
 
 
-def test_alarm_configuration_accepts_components_and_real_subcomponents() -> None:
+def test_alarm_configuration_accepts_all_components_and_real_subcomponents() -> None:
     manifest = INTEGRATED_OPERATIONS_MANIFEST
     keys = {section.key for section in manifest.sections_for_target(ToolTarget.ALARM)}
-
-    expected_components = {
-        'general_mina',
-        'carguio',
-        'transporte',
-        'carguio_transporte',
-        'chancado_stmg',
-        'stock_chacay',
-        'molienda',
-        'flotacion',
-        'transporte_fluidos',
-        'puerto',
+    expected_components = set(_EXPECTED_SUBCOMPONENTS)
+    expected_subcomponents = {
+        f'{component}_{subcomponent}'
+        for component, subcomponents in _EXPECTED_SUBCOMPONENTS.items()
+        for subcomponent in subcomponents
     }
 
     assert expected_components <= keys
+    assert expected_subcomponents <= keys
     assert {'global_indicators', 'time_status'} <= keys
-    assert {'flotacion_colectiva', 'flotacion_selectiva'} <= keys
     assert 'global_indicators_mine' not in keys
     assert 'global_indicators_plant' not in keys
     assert 'alarm_management_mine' not in keys
@@ -154,4 +160,10 @@ def test_section_path_is_semantic_and_independent_from_dom_ids() -> None:
         'plant',
         'flotacion',
         'flotacion_selectiva',
+    ]
+    assert [section.key for section in manifest.path('stockpile_chacay_tendencia_alimentado')] == [
+        'body',
+        'plant',
+        'stockpile_chacay',
+        'stockpile_chacay_tendencia_alimentado',
     ]

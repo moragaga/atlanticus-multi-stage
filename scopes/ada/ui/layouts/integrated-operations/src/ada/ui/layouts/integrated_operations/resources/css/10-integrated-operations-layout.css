@@ -26,9 +26,32 @@
     width: 100%;
     min-width: 0;
     min-height: 0;
+    flex-direction: column;
 }
 
-.ada-io-layout__component > * {
+.ada-io-layout__component-title {
+    flex: 0 0 auto;
+    min-width: 0;
+    padding: .2rem .35rem;
+    overflow-wrap: anywhere;
+    background: var(--secondary-background);
+    border: 1px solid var(--primary-border-color);
+    border-bottom: 0;
+    border-radius: .35rem .35rem 0 0;
+    font-size: .68rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.ada-io-layout__component-content {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+}
+
+.ada-io-layout__component-content > * {
     flex: 1 1 auto;
     min-width: 0;
     min-height: 0;

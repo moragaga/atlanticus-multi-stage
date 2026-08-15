@@ -5,6 +5,24 @@ _KPI = frozenset({ToolTarget.KPI})
 _ALARM = frozenset({ToolTarget.ALARM})
 _KPI_ALARM = frozenset({ToolTarget.KPI, ToolTarget.ALARM})
 
+
+def _alarm_subcomponent(
+    *,
+    component: str,
+    subcomponent: str,
+    display_name: str,
+    scope: ToolScope,
+) -> ToolSection:
+    return ToolSection(
+        component=component,
+        subcomponent=subcomponent,
+        display_name=display_name,
+        kind=ToolSectionKind.SUBCOMPONENT,
+        scope=scope,
+        targets=_ALARM,
+    )
+
+
 INTEGRATED_OPERATIONS_MANIFEST = ToolManifest(
     tool_key='integrated_operations',
     display_name='Operaciones Integradas',
@@ -99,6 +117,30 @@ INTEGRATED_OPERATIONS_MANIFEST = ToolManifest(
             parent_key='mine',
             targets=_KPI_ALARM,
         ),
+        _alarm_subcomponent(
+            component='general_mina',
+            subcomponent='movimiento_mina',
+            display_name='Movimiento Mina',
+            scope=ToolScope.MINE,
+        ),
+        _alarm_subcomponent(
+            component='general_mina',
+            subcomponent='remanentes',
+            display_name='Remanentes',
+            scope=ToolScope.MINE,
+        ),
+        _alarm_subcomponent(
+            component='general_mina',
+            subcomponent='perforacion',
+            display_name='Perforación',
+            scope=ToolScope.MINE,
+        ),
+        _alarm_subcomponent(
+            component='general_mina',
+            subcomponent='mp10',
+            display_name='MP10',
+            scope=ToolScope.MINE,
+        ),
         ToolSection(
             key='carguio',
             display_name='Carguío',
@@ -107,6 +149,18 @@ INTEGRATED_OPERATIONS_MANIFEST = ToolManifest(
             parent_key='mine',
             targets=_KPI_ALARM,
         ),
+        _alarm_subcomponent(
+            component='carguio',
+            subcomponent='equipos_servicio',
+            display_name='Equipos de Servicio',
+            scope=ToolScope.MINE,
+        ),
+        _alarm_subcomponent(
+            component='carguio',
+            subcomponent='mezcla_hacia_chancado',
+            display_name='Mezcla hacia Chancado',
+            scope=ToolScope.MINE,
+        ),
         ToolSection(
             key='transporte',
             display_name='Transporte',
@@ -114,6 +168,24 @@ INTEGRATED_OPERATIONS_MANIFEST = ToolManifest(
             scope=ToolScope.MINE,
             parent_key='mine',
             targets=_KPI_ALARM,
+        ),
+        _alarm_subcomponent(
+            component='transporte',
+            subcomponent='transporte_global',
+            display_name='Transporte Global • Turno',
+            scope=ToolScope.MINE,
+        ),
+        _alarm_subcomponent(
+            component='transporte',
+            subcomponent='numero_operativos',
+            display_name='N° Operativos • Turno',
+            scope=ToolScope.MINE,
+        ),
+        _alarm_subcomponent(
+            component='transporte',
+            subcomponent='tiempos_y_colas',
+            display_name='Tiempos y Colas • Turno',
+            scope=ToolScope.MINE,
         ),
         ToolSection(
             key='carguio_transporte',
@@ -124,6 +196,12 @@ INTEGRATED_OPERATIONS_MANIFEST = ToolManifest(
             targets=_KPI_ALARM,
             linked_component_keys=('carguio', 'transporte'),
         ),
+        _alarm_subcomponent(
+            component='carguio_transporte',
+            subcomponent='gestion_carguio_turno',
+            display_name='Gestión Carguío • Turno',
+            scope=ToolScope.MINE,
+        ),
         ToolSection(
             key='chancado_stmg',
             display_name='Chancado-STMG',
@@ -131,6 +209,12 @@ INTEGRATED_OPERATIONS_MANIFEST = ToolManifest(
             scope=ToolScope.MINE,
             parent_key='mine',
             targets=_KPI_ALARM,
+        ),
+        _alarm_subcomponent(
+            component='chancado_stmg',
+            subcomponent='chancado_stmg',
+            display_name='Chancado-STMG',
+            scope=ToolScope.MINE,
         ),
         ToolSection(
             key='plant',
@@ -140,12 +224,24 @@ INTEGRATED_OPERATIONS_MANIFEST = ToolManifest(
             parent_key='body',
         ),
         ToolSection(
-            key='stock_chacay',
-            display_name='Stock Chacay',
+            key='stockpile_chacay',
+            display_name='Stockpile - Chacay',
             kind=ToolSectionKind.COMPONENT,
             scope=ToolScope.PLANT,
             parent_key='plant',
             targets=_KPI_ALARM,
+        ),
+        _alarm_subcomponent(
+            component='stockpile_chacay',
+            subcomponent='stockpile_chacay',
+            display_name='Stockpile Chacay',
+            scope=ToolScope.PLANT,
+        ),
+        _alarm_subcomponent(
+            component='stockpile_chacay',
+            subcomponent='tendencia_alimentado',
+            display_name='Tendencia Alimentado',
+            scope=ToolScope.PLANT,
         ),
         ToolSection(
             key='molienda',
@@ -155,6 +251,12 @@ INTEGRATED_OPERATIONS_MANIFEST = ToolManifest(
             parent_key='plant',
             targets=_KPI_ALARM,
         ),
+        _alarm_subcomponent(
+            component='molienda',
+            subcomponent='molienda',
+            display_name='Molienda',
+            scope=ToolScope.PLANT,
+        ),
         ToolSection(
             key='flotacion',
             display_name='Flotación',
@@ -163,21 +265,17 @@ INTEGRATED_OPERATIONS_MANIFEST = ToolManifest(
             parent_key='plant',
             targets=_KPI_ALARM,
         ),
-        ToolSection(
+        _alarm_subcomponent(
             component='flotacion',
             subcomponent='colectiva',
-            display_name='Flotación Colectiva',
-            kind=ToolSectionKind.SUBCOMPONENT,
+            display_name='Colectiva',
             scope=ToolScope.PLANT,
-            targets=_ALARM,
         ),
-        ToolSection(
+        _alarm_subcomponent(
             component='flotacion',
             subcomponent='selectiva',
-            display_name='Flotación Selectiva',
-            kind=ToolSectionKind.SUBCOMPONENT,
+            display_name='Selectiva',
             scope=ToolScope.PLANT,
-            targets=_ALARM,
         ),
         ToolSection(
             key='transporte_fluidos',
@@ -187,6 +285,30 @@ INTEGRATED_OPERATIONS_MANIFEST = ToolManifest(
             parent_key='plant',
             targets=_KPI_ALARM,
         ),
+        _alarm_subcomponent(
+            component='transporte_fluidos',
+            subcomponent='str',
+            display_name='STR',
+            scope=ToolScope.PLANT,
+        ),
+        _alarm_subcomponent(
+            component='transporte_fluidos',
+            subcomponent='stc',
+            display_name='STC',
+            scope=ToolScope.PLANT,
+        ),
+        _alarm_subcomponent(
+            component='transporte_fluidos',
+            subcomponent='tranque',
+            display_name='Tranque',
+            scope=ToolScope.PLANT,
+        ),
+        _alarm_subcomponent(
+            component='transporte_fluidos',
+            subcomponent='sta',
+            display_name='STA',
+            scope=ToolScope.PLANT,
+        ),
         ToolSection(
             key='puerto',
             display_name='Puerto',
@@ -194,6 +316,18 @@ INTEGRATED_OPERATIONS_MANIFEST = ToolManifest(
             scope=ToolScope.PLANT,
             parent_key='plant',
             targets=_KPI_ALARM,
+        ),
+        _alarm_subcomponent(
+            component='puerto',
+            subcomponent='puerto',
+            display_name='Puerto',
+            scope=ToolScope.PLANT,
+        ),
+        _alarm_subcomponent(
+            component='puerto',
+            subcomponent='desaladora',
+            display_name='Desaladora',
+            scope=ToolScope.PLANT,
         ),
     ),
 )

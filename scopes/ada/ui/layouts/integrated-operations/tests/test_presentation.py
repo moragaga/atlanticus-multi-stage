@@ -20,7 +20,7 @@ _COMPONENT_KEYS = (
     'transporte',
     'carguio_transporte',
     'chancado_stmg',
-    'stock_chacay',
+    'stockpile_chacay',
     'molienda',
     'flotacion',
     'transporte_fluidos',
@@ -109,7 +109,8 @@ def test_layout_renders_injected_content_without_rewriting_it() -> None:
         if _props(component)['data-ada-component-key'] == 'flotacion'
     )
 
-    assert _props(flotation)['children'] is marker
+    content_wrapper = _props(flotation)['children'][1]
+    assert _props(content_wrapper)['children'] is marker
 
 
 def test_layout_rejects_missing_component_content() -> None:

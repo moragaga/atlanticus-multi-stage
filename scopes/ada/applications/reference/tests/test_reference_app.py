@@ -3,11 +3,13 @@ import pytest
 from ada.applications.reference.application import build_definition
 from ada.applications.reference.navigation import build_reference_navigation
 from ada.contracts.tool_manifest import ToolManifestResolution
+from ada.ui.components.component_card import ADA_COMPONENT_CARD_ASSET_LAYER
 from ada.ui.components.global_indicator import ADA_GLOBAL_INDICATOR_ASSET_LAYER
 from ada.ui.components.state_wrapper import ADA_STATE_WRAPPER_ASSET_LAYER
 from ada.ui.features.alarms import ADA_ALARMS_ASSET_LAYER
 from ada.ui.framework.core import ADA_UI_ASSET_LAYER
 from ada.ui.layouts.integrated_operations import ADA_INTEGRATED_OPERATIONS_LAYOUT_ASSET_LAYER
+from ada.ui.layouts.process import ADA_PROCESS_LAYOUT_ASSET_LAYER
 from ada.ui.shell.header import ADA_HEADER_ASSET_LAYER
 from ada.ui.shell.navigation import ADA_NAVIGATION_ASSET_LAYER
 from ada.ui.shell.time_status import ADA_TIME_STATUS_ASSET_LAYER
@@ -30,7 +32,9 @@ def test_reference_composes_runtime_and_transversal_components_in_order() -> Non
         'ada-navigation',
         'ada-state-wrapper',
         'ada-global-indicator',
+        'ada-component-card',
         'ada-integrated-operations-layout',
+        'ada-process-layout',
         'ada-alarms',
         'ada-header',
         'ada-time-status',
@@ -42,16 +46,20 @@ def test_reference_composes_runtime_and_transversal_components_in_order() -> Non
     assert modules['ada-navigation'].asset_layers == (ADA_NAVIGATION_ASSET_LAYER,)
     assert modules['ada-state-wrapper'].asset_layers == (ADA_STATE_WRAPPER_ASSET_LAYER,)
     assert modules['ada-global-indicator'].asset_layers == (ADA_GLOBAL_INDICATOR_ASSET_LAYER,)
+    assert modules['ada-component-card'].asset_layers == (ADA_COMPONENT_CARD_ASSET_LAYER,)
     assert modules['ada-integrated-operations-layout'].asset_layers == (
         ADA_INTEGRATED_OPERATIONS_LAYOUT_ASSET_LAYER,
     )
+    assert modules['ada-process-layout'].asset_layers == (ADA_PROCESS_LAYOUT_ASSET_LAYER,)
     assert modules['ada-alarms'].asset_layers == (ADA_ALARMS_ASSET_LAYER,)
     assert modules['ada-header'].asset_layers == (ADA_HEADER_ASSET_LAYER,)
     assert modules['ada-time-status'].asset_layers == (ADA_TIME_STATUS_ASSET_LAYER,)
     assert ADA_STATE_WRAPPER_ASSET_LAYER.load_order < ADA_GLOBAL_INDICATOR_ASSET_LAYER.load_order
     assert (
         ADA_GLOBAL_INDICATOR_ASSET_LAYER.load_order
+        < ADA_COMPONENT_CARD_ASSET_LAYER.load_order
         < ADA_INTEGRATED_OPERATIONS_LAYOUT_ASSET_LAYER.load_order
+        < ADA_PROCESS_LAYOUT_ASSET_LAYER.load_order
         < ADA_HEADER_ASSET_LAYER.load_order
     )
     assert ADA_HEADER_ASSET_LAYER.load_order < ADA_ALARMS_ASSET_LAYER.load_order

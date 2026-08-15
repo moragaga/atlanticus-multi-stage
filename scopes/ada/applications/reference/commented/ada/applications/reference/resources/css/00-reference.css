@@ -88,21 +88,8 @@ body {
 }
 
 .reference-ada__alarm-baselines > h2,
-.reference-ada__alarm-baselines > p,
-.reference-ada__alarm-baseline-example > h3 {
+.reference-ada__alarm-baselines > p {
     margin: 0;
-}
-
-.reference-ada__alarm-baseline-example {
-    display: grid;
-    gap: .5rem;
-}
-
-.reference-ada__alarm-example-grid,
-.reference-ada__alarm-process-variants {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 1rem;
 }
 
 .reference-ada__alarm-geometry-scope {
@@ -207,21 +194,6 @@ body {
     grid-template-areas: 'left center right';
 }
 
-.reference-ada__alarm-process-grid--left-center {
-    grid-template-columns: var(--reference-alarm-process-side-width) minmax(0, 1fr);
-    grid-template-areas: 'left center';
-}
-
-.reference-ada__alarm-process-grid--center-right {
-    grid-template-columns: minmax(0, 1fr) var(--reference-alarm-process-side-width);
-    grid-template-areas: 'center right';
-}
-
-.reference-ada__alarm-process-grid--center-only {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: 'center';
-}
-
 .reference-ada__alarm-target {
     display: flex;
     min-width: 0;
@@ -294,11 +266,6 @@ body {
     gap: 1rem;
 }
 
-.reference-ada__alarm-queue-lane {
-    display: grid;
-    min-width: 0;
-}
-
 .reference-ada__alarm-card-footer {
     display: flex;
     min-height: 1.5rem;
@@ -329,32 +296,42 @@ body {
     grid-row: 1;
 }
 
-.reference-ada__io-layout-demo {
+.reference-ada__io-layout-demo,
+.reference-ada__process-layout-demo {
     display: grid;
     gap: .75rem;
     margin-top: 2rem;
 }
 
 .reference-ada__io-layout-demo > h2,
-.reference-ada__io-layout-demo > p {
+.reference-ada__io-layout-demo > p,
+.reference-ada__process-layout-demo > h2,
+.reference-ada__process-layout-demo > p {
     margin: 0;
 }
 
-.reference-ada__io-placeholder {
+.reference-ada__component-card-content {
     display: flex;
-    min-height: 7rem;
-    flex-direction: column;
+    min-height: 2.5rem;
     align-items: center;
     justify-content: center;
-    gap: .35rem;
-    padding: .75rem;
-    background: var(--secondary-background);
-    border: 1px solid var(--primary-border-color);
-    border-radius: .5rem;
+    padding: .35rem;
     color: var(--custom-text-color);
+    font-size: .62rem;
     text-align: center;
 }
 
-.reference-ada__io-placeholder > span {
+.reference-ada__process-content-card {
+    display: flex;
+    min-height: 4rem;
+    align-items: center;
+    justify-content: center;
+    padding: .5rem;
+    background: var(--secondary-background);
+    border: 1px solid var(--primary-border-color);
+    border-radius: .35rem;
+    color: var(--custom-text-color);
     font-size: .7rem;
+    font-weight: 600;
+    text-align: center;
 }

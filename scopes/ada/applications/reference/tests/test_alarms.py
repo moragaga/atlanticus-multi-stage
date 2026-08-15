@@ -59,12 +59,10 @@ def test_alarm_header_ownership_is_not_exposed_by_header_shell() -> None:
         assert not hasattr(header, legacy_name)
 
 
-def test_reference_exposes_geometry_and_isolated_trace_player_harnesses() -> None:
-    from ada.applications.reference.alarm_dashboard import (
-        build_reference_alarm_dashboard_baselines,
-    )
+def test_reference_exposes_only_interactive_alarm_players() -> None:
+    from ada.applications.reference.alarm_dashboard import build_reference_alarm_interaction
 
-    component = build_reference_alarm_dashboard_baselines()
+    component = build_reference_alarm_interaction()
     baselines = [
         item
         for item in _walk(component)
@@ -81,56 +79,14 @@ def test_reference_exposes_geometry_and_isolated_trace_player_harnesses() -> Non
         if _optional_prop(item, 'data-ada-alarm-geometry-scope') == 'true'
     ]
 
-    assert len(scopes) == 8
-    assert len(routes) == 8
-    assert [_prop(item, 'data-ada-alarm-baseline') for item in baselines[:6]] == [
+    assert len(scopes) == 2
+    assert len(routes) == 2
+    assert [_prop(item, 'data-ada-alarm-baseline') for item in baselines] == [
         'integrated-operations',
-        'integrated-operations',
-        'process',
-        'process',
-        'process',
         'process',
     ]
-    assert [_prop(item, 'data-ada-alarm-route-tone') for item in routes[:6]] == [
-        'critical',
-        'attention',
-        'critical',
-        'critical',
-        'critical',
-        'critical',
-    ]
-    assert _prop(routes[1], 'data-ada-alarm-affected-targets') == (
-        'component:flotation|subcomponent:port_subcomponent_1'
-    )
 
-    static_process_scopes = scopes[2:6]
-    slot_sets = [
-        {
-            _optional_prop(item, 'data-ada-slot-key')
-            for item in _walk(scope)
-            if _optional_prop(item, 'data-ada-slot-key') is not None
-        }
-        for scope in static_process_scopes
-    ]
-    assert slot_sets == [
-        {'left', 'center', 'right'},
-        {'left', 'center'},
-        {'center', 'right'},
-        {'center'},
-    ]
-    assert all(
-        len(
-            [
-                item
-                for item in _walk(scope)
-                if _optional_prop(item, 'data-ada-alarm-card-key') is not None
-            ]
-        )
-        == 6
-        for scope in static_process_scopes
-    )
-
-    io_player, process_player = scopes[6:]
+    io_player, process_player = scopes
     for scope in (io_player, process_player):
         assert _prop(scope, 'data-ada-alarm-presentation-scope') == 'true'
         assert _prop(scope, 'data-ada-alarm-interaction') == 'interactive'
@@ -201,14 +157,6 @@ def test_reference_exposes_geometry_and_isolated_trace_player_harnesses() -> Non
         'fluid_transport',
         'port',
     ]
-    assert all(
-        all(
-            'reference-ada__alarm-subcomponent-card'
-            in (_optional_prop(child, 'className') or '').split()
-            for child in _prop(lane, 'children')[1:]
-        )
-        for lane in io_lanes
-    )
     assert [
         len(
             [
@@ -220,18 +168,18 @@ def test_reference_exposes_geometry_and_isolated_trace_player_harnesses() -> Non
         )
         for lane in io_lanes
     ] == [1, 2, 3, 2, 1, 3, 2, 3, 2]
-    assert {
-        _optional_prop(item, 'data-ada-subcomponent-key')
-        for item in _walk(io_player)
-        if 'reference-ada__alarm-subcomponent-card'
-        in (_optional_prop(item, 'className') or '').split()
-    } >= {
-        'general_mine_subcomponent_1',
-        'flotation_selective',
-        'flotation_collective',
-        'fluid_transport_subcomponent_2',
-        'port_subcomponent_2',
-    }
+
+
+def test_reference_alarm_static_examples_are_removed() -> None:
+    from ada.applications.reference import alarm_dashboard
+
+    for name in (
+        '_build_integrated_operations_same_point_reference',
+        '_build_integrated_operations_span_reference',
+        '_build_process_reference',
+        '_build_static_process_alarm_grid',
+    ):
+        assert not hasattr(alarm_dashboard, name)
 
 
 def test_reference_alarm_harness_separates_baseline_from_card_and_body_frames() -> None:
@@ -258,6 +206,8 @@ def test_reference_alarm_harness_separates_baseline_from_card_and_body_frames() 
     assert 'grid-row: 1;' in css
     assert 'var(--ada-alarm-card-color, #BDBDBD)' not in css
     assert 'width: min(13.5rem, 70%);' not in css
+    assert '.reference-ada__alarm-process-variants' not in css
+    assert '.reference-ada__alarm-example-grid' not in css
 
 
 def _walk(component: Component):

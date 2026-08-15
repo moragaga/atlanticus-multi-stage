@@ -1,0 +1,53 @@
+.ada-component-card {
+    --ada-component-card-border: var(--primary-border-color, #BDBDBD);
+    --ada-component-card-background: var(--span-color, transparent);
+    --ada-component-card-ink: var(--custom-text-color, #4D4D4D);
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    flex-direction: column;
+    box-sizing: border-box;
+    overflow: hidden;
+    border: 1px solid var(--ada-component-card-border);
+    border-radius: .3rem;
+    background: var(--ada-component-card-background);
+    color: var(--ada-component-card-ink);
+}
+
+.ada-component-card__content {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 auto;
+}
+
+.ada-component-card__footer {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: .35rem;
+    padding: .2rem .3rem;
+    box-sizing: border-box;
+    border-top: 1px solid var(--ada-component-card-border);
+}
+
+.ada-component-card__footer-label,
+.ada-component-card__footer-corner {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ada-component-card__footer-label {
+    text-align: start;
+}
+
+.ada-component-card__footer-corner {
+    margin-inline-start: auto;
+    text-align: end;
+}

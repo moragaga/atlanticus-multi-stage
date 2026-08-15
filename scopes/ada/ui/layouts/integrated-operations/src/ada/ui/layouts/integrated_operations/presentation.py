@@ -18,7 +18,7 @@ _MINE_COMPONENT_KEYS = (
     'chancado_stmg',
 )
 _PLANT_COMPONENT_KEYS = (
-    'stock_chacay',
+    'stockpile_chacay',
     'molienda',
     'flotacion',
     'transporte_fluidos',
@@ -109,7 +109,10 @@ def _build_component(
 ) -> html.Div:
     section = manifest.section(component_key)
     return html.Div(
-        content,
+        [
+            html.Div(section.display_name, className='ada-io-layout__component-title'),
+            html.Div(content, className='ada-io-layout__component-content'),
+        ],
         className=f'ada-io-layout__component ada-io-layout__component--{component_key}',
         **{
             **component_identity_attributes(component_key),

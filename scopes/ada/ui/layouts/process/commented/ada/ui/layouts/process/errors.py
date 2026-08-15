@@ -1,0 +1,2 @@
+class ProcessLayoutError(ValueError):
+    pass
