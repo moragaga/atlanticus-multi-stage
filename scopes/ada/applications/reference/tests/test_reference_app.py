@@ -4,6 +4,7 @@ from ada.applications.reference.application import build_definition
 from ada.applications.reference.navigation import build_reference_navigation
 from ada.contracts.tool_manifest import ToolManifestResolution
 from ada.ui.components.component_card import ADA_COMPONENT_CARD_ASSET_LAYER
+from ada.ui.components.component_container import ADA_COMPONENT_CONTAINER_ASSET_LAYER
 from ada.ui.components.global_indicator import ADA_GLOBAL_INDICATOR_ASSET_LAYER
 from ada.ui.components.state_wrapper import ADA_STATE_WRAPPER_ASSET_LAYER
 from ada.ui.features.alarms import ADA_ALARMS_ASSET_LAYER
@@ -32,6 +33,7 @@ def test_reference_composes_runtime_and_transversal_components_in_order() -> Non
         'ada-navigation',
         'ada-state-wrapper',
         'ada-global-indicator',
+        'ada-component-container',
         'ada-component-card',
         'ada-integrated-operations-layout',
         'ada-process-layout',
@@ -46,6 +48,7 @@ def test_reference_composes_runtime_and_transversal_components_in_order() -> Non
     assert modules['ada-navigation'].asset_layers == (ADA_NAVIGATION_ASSET_LAYER,)
     assert modules['ada-state-wrapper'].asset_layers == (ADA_STATE_WRAPPER_ASSET_LAYER,)
     assert modules['ada-global-indicator'].asset_layers == (ADA_GLOBAL_INDICATOR_ASSET_LAYER,)
+    assert modules['ada-component-container'].asset_layers == (ADA_COMPONENT_CONTAINER_ASSET_LAYER,)
     assert modules['ada-component-card'].asset_layers == (ADA_COMPONENT_CARD_ASSET_LAYER,)
     assert modules['ada-integrated-operations-layout'].asset_layers == (
         ADA_INTEGRATED_OPERATIONS_LAYOUT_ASSET_LAYER,
@@ -57,6 +60,7 @@ def test_reference_composes_runtime_and_transversal_components_in_order() -> Non
     assert ADA_STATE_WRAPPER_ASSET_LAYER.load_order < ADA_GLOBAL_INDICATOR_ASSET_LAYER.load_order
     assert (
         ADA_GLOBAL_INDICATOR_ASSET_LAYER.load_order
+        < ADA_COMPONENT_CONTAINER_ASSET_LAYER.load_order
         < ADA_COMPONENT_CARD_ASSET_LAYER.load_order
         < ADA_INTEGRATED_OPERATIONS_LAYOUT_ASSET_LAYER.load_order
         < ADA_PROCESS_LAYOUT_ASSET_LAYER.load_order

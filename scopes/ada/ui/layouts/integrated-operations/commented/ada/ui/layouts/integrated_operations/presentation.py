@@ -1,3 +1,4 @@
+# Espejo pedagógico: el layout posiciona nueve componentes reales y una card compartida sin crear un componente ficticio.
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -5,17 +6,15 @@ from collections.abc import Mapping
 from dash import html
 
 from ada.contracts.tool_manifest import ToolManifest, ToolScope, ToolSectionKind
-from ada.ui.framework.core import component_identity_attributes
+from ada.ui.components.component_container import build_component_container
 
 from .errors import IntegratedOperationsLayoutError
 from .models import IntegratedOperationsView
 
-# La geometría específica de IO vive aquí; el manifest conserva solo identidad y estructura.
 _MINE_COMPONENT_KEYS = (
     'general_mina',
     'carguio',
     'transporte',
-    'carguio_transporte',
     'chancado_stmg',
 )
 _PLANT_COMPONENT_KEYS = (
@@ -26,13 +25,16 @@ _PLANT_COMPONENT_KEYS = (
     'puerto',
 )
 _REQUIRED_COMPONENT_KEYS = frozenset((*_MINE_COMPONENT_KEYS, *_PLANT_COMPONENT_KEYS))
+_SHARED_CARD_COMPONENT = 'carguio'
+_SHARED_CARD_LINKED_COMPONENT = 'transporte'
+_SHARED_CARD_SUBCOMPONENT = 'gestion_carguio_turno'
 
 
-# El integrador entrega contenido ya construido. El layout solo valida, identifica y posiciona.
 def build_integrated_operations_layout(
     manifest: ToolManifest,
     *,
     component_content: Mapping[str, object],
+    shared_card_content: object,
     view: IntegratedOperationsView = IntegratedOperationsView.OVERVIEW,
     layout_id: str | None = None,
     class_name: str | None = None,
@@ -51,7 +53,6 @@ def build_integrated_operations_layout(
         )
         if item
     )
-    # El atributo de view prepara el zoom sin reemplazar los hijos ni sus identidades.
     root_attributes = {
         'className': classes,
         'data-ada-io-layout': 'integrated-operations',
@@ -62,11 +63,10 @@ def build_integrated_operations_layout(
 
     return html.Div(
         [
-            _build_scope(
+            _build_mine_scope(
                 manifest,
-                scope=ToolScope.MINE,
-                component_keys=_MINE_COMPONENT_KEYS,
                 component_content=content,
+                shared_card_content=shared_card_content,
             ),
             _build_scope(
                 manifest,
@@ -79,7 +79,47 @@ def build_integrated_operations_layout(
     )
 
 
-# Cada scope permanece como contenedor estable para que Mina/Planta puedan expandirse por CSS.
+def _build_mine_scope(
+    manifest: ToolManifest,
+    *,
+    component_content: dict[str, object],
+    shared_card_content: object,
+) -> html.Section:
+    scope_section = manifest.section(ToolScope.MINE.value)
+    component_nodes = {
+        component_key: _build_component(
+            manifest,
+            component_key=component_key,
+            content=component_content[component_key],
+        )
+        for component_key in _MINE_COMPONENT_KEYS
+    }
+    shared = manifest.subcomponent(
+        component=_SHARED_CARD_COMPONENT,
+        subcomponent=_SHARED_CARD_SUBCOMPONENT,
+    )
+    return html.Section(
+        [
+            component_nodes['general_mina'],
+            component_nodes['carguio'],
+            component_nodes['transporte'],
+            html.Div(
+                shared_card_content,
+                className='ada-io-layout__shared-card ada-io-layout__shared-card--carguio-transporte',
+                **{
+                    'data-ada-io-shared-subcomponent-key': shared.key,
+                },
+            ),
+            component_nodes['chancado_stmg'],
+        ],
+        className='ada-io-layout__scope ada-io-layout__scope--mine',
+        **{
+            'aria-label': scope_section.display_name,
+            'data-ada-io-scope-key': ToolScope.MINE.value,
+        },
+    )
+
+
 def _build_scope(
     manifest: ToolManifest,
     *,
@@ -105,28 +145,20 @@ def _build_scope(
     )
 
 
-# La identidad DOM es la misma que usa el contrato genérico de geometría de alarmas.
 def _build_component(
     manifest: ToolManifest,
     *,
     component_key: str,
     content: object,
 ) -> html.Div:
-    section = manifest.section(component_key)
-    return html.Div(
-        [
-            html.Div(section.display_name, className='ada-io-layout__component-title'),
-            html.Div(content, className='ada-io-layout__component-content'),
-        ],
-        className=f'ada-io-layout__component ada-io-layout__component--{component_key}',
-        **{
-            **component_identity_attributes(component_key),
-            'aria-label': section.display_name,
-        },
+    return build_component_container(
+        manifest,
+        component=component_key,
+        content=content,
+        class_name=f'ada-io-layout__component ada-io-layout__component--{component_key}',
     )
 
 
-# El id opcional permite cambiar solo el estado de vista mediante callbacks sin reconstruir los hijos.
 def _validate_layout_id(layout_id: str | None) -> None:
     if layout_id is not None and (not isinstance(layout_id, str) or not layout_id.strip()):
         raise IntegratedOperationsLayoutError(
@@ -139,7 +171,6 @@ def _validate_view(view: IntegratedOperationsView) -> None:
         raise IntegratedOperationsLayoutError(f'Invalid integrated operations view: {view!r}')
 
 
-# La validación protege la geometría fija de IO sin hacer que el manifest renderice la UI.
 def _validate_manifest(manifest: ToolManifest) -> None:
     if not isinstance(manifest, ToolManifest):
         raise IntegratedOperationsLayoutError(f'Invalid tool manifest: {manifest!r}')
@@ -152,10 +183,15 @@ def _validate_manifest(manifest: ToolManifest) -> None:
     _validate_scope(manifest, ToolScope.MINE, _MINE_COMPONENT_KEYS)
     _validate_scope(manifest, ToolScope.PLANT, _PLANT_COMPONENT_KEYS)
 
-    linked_keys = {section.key for section in manifest.linked_components('carguio_transporte')}
-    if linked_keys != {'carguio', 'transporte'}:
+    shared = manifest.subcomponent(
+        component=_SHARED_CARD_COMPONENT,
+        subcomponent=_SHARED_CARD_SUBCOMPONENT,
+    )
+    linked_keys = {section.key for section in manifest.linked_components(shared.key)}
+    if linked_keys != {_SHARED_CARD_COMPONENT, _SHARED_CARD_LINKED_COMPONENT}:
         raise IntegratedOperationsLayoutError(
-            'Component "carguio_transporte" must be linked to "carguio" and "transporte"'
+            'Shared subcomponent "gestion_carguio_turno" must belong to '
+            '"carguio" and "transporte"'
         )
 
 
@@ -194,7 +230,6 @@ def _validate_scope(
             )
 
 
-# Exigimos inyección explícita para no inventar placeholders o contenido de negocio silenciosamente.
 def _validate_content(component_content: dict[str, object]) -> None:
     keys = set(component_content)
     missing = sorted(_REQUIRED_COMPONENT_KEYS - keys)

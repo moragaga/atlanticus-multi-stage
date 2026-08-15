@@ -19,7 +19,7 @@ from ada.ui.features.alarms.management_summary import (
 from ada.ui.features.alarms.notifications import create_alarm_status_state
 
 
-def _process_center_region(
+def _process_center_component(
     *,
     key: str,
     display_name: str,
@@ -28,11 +28,22 @@ def _process_center_region(
     return ToolSection(
         key=key,
         display_name=display_name,
-        kind=ToolSectionKind.REGION,
+        kind=ToolSectionKind.COMPONENT,
         scope=scope,
         parent_key='body',
         targets=(ToolTarget.KPI, ToolTarget.ALARM),
         layout_role=ProcessBodySection.CENTER,
+    )
+
+
+def _process_center_card(*, component: str, subcomponent: str, scope: ToolScope) -> ToolSection:
+    return ToolSection(
+        component=component,
+        subcomponent=subcomponent,
+        display_name=subcomponent.replace('_', ' ').title(),
+        kind=ToolSectionKind.SUBCOMPONENT,
+        scope=scope,
+        targets=(ToolTarget.ALARM,),
     )
 
 
@@ -74,9 +85,14 @@ def test_process_management_summary_uses_operational_scope() -> None:
         sources=(ToolSource(ToolSourceKey.PI, stale_after_seconds=300),),
         operational_scope=ToolScope.MINE,
         body_sections=(
-            _process_center_region(
+            _process_center_component(
                 key='proceso_chancado',
                 display_name='Proceso Chancado',
+                scope=ToolScope.MINE,
+            ),
+            _process_center_card(
+                component='proceso_chancado',
+                subcomponent='chancado_stmg',
                 scope=ToolScope.MINE,
             ),
         ),
@@ -98,9 +114,14 @@ def test_management_summary_rejects_scope_that_disagrees_with_manifest() -> None
         sources=(ToolSource(ToolSourceKey.PI, stale_after_seconds=300),),
         operational_scope=ToolScope.PLANT,
         body_sections=(
-            _process_center_region(
+            _process_center_component(
                 key='planta_molibdeno',
                 display_name='Planta Molibdeno',
+                scope=ToolScope.PLANT,
+            ),
+            _process_center_card(
+                component='planta_molibdeno',
+                subcomponent='proceso_molibdeno',
                 scope=ToolScope.PLANT,
             ),
         ),

@@ -1,0 +1,36 @@
+/* Un componente es un nombre general seguido por un área vertical de contenido inyectado. */
+.ada-component-container {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    flex-direction: column;
+}
+
+/* El nombre orienta al usuario; deliberadamente no se presenta como otra card. */
+.ada-component-container__title {
+    flex: 0 0 auto;
+    min-width: 0;
+    padding: .1rem .15rem .25rem;
+    overflow-wrap: anywhere;
+    font-size: .68rem;
+    font-weight: 700;
+    line-height: 1.15;
+    text-align: center;
+}
+
+/* El contenido queda abierto a una o varias ComponentCards u otro árbol permitido. */
+.ada-component-container__content {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+}
+
+/* Flex auto conserva el tamaño intrínseco y permite crecer según el contenido real. */
+.ada-component-container__content > * {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+}

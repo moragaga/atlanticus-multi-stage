@@ -7,9 +7,8 @@ from ada.contracts.tool_manifest import (
 
 _EXPECTED_SUBCOMPONENTS = {
     'general_mina': ('movimiento_mina', 'remanentes', 'perforacion', 'mp10'),
-    'carguio': ('equipos_servicio', 'mezcla_hacia_chancado'),
+    'carguio': ('equipos_servicio', 'mezcla_hacia_chancado', 'gestion_carguio_turno'),
     'transporte': ('transporte_global', 'numero_operativos', 'tiempos_y_colas'),
-    'carguio_transporte': ('gestion_carguio_turno',),
     'chancado_stmg': ('chancado_stmg',),
     'stockpile_chacay': ('stockpile_chacay', 'tendencia_alimentado'),
     'molienda': ('molienda',),
@@ -29,14 +28,13 @@ def test_integrated_operations_has_expected_top_level_sections() -> None:
     assert [section.key for section in manifest.roots()] == ['header', 'time_status', 'body']
 
 
-def test_integrated_operations_preserves_macro_components_and_shared_component() -> None:
+def test_integrated_operations_preserves_nine_real_macro_components() -> None:
     manifest = INTEGRATED_OPERATIONS_MANIFEST
 
     assert [section.key for section in manifest.children('mine')] == [
         'general_mina',
         'carguio',
         'transporte',
-        'carguio_transporte',
         'chancado_stmg',
     ]
     assert [section.key for section in manifest.children('plant')] == [
@@ -48,18 +46,24 @@ def test_integrated_operations_preserves_macro_components_and_shared_component()
     ]
 
 
-def test_integrated_operations_shared_component_links_carguio_and_transporte() -> None:
+def test_integrated_operations_shared_card_is_one_subcomponent_for_both_components() -> None:
     manifest = INTEGRATED_OPERATIONS_MANIFEST
 
-    assert [section.key for section in manifest.linked_components('carguio_transporte')] == [
+    from_carguio = manifest.subcomponent(
+        component='carguio',
+        subcomponent='gestion_carguio_turno',
+    )
+    from_transporte = manifest.subcomponent(
+        component='transporte',
+        subcomponent='gestion_carguio_turno',
+    )
+
+    assert from_carguio is from_transporte
+    assert from_carguio.key == 'carguio_gestion_carguio_turno'
+    assert from_carguio.parent_key == 'carguio'
+    assert [section.key for section in manifest.linked_components(from_carguio.key)] == [
         'carguio',
         'transporte',
-    ]
-    assert [section.key for section in manifest.linked_components('carguio')] == [
-        'carguio_transporte'
-    ]
-    assert [section.key for section in manifest.linked_components('transporte')] == [
-        'carguio_transporte'
     ]
 
 

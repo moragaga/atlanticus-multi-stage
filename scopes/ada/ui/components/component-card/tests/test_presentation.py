@@ -104,7 +104,10 @@ def test_corner_value_is_ignored_when_corner_is_disabled(caplog) -> None:
 
 
 def test_component_card_rejects_unknown_subcomponent() -> None:
-    with pytest.raises(ToolManifestLookupError, match='Unknown section key'):
+    with pytest.raises(
+        ToolManifestLookupError,
+        match="Unknown subcomponent for component 'flotacion': 'unknown'",
+    ):
         build_component_card(
             INTEGRATED_OPERATIONS_MANIFEST,
             component='flotacion',

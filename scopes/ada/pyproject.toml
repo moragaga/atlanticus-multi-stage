@@ -28,6 +28,7 @@ ada-ui-layout-integrated-operations = { workspace = true }
 ada-ui-layout-process = { workspace = true }
 ada-ui-component-branding = { workspace = true }
 ada-ui-component-component-card = { workspace = true }
+ada-ui-component-component-container = { workspace = true }
 ada-ui-component-global-indicator = { workspace = true }
 ada-ui-component-state-wrapper = { workspace = true }
 ada-ui-shell-header = { workspace = true }
@@ -51,6 +52,7 @@ members = [
     "ui/features/alarms",
     "ui/components/branding",
     "ui/components/component-card",
+    "ui/components/component-container",
     "ui/components/global-indicator",
     "ui/components/state-wrapper",
     "ui/shell/header",
@@ -94,6 +96,7 @@ testpaths = [
     "ui/features/alarms/tests",
     "ui/components/branding/tests",
     "ui/components/component-card/tests",
+    "ui/components/component-container/tests",
     "ui/components/global-indicator/tests",
     "ui/components/state-wrapper/tests",
     "ui/shell/header/tests",

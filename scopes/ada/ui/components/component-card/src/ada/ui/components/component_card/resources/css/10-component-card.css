@@ -29,10 +29,11 @@
     flex: 0 0 auto;
     align-items: center;
     justify-content: space-between;
-    gap: .35rem;
-    padding: .2rem .3rem;
+    gap: .2rem;
+    padding: .05rem .2rem .08rem;
     box-sizing: border-box;
-    border-top: 1px solid var(--ada-component-card-border);
+    font-size: .65rem;
+    line-height: 1;
 }
 
 .ada-component-card__footer-label,

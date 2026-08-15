@@ -24,11 +24,13 @@ def test_reference_renders_all_integrated_operations_components_and_cards() -> N
     section = build_reference_integrated_operations_layout()
     layout = _props(section)['children'][2]
     scopes = _props(layout)['children']
-    component_keys = tuple(
-        _props(component)['data-ada-component-key']
+    components = [
+        component
         for scope in scopes
         for component in _props(scope)['children']
-    )
+        if 'data-ada-component-key' in _props(component)
+    ]
+    component_keys = tuple(_props(component)['data-ada-component-key'] for component in components)
     cards = [
         item for item in _walk(layout) if _props(item).get('data-ada-component-card') == 'true'
     ]
@@ -39,13 +41,23 @@ def test_reference_renders_all_integrated_operations_components_and_cards() -> N
         'general_mina',
         'carguio',
         'transporte',
-        'carguio_transporte',
         'chancado_stmg',
         'stockpile_chacay',
         'molienda',
         'flotacion',
         'transporte_fluidos',
         'puerto',
+    )
+
+    assert all(
+        _props(component)['data-ada-component-container'] == 'true' for component in components
+    )
+    assert all(
+        _props(_props(component)['children'][0])['children']
+        == INTEGRATED_OPERATIONS_MANIFEST.section(
+            _props(component)['data-ada-component-key']
+        ).display_name
+        for component in components
     )
     expected_card_keys = {
         child.key
@@ -55,3 +67,20 @@ def test_reference_renders_all_integrated_operations_components_and_cards() -> N
     assert len(cards) == 22
     assert {_props(card)['data-ada-subcomponent-key'] for card in cards} == expected_card_keys
     assert all('flex-fill' in _props(card)['className'].split() for card in cards)
+
+
+def test_reference_shared_carguio_transporte_card_has_no_component_title() -> None:
+    section = build_reference_integrated_operations_layout()
+    layout = _props(section)['children'][2]
+    mine = _props(layout)['children'][0]
+    shared_wrapper = next(
+        node
+        for node in _props(mine)['children']
+        if _props(node).get('data-ada-io-shared-subcomponent-key')
+        == 'carguio_gestion_carguio_turno'
+    )
+    shared_card = _props(shared_wrapper)['children']
+
+    assert _props(shared_card)['data-ada-component-card'] == 'true'
+    assert _props(shared_card)['data-ada-subcomponent-key'] == 'carguio_gestion_carguio_turno'
+    assert 'data-ada-component-container' not in _props(shared_wrapper)

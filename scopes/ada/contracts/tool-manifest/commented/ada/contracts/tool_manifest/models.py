@@ -1,8 +1,9 @@
+# Espejo pedagógico: el manifest mantiene una jerarquía principal y permite vínculos adicionales solo para resolver casos compartidos sin duplicar entidades.
 from __future__ import annotations
 
 import re
 from collections.abc import Iterable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from .enums import (
     ProcessBodySection,
@@ -16,7 +17,6 @@ from .errors import ToolManifestError, ToolManifestLookupError
 _KEY_PATTERN = re.compile(r'^[a-z][a-z0-9_]*$')
 
 
-# Describe la fuente requerida por la herramienta y el umbral que define su frescura.
 @dataclass(frozen=True, slots=True)
 class ToolSource:
     key: ToolSourceKey
@@ -33,7 +33,6 @@ class ToolSource:
             raise ToolManifestError('Source stale_after_seconds must be greater than zero')
 
 
-# ToolSection representa la identidad contractual; para SUBCOMPONENT la key nunca se recibe libremente.
 @dataclass(frozen=True, slots=True, init=False)
 class ToolSection:
     key: str
@@ -66,7 +65,6 @@ class ToolSection:
         if not isinstance(scope, ToolScope):
             raise ToolManifestError(f'Invalid section scope: {scope!r}')
 
-        # Normalizamos colecciones mutables para mantener el contrato inmutable y comparable.
         resolved_targets = frozenset(targets)
         if any(not isinstance(target, ToolTarget) for target in resolved_targets):
             raise ToolManifestError('Section targets must contain ToolTarget values')
@@ -76,7 +74,6 @@ class ToolSection:
             raise ToolManifestError('Section linked_component_keys contains duplicates')
 
         _validate_display_name(display_name, field_name='section display_name')
-        # La identidad final se resuelve en un único punto para impedir keys arbitrarias en subcomponentes.
         resolved_key, resolved_parent_key = _resolve_section_identity(
             kind=kind,
             key=key,
@@ -87,6 +84,7 @@ class ToolSection:
         _validate_component_links_declaration(
             kind=kind,
             section_key=resolved_key,
+            component=component,
             linked_component_keys=resolved_links,
         )
         _validate_layout_role_declaration(kind=kind, layout_role=layout_role)
@@ -106,7 +104,6 @@ class ToolSection:
         return target in self.targets
 
 
-# El manifest concentra validación estructural y consultas; no contiene lógica de datos ni de render.
 @dataclass(frozen=True, slots=True)
 class ToolManifest:
     tool_key: str
@@ -139,9 +136,23 @@ class ToolManifest:
                 return section
         raise ToolManifestLookupError(f'Unknown section key: {key}')
 
-    # Los consumidores resuelven por component/subcomponent y nunca reconstruyen la key técnica.
     def subcomponent(self, *, component: str, subcomponent: str) -> ToolSection:
-        return self.section(_build_subcomponent_key(component=component, subcomponent=subcomponent))
+        _validate_key(component, field_name='subcomponent component')
+        _validate_key(subcomponent, field_name='subcomponent identity')
+        direct_key = _build_subcomponent_key(component=component, subcomponent=subcomponent)
+        for section in self.sections:
+            if section.kind is not ToolSectionKind.SUBCOMPONENT:
+                continue
+            if section.key == direct_key:
+                return section
+            if (
+                section.subcomponent == subcomponent
+                and component in section.linked_component_keys
+            ):
+                return section
+        raise ToolManifestLookupError(
+            f'Unknown subcomponent for component {component!r}: {subcomponent!r}'
+        )
 
     def roots(self) -> tuple[ToolSection, ...]:
         return tuple(section for section in self.sections if section.parent_key is None)
@@ -170,11 +181,19 @@ class ToolManifest:
             )
         return section
 
-    # La relación se persiste una sola vez, pero se consulta simétricamente desde cualquiera de los componentes.
     def linked_components(self, section_key: str) -> tuple[ToolSection, ...]:
         section = self.section(section_key)
+        if section.kind is ToolSectionKind.SUBCOMPONENT:
+            component_keys = (section.component, *section.linked_component_keys)
+            return tuple(
+                self.section(component_key)
+                for component_key in component_keys
+                if component_key is not None
+            )
         if section.kind is not ToolSectionKind.COMPONENT:
-            raise ToolManifestLookupError(f'Section {section_key!r} is not a component')
+            raise ToolManifestLookupError(
+                f'Section {section_key!r} cannot declare linked components'
+            )
         return tuple(
             candidate
             for candidate in self.sections
@@ -186,8 +205,7 @@ class ToolManifest:
             )
         )
 
-    # Process conserva nombre funcional propio; el layout encuentra la región mediante su rol genérico.
-    def region_for_layout_role(self, role: ProcessBodySection) -> ToolSection:
+    def component_for_layout_role(self, role: ProcessBodySection) -> ToolSection:
         if not isinstance(role, ProcessBodySection):
             raise ToolManifestLookupError(f'Invalid layout role: {role!r}')
         for section in self.sections:
@@ -196,7 +214,6 @@ class ToolManifest:
         raise ToolManifestLookupError(f'Unknown layout role: {role.value}')
 
 
-# Registry resuelve manifests publicados sin introducir estado global ni lógica adicional.
 @dataclass(frozen=True, slots=True)
 class ToolManifestRegistry:
     manifests: tuple[ToolManifest, ...]
@@ -221,7 +238,6 @@ class ToolManifestRegistry:
         return self.require(tool_key).sections_for_target(target)
 
 
-# Las regiones/componentes reciben key canónica; los subcomponentes reciben component + subcomponent.
 def _resolve_section_identity(
     *,
     kind: ToolSectionKind,
@@ -245,7 +261,9 @@ def _resolve_section_identity(
     if key is None:
         raise ToolManifestError('Region and component sections require a key')
     if component is not None or subcomponent is not None:
-        raise ToolManifestError('Only subcomponents can declare component and subcomponent identities')
+        raise ToolManifestError(
+            'Only subcomponents can declare component and subcomponent identities'
+        )
     _validate_key(key, field_name='section key')
     if parent_key is not None:
         _validate_key(parent_key, field_name='section parent_key')
@@ -254,31 +272,33 @@ def _resolve_section_identity(
     return key, parent_key
 
 
-# Este algoritmo forma parte del contrato persistible y debe permanecer estable.
 def _build_subcomponent_key(*, component: str, subcomponent: str) -> str:
     _validate_key(component, field_name='subcomponent component')
     _validate_key(subcomponent, field_name='subcomponent identity')
     return f'{component}_{subcomponent}'
 
 
-# Solo COMPONENT puede declarar vínculos; el manifest validará luego que los destinos existan y sean compatibles.
 def _validate_component_links_declaration(
     *,
     kind: ToolSectionKind,
     section_key: str,
+    component: str | None,
     linked_component_keys: tuple[str, ...],
 ) -> None:
     if not linked_component_keys:
         return
-    if kind is not ToolSectionKind.COMPONENT:
-        raise ToolManifestError('Only components can declare linked_component_keys')
+    if kind not in {ToolSectionKind.COMPONENT, ToolSectionKind.SUBCOMPONENT}:
+        raise ToolManifestError(
+            'Only components and subcomponents can declare linked_component_keys'
+        )
     for linked_key in linked_component_keys:
         _validate_key(linked_key, field_name='linked component key')
-        if linked_key == section_key:
+        if kind is ToolSectionKind.COMPONENT and linked_key == section_key:
             raise ToolManifestError('Component cannot link to itself')
+        if kind is ToolSectionKind.SUBCOMPONENT and linked_key == component:
+            raise ToolManifestError('Subcomponent cannot link to its parent component')
 
 
-# LEFT/CENTER/RIGHT/BOTTOM son roles geométricos y solo tienen sentido sobre REGION.
 def _validate_layout_role_declaration(
     *,
     kind: ToolSectionKind,
@@ -288,11 +308,10 @@ def _validate_layout_role_declaration(
         return
     if not isinstance(layout_role, ProcessBodySection):
         raise ToolManifestError(f'Invalid section layout role: {layout_role!r}')
-    if kind is not ToolSectionKind.REGION:
-        raise ToolManifestError('Only regions can declare a layout_role')
+    if kind is not ToolSectionKind.COMPONENT:
+        raise ToolManifestError('Only components can declare a layout_role')
 
 
-# PI permanece obligatorio y las fuentes no pueden repetirse.
 def _validate_sources(sources: tuple[ToolSource, ...]) -> None:
     if not sources:
         raise ToolManifestError('Tool manifest requires at least one source')
@@ -303,7 +322,6 @@ def _validate_sources(sources: tuple[ToolSource, ...]) -> None:
         raise ToolManifestError('Tool manifest requires the pi source')
 
 
-# La validación global comprueba unicidad, jerarquía, scopes, vínculos, roles y ciclos.
 def _validate_sections(sections: tuple[ToolSection, ...]) -> None:
     by_key = {section.key: section for section in sections}
     if len(by_key) != len(sections):
@@ -328,12 +346,12 @@ def _validate_sections(sections: tuple[ToolSection, ...]) -> None:
         _validate_scope(section=section, parent=parent)
 
     _validate_component_links(sections=sections, by_key=by_key)
+    _validate_subcomponent_aliases(sections=sections)
 
     for section in sections:
         _validate_no_cycle(section=section, by_key=by_key)
 
 
-# Los componentes vinculados deben existir, ser COMPONENT y compartir scope.
 def _validate_component_links(
     *,
     sections: tuple[ToolSection, ...],
@@ -344,19 +362,35 @@ def _validate_component_links(
             linked = by_key.get(linked_key)
             if linked is None:
                 raise ToolManifestError(
-                    f'Component {section.key!r} references unknown linked component {linked_key!r}'
+                    f'Section {section.key!r} references unknown linked component {linked_key!r}'
                 )
             if linked.kind is not ToolSectionKind.COMPONENT:
                 raise ToolManifestError(
-                    f'Component {section.key!r} can only link to another component'
+                    f'Section {section.key!r} can only link to a component'
                 )
             if linked.scope is not section.scope:
                 raise ToolManifestError(
-                    f'Linked component {linked_key!r} scope must match component {section.key!r}'
+                    f'Linked component {linked_key!r} scope must match section {section.key!r}'
                 )
 
 
-# La jerarquía canónica sigue siendo REGION -> COMPONENT -> SUBCOMPONENT.
+def _validate_subcomponent_aliases(*, sections: tuple[ToolSection, ...]) -> None:
+    aliases: set[tuple[str, str]] = set()
+    for section in sections:
+        if section.kind is not ToolSectionKind.SUBCOMPONENT:
+            continue
+        if section.component is None or section.subcomponent is None:
+            continue
+        for component_key in (section.component, *section.linked_component_keys):
+            alias = (component_key, section.subcomponent)
+            if alias in aliases:
+                raise ToolManifestError(
+                    'Tool manifest contains duplicate subcomponent identity for component '
+                    f'{component_key!r}: {section.subcomponent!r}'
+                )
+            aliases.add(alias)
+
+
 def _validate_parent_kind(*, section: ToolSection, parent: ToolSection) -> None:
     if section.kind is ToolSectionKind.REGION and parent.kind is not ToolSectionKind.REGION:
         raise ToolManifestError('Region can only be nested under another region')

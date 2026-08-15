@@ -190,7 +190,7 @@ def test_manifest_rejects_cycles() -> None:
         ToolManifest('tool', 'Tool', (_PI,), (first, second))
 
 
-def test_component_links_are_declared_once_and_resolved_in_both_directions() -> None:
+def test_shared_subcomponent_is_resolved_from_each_linked_component() -> None:
     body = _region('body', ToolScope.MINE)
     carguio = ToolSection(
         key='carguio',
@@ -207,21 +207,23 @@ def test_component_links_are_declared_once_and_resolved_in_both_directions() -> 
         parent_key='body',
     )
     shared = ToolSection(
-        key='carguio_transporte',
-        display_name='Carguío y Transporte',
-        kind=ToolSectionKind.COMPONENT,
+        component='carguio',
+        subcomponent='gestion_turno',
+        display_name='Gestión Turno',
+        kind=ToolSectionKind.SUBCOMPONENT,
         scope=ToolScope.MINE,
-        parent_key='body',
-        linked_component_keys=('carguio', 'transporte'),
+        linked_component_keys=('transporte',),
     )
     manifest = ToolManifest('tool', 'Tool', (_PI,), (body, carguio, transporte, shared))
 
-    assert manifest.linked_components('carguio_transporte') == (carguio, transporte)
-    assert manifest.linked_components('carguio') == (shared,)
-    assert manifest.linked_components('transporte') == (shared,)
+    assert manifest.subcomponent(component='carguio', subcomponent='gestion_turno') is shared
+    assert manifest.subcomponent(component='transporte', subcomponent='gestion_turno') is shared
+    assert manifest.linked_components(shared.key) == (carguio, transporte)
+    assert manifest.children('carguio') == (shared,)
+    assert manifest.children('transporte') == ()
 
 
-def test_manifest_rejects_invalid_component_links() -> None:
+def test_manifest_rejects_invalid_shared_subcomponent_links() -> None:
     body = _region('body', ToolScope.MINE)
     linked_region = ToolSection(
         key='region',
@@ -230,17 +232,33 @@ def test_manifest_rejects_invalid_component_links() -> None:
         scope=ToolScope.MINE,
         parent_key='body',
     )
-    component = ToolSection(
-        key='component',
-        display_name='Component',
+    carguio = ToolSection(
+        key='carguio',
+        display_name='Carguío',
         kind=ToolSectionKind.COMPONENT,
         scope=ToolScope.MINE,
         parent_key='body',
-        linked_component_keys=('region',),
     )
 
-    with pytest.raises(ToolManifestError, match='can only link to another component'):
-        ToolManifest('tool', 'Tool', (_PI,), (body, linked_region, component))
+    with pytest.raises(ToolManifestError, match='can only link to a component'):
+        ToolManifest(
+            'tool',
+            'Tool',
+            (_PI,),
+            (
+                body,
+                linked_region,
+                carguio,
+                ToolSection(
+                    component='carguio',
+                    subcomponent='shared',
+                    display_name='Shared',
+                    kind=ToolSectionKind.SUBCOMPONENT,
+                    scope=ToolScope.MINE,
+                    linked_component_keys=('region',),
+                ),
+            ),
+        )
 
     with pytest.raises(ToolManifestError, match='unknown linked component'):
         ToolManifest(
@@ -249,19 +267,20 @@ def test_manifest_rejects_invalid_component_links() -> None:
             (_PI,),
             (
                 body,
+                carguio,
                 ToolSection(
-                    key='component',
-                    display_name='Component',
-                    kind=ToolSectionKind.COMPONENT,
+                    component='carguio',
+                    subcomponent='shared',
+                    display_name='Shared',
+                    kind=ToolSectionKind.SUBCOMPONENT,
                     scope=ToolScope.MINE,
-                    parent_key='body',
                     linked_component_keys=('missing',),
                 ),
             ),
         )
 
 
-def test_manifest_rejects_component_links_with_different_scope() -> None:
+def test_manifest_rejects_shared_subcomponent_links_with_different_scope() -> None:
     body = _region('body')
     mine = ToolSection(
         key='mine_component',
@@ -269,7 +288,6 @@ def test_manifest_rejects_component_links_with_different_scope() -> None:
         kind=ToolSectionKind.COMPONENT,
         scope=ToolScope.MINE,
         parent_key='body',
-        linked_component_keys=('plant_component',),
     )
     plant = ToolSection(
         key='plant_component',
@@ -278,17 +296,61 @@ def test_manifest_rejects_component_links_with_different_scope() -> None:
         scope=ToolScope.PLANT,
         parent_key='body',
     )
+    shared = ToolSection(
+        component='mine_component',
+        subcomponent='shared',
+        display_name='Shared',
+        kind=ToolSectionKind.SUBCOMPONENT,
+        scope=ToolScope.MINE,
+        linked_component_keys=('plant_component',),
+    )
 
     with pytest.raises(ToolManifestError, match='scope must match'):
-        ToolManifest('tool', 'Tool', (_PI,), (body, mine, plant))
+        ToolManifest('tool', 'Tool', (_PI,), (body, mine, plant, shared))
 
 
-def test_layout_role_is_only_valid_for_regions_and_unique_in_manifest() -> None:
-    with pytest.raises(ToolManifestError, match='Only regions can declare a layout_role'):
+def test_manifest_rejects_duplicate_shared_subcomponent_aliases() -> None:
+    body = _region('body', ToolScope.MINE)
+    first = ToolSection(
+        key='first',
+        display_name='First',
+        kind=ToolSectionKind.COMPONENT,
+        scope=ToolScope.MINE,
+        parent_key='body',
+    )
+    second = ToolSection(
+        key='second',
+        display_name='Second',
+        kind=ToolSectionKind.COMPONENT,
+        scope=ToolScope.MINE,
+        parent_key='body',
+    )
+    shared = ToolSection(
+        component='first',
+        subcomponent='shared',
+        display_name='Shared',
+        kind=ToolSectionKind.SUBCOMPONENT,
+        scope=ToolScope.MINE,
+        linked_component_keys=('second',),
+    )
+    duplicate = ToolSection(
+        component='second',
+        subcomponent='shared',
+        display_name='Duplicate',
+        kind=ToolSectionKind.SUBCOMPONENT,
+        scope=ToolScope.MINE,
+    )
+
+    with pytest.raises(ToolManifestError, match='duplicate subcomponent identity'):
+        ToolManifest('tool', 'Tool', (_PI,), (body, first, second, shared, duplicate))
+
+
+def test_layout_role_is_only_valid_for_components_and_unique_in_manifest() -> None:
+    with pytest.raises(ToolManifestError, match='Only components can declare a layout_role'):
         ToolSection(
-            key='component',
-            display_name='Component',
-            kind=ToolSectionKind.COMPONENT,
+            key='region',
+            display_name='Region',
+            kind=ToolSectionKind.REGION,
             scope=ToolScope.PLANT,
             layout_role=ProcessBodySection.CENTER,
         )
@@ -296,14 +358,14 @@ def test_layout_role_is_only_valid_for_regions_and_unique_in_manifest() -> None:
     first = ToolSection(
         key='first',
         display_name='First',
-        kind=ToolSectionKind.REGION,
+        kind=ToolSectionKind.COMPONENT,
         scope=ToolScope.PLANT,
         layout_role=ProcessBodySection.CENTER,
     )
     second = ToolSection(
         key='second',
         display_name='Second',
-        kind=ToolSectionKind.REGION,
+        kind=ToolSectionKind.COMPONENT,
         scope=ToolScope.PLANT,
         layout_role=ProcessBodySection.CENTER,
     )
@@ -312,21 +374,21 @@ def test_layout_role_is_only_valid_for_regions_and_unique_in_manifest() -> None:
         ToolManifest('tool', 'Tool', (_PI,), (first, second))
 
 
-def test_manifest_resolves_region_by_layout_role() -> None:
+def test_manifest_resolves_component_by_layout_role() -> None:
     center = ToolSection(
         key='planta_molibdeno',
         display_name='Planta Molibdeno',
-        kind=ToolSectionKind.REGION,
+        kind=ToolSectionKind.COMPONENT,
         scope=ToolScope.PLANT,
         layout_role=ProcessBodySection.CENTER,
         targets=_KPI,
     )
     manifest = ToolManifest('tool', 'Tool', (_PI,), (center,))
 
-    assert manifest.region_for_layout_role(ProcessBodySection.CENTER) is center
+    assert manifest.component_for_layout_role(ProcessBodySection.CENTER) is center
 
     with pytest.raises(ToolManifestLookupError, match='Unknown layout role'):
-        manifest.region_for_layout_role(ProcessBodySection.LEFT)
+        manifest.component_for_layout_role(ProcessBodySection.LEFT)
 
 
 def test_require_target_rejects_non_targetable_section() -> None:

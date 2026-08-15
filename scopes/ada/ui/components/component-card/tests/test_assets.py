@@ -10,3 +10,6 @@ def test_component_card_css_is_packaged_with_footer_contract() -> None:
     assert '.ada-component-card__content {' in css
     assert '.ada-component-card__footer {' in css
     assert 'margin-inline-start: auto;' in css
+    assert 'padding: .05rem .2rem .08rem;' in css
+    assert 'font-size: .65rem;' in css
+    assert 'line-height: 1;' in css

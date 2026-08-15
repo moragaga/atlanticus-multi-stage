@@ -83,6 +83,7 @@ class ToolSection:
         _validate_component_links_declaration(
             kind=kind,
             section_key=resolved_key,
+            component=component,
             linked_component_keys=resolved_links,
         )
         _validate_layout_role_declaration(kind=kind, layout_role=layout_role)
@@ -135,7 +136,19 @@ class ToolManifest:
         raise ToolManifestLookupError(f'Unknown section key: {key}')
 
     def subcomponent(self, *, component: str, subcomponent: str) -> ToolSection:
-        return self.section(_build_subcomponent_key(component=component, subcomponent=subcomponent))
+        _validate_key(component, field_name='subcomponent component')
+        _validate_key(subcomponent, field_name='subcomponent identity')
+        direct_key = _build_subcomponent_key(component=component, subcomponent=subcomponent)
+        for section in self.sections:
+            if section.kind is not ToolSectionKind.SUBCOMPONENT:
+                continue
+            if section.key == direct_key:
+                return section
+            if section.subcomponent == subcomponent and component in section.linked_component_keys:
+                return section
+        raise ToolManifestLookupError(
+            f'Unknown subcomponent for component {component!r}: {subcomponent!r}'
+        )
 
     def roots(self) -> tuple[ToolSection, ...]:
         return tuple(section for section in self.sections if section.parent_key is None)
@@ -166,8 +179,17 @@ class ToolManifest:
 
     def linked_components(self, section_key: str) -> tuple[ToolSection, ...]:
         section = self.section(section_key)
+        if section.kind is ToolSectionKind.SUBCOMPONENT:
+            component_keys = (section.component, *section.linked_component_keys)
+            return tuple(
+                self.section(component_key)
+                for component_key in component_keys
+                if component_key is not None
+            )
         if section.kind is not ToolSectionKind.COMPONENT:
-            raise ToolManifestLookupError(f'Section {section_key!r} is not a component')
+            raise ToolManifestLookupError(
+                f'Section {section_key!r} cannot declare linked components'
+            )
         return tuple(
             candidate
             for candidate in self.sections
@@ -179,7 +201,7 @@ class ToolManifest:
             )
         )
 
-    def region_for_layout_role(self, role: ProcessBodySection) -> ToolSection:
+    def component_for_layout_role(self, role: ProcessBodySection) -> ToolSection:
         if not isinstance(role, ProcessBodySection):
             raise ToolManifestLookupError(f'Invalid layout role: {role!r}')
         for section in self.sections:
@@ -256,16 +278,21 @@ def _validate_component_links_declaration(
     *,
     kind: ToolSectionKind,
     section_key: str,
+    component: str | None,
     linked_component_keys: tuple[str, ...],
 ) -> None:
     if not linked_component_keys:
         return
-    if kind is not ToolSectionKind.COMPONENT:
-        raise ToolManifestError('Only components can declare linked_component_keys')
+    if kind not in {ToolSectionKind.COMPONENT, ToolSectionKind.SUBCOMPONENT}:
+        raise ToolManifestError(
+            'Only components and subcomponents can declare linked_component_keys'
+        )
     for linked_key in linked_component_keys:
         _validate_key(linked_key, field_name='linked component key')
-        if linked_key == section_key:
+        if kind is ToolSectionKind.COMPONENT and linked_key == section_key:
             raise ToolManifestError('Component cannot link to itself')
+        if kind is ToolSectionKind.SUBCOMPONENT and linked_key == component:
+            raise ToolManifestError('Subcomponent cannot link to its parent component')
 
 
 def _validate_layout_role_declaration(
@@ -277,8 +304,8 @@ def _validate_layout_role_declaration(
         return
     if not isinstance(layout_role, ProcessBodySection):
         raise ToolManifestError(f'Invalid section layout role: {layout_role!r}')
-    if kind is not ToolSectionKind.REGION:
-        raise ToolManifestError('Only regions can declare a layout_role')
+    if kind is not ToolSectionKind.COMPONENT:
+        raise ToolManifestError('Only components can declare a layout_role')
 
 
 def _validate_sources(sources: tuple[ToolSource, ...]) -> None:
@@ -315,6 +342,7 @@ def _validate_sections(sections: tuple[ToolSection, ...]) -> None:
         _validate_scope(section=section, parent=parent)
 
     _validate_component_links(sections=sections, by_key=by_key)
+    _validate_subcomponent_aliases(sections=sections)
 
     for section in sections:
         _validate_no_cycle(section=section, by_key=by_key)
@@ -330,16 +358,31 @@ def _validate_component_links(
             linked = by_key.get(linked_key)
             if linked is None:
                 raise ToolManifestError(
-                    f'Component {section.key!r} references unknown linked component {linked_key!r}'
+                    f'Section {section.key!r} references unknown linked component {linked_key!r}'
                 )
             if linked.kind is not ToolSectionKind.COMPONENT:
-                raise ToolManifestError(
-                    f'Component {section.key!r} can only link to another component'
-                )
+                raise ToolManifestError(f'Section {section.key!r} can only link to a component')
             if linked.scope is not section.scope:
                 raise ToolManifestError(
-                    f'Linked component {linked_key!r} scope must match component {section.key!r}'
+                    f'Linked component {linked_key!r} scope must match section {section.key!r}'
                 )
+
+
+def _validate_subcomponent_aliases(*, sections: tuple[ToolSection, ...]) -> None:
+    aliases: set[tuple[str, str]] = set()
+    for section in sections:
+        if section.kind is not ToolSectionKind.SUBCOMPONENT:
+            continue
+        if section.component is None or section.subcomponent is None:
+            continue
+        for component_key in (section.component, *section.linked_component_keys):
+            alias = (component_key, section.subcomponent)
+            if alias in aliases:
+                raise ToolManifestError(
+                    'Tool manifest contains duplicate subcomponent identity for component '
+                    f'{component_key!r}: {section.subcomponent!r}'
+                )
+            aliases.add(alias)
 
 
 def _validate_parent_kind(*, section: ToolSection, parent: ToolSection) -> None:

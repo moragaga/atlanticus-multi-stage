@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from dash import html
 
 from ada.contracts.tool_manifest import ToolManifest, ToolScope, ToolSectionKind
-from ada.ui.framework.core import component_identity_attributes
+from ada.ui.components.component_container import build_component_container
 
 from .errors import IntegratedOperationsLayoutError
 from .models import IntegratedOperationsView
@@ -14,7 +14,6 @@ _MINE_COMPONENT_KEYS = (
     'general_mina',
     'carguio',
     'transporte',
-    'carguio_transporte',
     'chancado_stmg',
 )
 _PLANT_COMPONENT_KEYS = (
@@ -25,12 +24,16 @@ _PLANT_COMPONENT_KEYS = (
     'puerto',
 )
 _REQUIRED_COMPONENT_KEYS = frozenset((*_MINE_COMPONENT_KEYS, *_PLANT_COMPONENT_KEYS))
+_SHARED_CARD_COMPONENT = 'carguio'
+_SHARED_CARD_LINKED_COMPONENT = 'transporte'
+_SHARED_CARD_SUBCOMPONENT = 'gestion_carguio_turno'
 
 
 def build_integrated_operations_layout(
     manifest: ToolManifest,
     *,
     component_content: Mapping[str, object],
+    shared_card_content: object,
     view: IntegratedOperationsView = IntegratedOperationsView.OVERVIEW,
     layout_id: str | None = None,
     class_name: str | None = None,
@@ -59,11 +62,10 @@ def build_integrated_operations_layout(
 
     return html.Div(
         [
-            _build_scope(
+            _build_mine_scope(
                 manifest,
-                scope=ToolScope.MINE,
-                component_keys=_MINE_COMPONENT_KEYS,
                 component_content=content,
+                shared_card_content=shared_card_content,
             ),
             _build_scope(
                 manifest,
@@ -73,6 +75,47 @@ def build_integrated_operations_layout(
             ),
         ],
         **root_attributes,
+    )
+
+
+def _build_mine_scope(
+    manifest: ToolManifest,
+    *,
+    component_content: dict[str, object],
+    shared_card_content: object,
+) -> html.Section:
+    scope_section = manifest.section(ToolScope.MINE.value)
+    component_nodes = {
+        component_key: _build_component(
+            manifest,
+            component_key=component_key,
+            content=component_content[component_key],
+        )
+        for component_key in _MINE_COMPONENT_KEYS
+    }
+    shared = manifest.subcomponent(
+        component=_SHARED_CARD_COMPONENT,
+        subcomponent=_SHARED_CARD_SUBCOMPONENT,
+    )
+    return html.Section(
+        [
+            component_nodes['general_mina'],
+            component_nodes['carguio'],
+            component_nodes['transporte'],
+            html.Div(
+                shared_card_content,
+                className='ada-io-layout__shared-card ada-io-layout__shared-card--carguio-transporte',
+                **{
+                    'data-ada-io-shared-subcomponent-key': shared.key,
+                },
+            ),
+            component_nodes['chancado_stmg'],
+        ],
+        className='ada-io-layout__scope ada-io-layout__scope--mine',
+        **{
+            'aria-label': scope_section.display_name,
+            'data-ada-io-scope-key': ToolScope.MINE.value,
+        },
     )
 
 
@@ -107,17 +150,11 @@ def _build_component(
     component_key: str,
     content: object,
 ) -> html.Div:
-    section = manifest.section(component_key)
-    return html.Div(
-        [
-            html.Div(section.display_name, className='ada-io-layout__component-title'),
-            html.Div(content, className='ada-io-layout__component-content'),
-        ],
-        className=f'ada-io-layout__component ada-io-layout__component--{component_key}',
-        **{
-            **component_identity_attributes(component_key),
-            'aria-label': section.display_name,
-        },
+    return build_component_container(
+        manifest,
+        component=component_key,
+        content=content,
+        class_name=f'ada-io-layout__component ada-io-layout__component--{component_key}',
     )
 
 
@@ -145,10 +182,14 @@ def _validate_manifest(manifest: ToolManifest) -> None:
     _validate_scope(manifest, ToolScope.MINE, _MINE_COMPONENT_KEYS)
     _validate_scope(manifest, ToolScope.PLANT, _PLANT_COMPONENT_KEYS)
 
-    linked_keys = {section.key for section in manifest.linked_components('carguio_transporte')}
-    if linked_keys != {'carguio', 'transporte'}:
+    shared = manifest.subcomponent(
+        component=_SHARED_CARD_COMPONENT,
+        subcomponent=_SHARED_CARD_SUBCOMPONENT,
+    )
+    linked_keys = {section.key for section in manifest.linked_components(shared.key)}
+    if linked_keys != {_SHARED_CARD_COMPONENT, _SHARED_CARD_LINKED_COMPONENT}:
         raise IntegratedOperationsLayoutError(
-            'Component "carguio_transporte" must be linked to "carguio" and "transporte"'
+            'Shared subcomponent "gestion_carguio_turno" must belong to "carguio" and "transporte"'
         )
 
 

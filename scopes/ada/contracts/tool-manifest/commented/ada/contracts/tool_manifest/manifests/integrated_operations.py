@@ -1,3 +1,4 @@
+# Espejo pedagógico: Operaciones Integradas declara nueve componentes reales; Gestión Carguío Turno es una sola card compartida entre Carguío y Transporte.
 from ..enums import ToolScope, ToolSectionKind, ToolSourceKey, ToolTarget
 from ..models import ToolManifest, ToolSection, ToolSource
 
@@ -6,13 +7,13 @@ _ALARM = frozenset({ToolTarget.ALARM})
 _KPI_ALARM = frozenset({ToolTarget.KPI, ToolTarget.ALARM})
 
 
-# Centraliza la forma común de las cards alarmables sin exponer la key técnica.
 def _alarm_subcomponent(
     *,
     component: str,
     subcomponent: str,
     display_name: str,
     scope: ToolScope,
+    linked_component_keys: tuple[str, ...] = (),
 ) -> ToolSection:
     return ToolSection(
         component=component,
@@ -21,10 +22,10 @@ def _alarm_subcomponent(
         kind=ToolSectionKind.SUBCOMPONENT,
         scope=scope,
         targets=_ALARM,
+        linked_component_keys=linked_component_keys,
     )
 
 
-# El manifest declara identidad, targets y jerarquía; no construye la UI ni los datos.
 INTEGRATED_OPERATIONS_MANIFEST = ToolManifest(
     tool_key='integrated_operations',
     display_name='Operaciones Integradas',
@@ -189,21 +190,12 @@ INTEGRATED_OPERATIONS_MANIFEST = ToolManifest(
             display_name='Tiempos y Colas • Turno',
             scope=ToolScope.MINE,
         ),
-        # Caso compartido: una sola identidad relacionada con Carguío y Transporte.
-        ToolSection(
-            key='carguio_transporte',
-            display_name='Carguío y Transporte',
-            kind=ToolSectionKind.COMPONENT,
-            scope=ToolScope.MINE,
-            parent_key='mine',
-            targets=_KPI_ALARM,
-            linked_component_keys=('carguio', 'transporte'),
-        ),
         _alarm_subcomponent(
-            component='carguio_transporte',
+            component='carguio',
             subcomponent='gestion_carguio_turno',
             display_name='Gestión Carguío • Turno',
             scope=ToolScope.MINE,
+            linked_component_keys=('transporte',),
         ),
         ToolSection(
             key='chancado_stmg',

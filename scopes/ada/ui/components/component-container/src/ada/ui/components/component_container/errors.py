@@ -1,0 +1,2 @@
+class ComponentContainerDefinitionError(ValueError):
+    pass

@@ -1,3 +1,4 @@
+# Espejo pedagógico: las tres variantes demuestran que la cantidad de cards del CENTER depende de cada herramienta, no de la geometría genérica.
 from dash import html
 
 from ada.contracts.tool_manifest import (
@@ -10,85 +11,203 @@ from ada.contracts.tool_manifest import (
     ToolTarget,
     build_process_manifest,
 )
+from ada.ui.components.component_card import build_component_card
 from ada.ui.layouts.process import build_process_layout
 
 _KPI = frozenset({ToolTarget.KPI})
+_ALARM = frozenset({ToolTarget.ALARM})
 _KPI_ALARM = frozenset({ToolTarget.KPI, ToolTarget.ALARM})
+_SCOPE = ToolScope.PLANT
+_PI = ToolSource(ToolSourceKey.PI, stale_after_seconds=300)
+
+_CENTER_RIGHT = (
+    (
+        'planta_molibdeno',
+        'Planta Molibdeno',
+        ProcessBodySection.CENTER,
+        (
+            ('rougher', 'Rougher'),
+            ('cleaner', 'Cleaner'),
+            ('concentrado_molibdeno', 'Concentrado Molibdeno'),
+        ),
+    ),
+    (
+        'aguas_abajo',
+        'Aguas Abajo',
+        ProcessBodySection.RIGHT,
+        (('stc', 'STC'), ('plf', 'PLF')),
+    ),
+)
+
+_LEFT_CENTER_RIGHT = (
+    (
+        'aguas_arriba',
+        'Aguas Arriba',
+        ProcessBodySection.LEFT,
+        (
+            ('flotacion_colectiva', 'Flotación Colectiva'),
+            ('tendencias_courier', 'Tendencias Courier'),
+        ),
+    ),
+    (
+        'planta_molibdeno',
+        'Planta Molibdeno',
+        ProcessBodySection.CENTER,
+        (('principal', 'Planta Molibdeno'),),
+    ),
+    (
+        'aguas_abajo',
+        'Aguas Abajo',
+        ProcessBodySection.RIGHT,
+        (('stc', 'STC'), ('plf', 'PLF')),
+    ),
+)
+
+_LEFT_CENTER_RIGHT_BOTTOM = (
+    *_LEFT_CENTER_RIGHT,
+    (
+        'graficas_tendencia',
+        'Gráficas Tendencia',
+        ProcessBodySection.BOTTOM,
+        (('graficas', 'Gráficas'),),
+    ),
+)
 
 
 def build_reference_process_layout() -> html.Section:
-    # La referencia usa nombres reales del legacy visual, pero la geometría viene del rol genérico.
-    manifest = _build_reference_process_manifest()
-    content = {
-        'aguas_arriba': _build_reference_stack(('Flotación Colectiva', 'Tendencias Courier')),
-        'planta_molibdeno': _build_reference_card('Contenido central'),
-        'aguas_abajo': _build_reference_stack(('STC', 'PLF')),
-        'indicadores_inferiores': _build_reference_card('Bottom opcional'),
-    }
     return html.Section(
         [
             html.H2('Process Layout'),
             html.P(
-                'Ejemplo contractual con LEFT/CENTER/RIGHT = 2/8/2 y BOTTOM = 12; '
-                'CENTER y BOTTOM son unidades únicas, mientras LEFT y RIGHT pueden apilar cards.'
+                'Tres composiciones contractuales: CENTER+RIGHT = 10/2, '
+                'LEFT+CENTER+RIGHT = 2/8/2 y la misma composición con BOTTOM = 12.'
             ),
-            build_process_layout(
-                manifest,
-                region_content=content,
-                layout_id='reference-process-layout',
+            _build_variant(
+                title='CENTER + RIGHT · CENTER con múltiples cards',
+                tool_key='process_center_right_reference',
+                layout_id='reference-process-center-right',
+                definitions=_CENTER_RIGHT,
+            ),
+            _build_variant(
+                title='LEFT + CENTER + RIGHT · CENTER con una card',
+                tool_key='process_full_reference',
+                layout_id='reference-process-full',
+                definitions=_LEFT_CENTER_RIGHT,
+            ),
+            _build_variant(
+                title='LEFT + CENTER + RIGHT + BOTTOM · CENTER y BOTTOM con una card',
+                tool_key='process_full_bottom_reference',
+                layout_id='reference-process-full-bottom',
+                definitions=_LEFT_CENTER_RIGHT_BOTTOM,
             ),
         ],
         className='reference-ada__process-layout-demo',
     )
 
 
-def _build_reference_process_manifest():
-    scope = ToolScope.PLANT
-    return build_process_manifest(
-        tool_key='flotacion_selectiva_reference',
-        display_name='Flotación Selectiva',
-        sources=(ToolSource(ToolSourceKey.PI, stale_after_seconds=300),),
-        operational_scope=scope,
-        body_sections=(
-            _region('aguas_arriba', 'Aguas Arriba', scope, ProcessBodySection.LEFT),
-            _region('planta_molibdeno', 'Planta Molibdeno', scope, ProcessBodySection.CENTER),
-            _region('aguas_abajo', 'Aguas Abajo', scope, ProcessBodySection.RIGHT),
-            _region(
-                'indicadores_inferiores',
-                'Indicadores Inferiores',
-                scope,
-                ProcessBodySection.BOTTOM,
+def _build_variant(
+    *,
+    title: str,
+    tool_key: str,
+    layout_id: str,
+    definitions: tuple,
+) -> html.Div:
+    manifest = _build_manifest(tool_key=tool_key, definitions=definitions)
+    content = {
+        component.key: _build_component_cards(manifest, component.key)
+        for component in manifest.children('body')
+    }
+    return html.Div(
+        [
+            html.H3(title),
+            build_process_layout(
+                manifest,
+                component_content=content,
+                layout_id=layout_id,
             ),
-        ),
+        ],
+        className='reference-ada__process-layout-variant',
     )
 
 
-def _region(
+def _build_manifest(*, tool_key: str, definitions: tuple):
+    components = tuple(
+        _component(
+            key=key,
+            display_name=display_name,
+            role=role,
+        )
+        for key, display_name, role, _ in definitions
+    )
+    subcomponents = tuple(
+        _subcomponent(
+            component=component_key,
+            subcomponent=subcomponent_key,
+            display_name=display_name,
+            alarm=role is ProcessBodySection.CENTER,
+        )
+        for component_key, _, role, cards in definitions
+        for subcomponent_key, display_name in cards
+    )
+    return build_process_manifest(
+        tool_key=tool_key,
+        display_name='Process Reference',
+        sources=(_PI,),
+        operational_scope=_SCOPE,
+        body_sections=(*components, *subcomponents),
+    )
+
+
+def _component(
+    *,
     key: str,
     display_name: str,
-    scope: ToolScope,
     role: ProcessBodySection,
 ) -> ToolSection:
-    # Solo CENTER acepta alarmas; todas las regiones siguen siendo configurables para KPI.
     return ToolSection(
         key=key,
         display_name=display_name,
-        kind=ToolSectionKind.REGION,
-        scope=scope,
+        kind=ToolSectionKind.COMPONENT,
+        scope=_SCOPE,
         parent_key='body',
         targets=_KPI_ALARM if role is ProcessBodySection.CENTER else _KPI,
         layout_role=role,
     )
 
 
-def _build_reference_card(label: str) -> html.Div:
-    # CENTER y BOTTOM se representan como una sola unidad visual inyectada.
-    return html.Div(label, className='reference-ada__process-content-card flex-fill')
-
-
-def _build_reference_stack(labels: tuple[str, ...]) -> html.Div:
-    # LEFT y RIGHT pueden apilar varias cards; el layout no inspecciona su anatomía interna.
-    return html.Div(
-        [_build_reference_card(label) for label in labels],
-        className='d-flex flex-column gap-1',
+def _subcomponent(
+    *,
+    component: str,
+    subcomponent: str,
+    display_name: str,
+    alarm: bool,
+) -> ToolSection:
+    return ToolSection(
+        component=component,
+        subcomponent=subcomponent,
+        display_name=display_name,
+        kind=ToolSectionKind.SUBCOMPONENT,
+        scope=_SCOPE,
+        targets=_ALARM if alarm else (),
     )
+
+
+def _build_component_cards(manifest, component_key: str) -> html.Div:
+    cards = []
+    for section in manifest.children(component_key):
+        if section.subcomponent is None:
+            continue
+        cards.append(
+            build_component_card(
+                manifest,
+                component=component_key,
+                subcomponent=section.subcomponent,
+                content=html.Div(
+                    'Contenido inyectado',
+                    className='reference-ada__component-card-content',
+                ),
+                label=section.display_name,
+                class_name='flex-fill',
+            )
+        )
+    return html.Div(cards, className='d-flex flex-column gap-1')

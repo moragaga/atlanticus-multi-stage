@@ -11,22 +11,23 @@ from ada.contracts.tool_manifest import (
     ToolSection,
     ToolSectionKind,
 )
+from ada.ui.components.component_container import build_component_container
 
 from .errors import ProcessLayoutError
 
 
-# El layout usa roles geométricos, pero conserva las identidades funcionales del manifest.
 def build_process_layout(
     manifest: ToolManifest,
     *,
-    region_content: Mapping[str, object],
+    component_content: Mapping[str, object],
     layout_id: str | None = None,
     class_name: str | None = None,
 ) -> html.Div:
+    # El layout solo posiciona componentes; el contenido visual interno lo inyecta la herramienta.
     _validate_layout_id(layout_id)
-    regions = _resolve_regions(manifest)
-    content = dict(region_content)
-    _validate_content(regions, content)
+    components = _resolve_components(manifest)
+    content = dict(component_content)
+    _validate_content(components, content)
 
     root_attributes = {
         'className': _join_classes('ada-process-layout', class_name),
@@ -35,33 +36,42 @@ def build_process_layout(
     if layout_id is not None:
         root_attributes['id'] = layout_id
 
-    main_regions = tuple(
-        region
+    # Los roles presentes determinan únicamente el ancho Bootstrap de la fila principal.
+    main_components = tuple(
+        component
         for role in (
             ProcessBodySection.LEFT,
             ProcessBodySection.CENTER,
             ProcessBodySection.RIGHT,
         )
-        if (region := regions.get(role)) is not None
+        if (component := components.get(role)) is not None
     )
     children = [
         html.Div(
             [
-                _build_region(
-                    region,
-                    content=content[region.key],
-                    width=_main_width(role=region.layout_role, regions=regions),
+                _build_slot(
+                    manifest,
+                    component=component,
+                    content=content[component.key],
+                    width=_main_width(role=component.layout_role, components=components),
                 )
-                for region in main_regions
+                for component in main_components
             ],
             className='row g-1 mx-0 ada-process-layout__main',
         )
     ]
-    bottom = regions.get(ProcessBodySection.BOTTOM)
+    bottom = components.get(ProcessBodySection.BOTTOM)
     if bottom is not None:
         children.append(
             html.Div(
-                [_build_region(bottom, content=content[bottom.key], width=12)],
+                [
+                    _build_slot(
+                        manifest,
+                        component=bottom,
+                        content=content[bottom.key],
+                        width=12,
+                    )
+                ],
                 className='row g-1 mx-0 ada-process-layout__bottom',
             )
         )
@@ -69,29 +79,35 @@ def build_process_layout(
     return html.Div(children, **root_attributes)
 
 
-# Cada región mantiene un wrapper estable y recibe contenido ya construido por la herramienta.
-def _build_region(section: ToolSection, *, content: object, width: int) -> html.Section:
-    role = section.layout_role
+def _build_slot(
+    manifest: ToolManifest,
+    *,
+    component: ToolSection,
+    content: object,
+    width: int,
+) -> html.Section:
+    role = component.layout_role
     if role is None:
-        raise ProcessLayoutError(f'Process region {section.key!r} requires a layout role')
+        raise ProcessLayoutError(f'Process component {component.key!r} requires a layout role')
+
+    # ComponentContainer dibuja una sola vez el nombre macro y deja debajo el árbol inyectado.
     return html.Section(
-        [
-            html.Div(section.display_name, className='ada-process-layout__region-title'),
-            html.Div(content, className='ada-process-layout__region-content'),
-        ],
-        className=(
-            f'col-{width} ada-process-layout__region '
-            f'ada-process-layout__region--{role.value}'
+        build_component_container(
+            manifest,
+            component=component.key,
+            content=content,
+            class_name='ada-process-layout__component',
         ),
+        className=f'col-{width} ada-process-layout__slot ada-process-layout__slot--{role.value}',
         **{
-            'aria-label': section.display_name,
-            'data-ada-process-region-key': section.key,
+            'aria-label': component.display_name,
             'data-ada-process-layout-role': role.value,
+            'data-ada-process-component-key': component.key,
         },
     )
 
 
-def _resolve_regions(manifest: ToolManifest) -> dict[ProcessBodySection, ToolSection]:
+def _resolve_components(manifest: ToolManifest) -> dict[ProcessBodySection, ToolSection]:
     if not isinstance(manifest, ToolManifest):
         raise ProcessLayoutError(f'Invalid tool manifest: {manifest!r}')
     try:
@@ -101,26 +117,26 @@ def _resolve_regions(manifest: ToolManifest) -> dict[ProcessBodySection, ToolSec
     if body.kind is not ToolSectionKind.REGION:
         raise ProcessLayoutError('Process layout body must be a region')
 
-    regions: dict[ProcessBodySection, ToolSection] = {}
+    # Cada hijo directo de body es un componente funcional con un rol geométrico único.
+    components: dict[ProcessBodySection, ToolSection] = {}
     for section in manifest.children('body'):
-        if section.kind is not ToolSectionKind.REGION or section.layout_role is None:
-            raise ProcessLayoutError('Process body direct children must be layout regions')
-        regions[section.layout_role] = section
-    if ProcessBodySection.CENTER not in regions:
+        if section.kind is not ToolSectionKind.COMPONENT or section.layout_role is None:
+            raise ProcessLayoutError('Process body direct children must be layout components')
+        components[section.layout_role] = section
+    if ProcessBodySection.CENTER not in components:
         raise ProcessLayoutError('Process layout requires the center layout role')
-    return regions
+    return components
 
 
-# La geometría se deriva únicamente de los roles presentes en el grid Bootstrap de 12 columnas.
 def _main_width(
     *,
     role: ProcessBodySection | None,
-    regions: dict[ProcessBodySection, ToolSection],
+    components: dict[ProcessBodySection, ToolSection],
 ) -> int:
     if role is None or role is ProcessBodySection.BOTTOM:
         raise ProcessLayoutError(f'Invalid main process layout role: {role!r}')
-    has_left = ProcessBodySection.LEFT in regions
-    has_right = ProcessBodySection.RIGHT in regions
+    has_left = ProcessBodySection.LEFT in components
+    has_right = ProcessBodySection.RIGHT in components
     if role is ProcessBodySection.LEFT:
         return 2
     if role is ProcessBodySection.RIGHT:
@@ -133,17 +149,18 @@ def _main_width(
 
 
 def _validate_content(
-    regions: dict[ProcessBodySection, ToolSection],
+    components: dict[ProcessBodySection, ToolSection],
     content: dict[str, object],
 ) -> None:
-    expected = {section.key for section in regions.values()}
+    # El integrador debe entregar exactamente un árbol visual por componente declarado.
+    expected = {section.key for section in components.values()}
     keys = set(content)
     missing = sorted(expected - keys)
     unexpected = sorted(keys - expected)
     if missing:
-        raise ProcessLayoutError(f'Missing process region content: {", ".join(missing)}')
+        raise ProcessLayoutError(f'Missing process component content: {", ".join(missing)}')
     if unexpected:
-        raise ProcessLayoutError(f'Unexpected process region content: {", ".join(unexpected)}')
+        raise ProcessLayoutError(f'Unexpected process component content: {", ".join(unexpected)}')
 
 
 def _validate_layout_id(layout_id: str | None) -> None:

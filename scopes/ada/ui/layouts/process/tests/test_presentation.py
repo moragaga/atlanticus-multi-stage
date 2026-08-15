@@ -15,6 +15,7 @@ from ada.ui.layouts.process import ProcessLayoutError, build_process_layout
 
 _PI = ToolSource(ToolSourceKey.PI, stale_after_seconds=300)
 _KPI = frozenset({ToolTarget.KPI})
+_ALARM = frozenset({ToolTarget.ALARM})
 _KPI_ALARM = frozenset({ToolTarget.KPI, ToolTarget.ALARM})
 _FUNCTIONAL_KEYS = {
     ProcessBodySection.LEFT: 'aguas_arriba',
@@ -24,12 +25,12 @@ _FUNCTIONAL_KEYS = {
 }
 
 
-def _region(role: ProcessBodySection) -> ToolSection:
+def _component(role: ProcessBodySection) -> ToolSection:
     key = _FUNCTIONAL_KEYS[role]
     return ToolSection(
         key=key,
         display_name=key.replace('_', ' ').title(),
-        kind=ToolSectionKind.REGION,
+        kind=ToolSectionKind.COMPONENT,
         scope=ToolScope.PLANT,
         parent_key='body',
         targets=_KPI_ALARM if role is ProcessBodySection.CENTER else _KPI,
@@ -37,13 +38,27 @@ def _region(role: ProcessBodySection) -> ToolSection:
     )
 
 
+def _card(role: ProcessBodySection) -> ToolSection:
+    component = _FUNCTIONAL_KEYS[role]
+    return ToolSection(
+        component=component,
+        subcomponent='principal',
+        display_name='Principal',
+        kind=ToolSectionKind.SUBCOMPONENT,
+        scope=ToolScope.PLANT,
+        targets=_ALARM if role is ProcessBodySection.CENTER else (),
+    )
+
+
 def _manifest(*roles: ProcessBodySection):
+    components = tuple(_component(role) for role in roles)
+    cards = tuple(_card(role) for role in roles)
     return build_process_manifest(
         tool_key='process_reference',
         display_name='Process Reference',
         sources=(_PI,),
         operational_scope=ToolScope.PLANT,
-        body_sections=tuple(_region(role) for role in roles),
+        body_sections=(*components, *cards),
     )
 
 
@@ -58,8 +73,8 @@ def _props(component):
 def _columns(layout):
     main = _props(layout)['children'][0]
     return [
-        (_props(region)['data-ada-process-layout-role'], _props(region)['className'])
-        for region in _props(main)['children']
+        (_props(slot)['data-ada-process-layout-role'], _props(slot)['className'])
+        for slot in _props(main)['children']
     ]
 
 
@@ -85,9 +100,10 @@ def _columns(layout):
     ),
 )
 def test_process_layout_uses_fixed_bootstrap_geometry(roles, expected) -> None:
-    manifest = _manifest(*roles)
-
-    layout = build_process_layout(manifest, region_content=_content(*roles))
+    layout = build_process_layout(
+        _manifest(*roles),
+        component_content=_content(*roles),
+    )
 
     columns = _columns(layout)
     assert [(role, class_name.split()[0]) for role, class_name in columns] == expected
@@ -100,66 +116,66 @@ def test_process_layout_bottom_always_uses_twelve_columns() -> None:
         ProcessBodySection.RIGHT,
         ProcessBodySection.BOTTOM,
     )
-    manifest = _manifest(*roles)
-    layout = build_process_layout(manifest, region_content=_content(*roles))
+    layout = build_process_layout(
+        _manifest(*roles),
+        component_content=_content(*roles),
+    )
     bottom_row = _props(layout)['children'][1]
     bottom = _props(bottom_row)['children'][0]
 
-    assert _props(bottom)['data-ada-process-region-key'] == 'indicadores_inferiores'
+    assert _props(bottom)['data-ada-process-component-key'] == 'indicadores_inferiores'
     assert _props(bottom)['data-ada-process-layout-role'] == 'bottom'
     assert _props(bottom)['className'].split()[0] == 'col-12'
 
 
-def test_process_layout_preserves_functional_region_identity_and_content() -> None:
-    center = ToolSection(
-        key='planta_molibdeno',
-        display_name='Planta Molibdeno',
-        kind=ToolSectionKind.REGION,
-        scope=ToolScope.PLANT,
-        parent_key='body',
-        targets=_KPI_ALARM,
-        layout_role=ProcessBodySection.CENTER,
-    )
-    manifest = build_process_manifest(
-        tool_key='flotacion_selectiva',
-        display_name='Flotación Selectiva',
-        sources=(_PI,),
-        operational_scope=ToolScope.PLANT,
-        body_sections=(center,),
+def test_process_layout_wraps_each_role_in_one_component_container() -> None:
+    manifest = _manifest(
+        ProcessBodySection.LEFT,
+        ProcessBodySection.CENTER,
+        ProcessBodySection.RIGHT,
     )
     marker = html.Div('Injected', id='process-marker')
+    content = _content(
+        ProcessBodySection.LEFT,
+        ProcessBodySection.CENTER,
+        ProcessBodySection.RIGHT,
+    )
+    content['proceso_principal'] = marker
 
     layout = build_process_layout(
         manifest,
-        region_content={'planta_molibdeno': marker},
+        component_content=content,
         layout_id='process-layout',
     )
-    region = _props(_props(layout)['children'][0])['children'][0]
-    region_content = _props(region)['children'][1]
+    center_slot = _props(_props(layout)['children'][0])['children'][1]
+    container = _props(center_slot)['children']
+    container_content = _props(container)['children'][1]
 
     assert _props(layout)['id'] == 'process-layout'
-    assert _props(region)['data-ada-process-region-key'] == 'planta_molibdeno'
-    assert _props(region)['data-ada-process-layout-role'] == 'center'
-    assert _props(region_content)['children'] is marker
+    assert _props(center_slot)['data-ada-process-component-key'] == 'proceso_principal'
+    assert _props(center_slot)['data-ada-process-layout-role'] == 'center'
+    assert _props(container)['data-ada-component-key'] == 'proceso_principal'
+    assert _props(_props(container)['children'][0])['children'] == 'Proceso Principal'
+    assert _props(container_content)['children'] is marker
 
 
-def test_process_layout_rejects_missing_region_content() -> None:
+def test_process_layout_rejects_missing_component_content() -> None:
     manifest = _manifest(ProcessBodySection.LEFT, ProcessBodySection.CENTER)
 
-    with pytest.raises(ProcessLayoutError, match='Missing process region content: aguas_arriba'):
+    with pytest.raises(ProcessLayoutError, match='Missing process component content: aguas_arriba'):
         build_process_layout(
             manifest,
-            region_content={'proceso_principal': html.Div('center')},
+            component_content={'proceso_principal': html.Div('center')},
         )
 
 
-def test_process_layout_rejects_unexpected_region_content() -> None:
+def test_process_layout_rejects_unexpected_component_content() -> None:
     manifest = _manifest(ProcessBodySection.CENTER)
 
-    with pytest.raises(ProcessLayoutError, match='Unexpected process region content: other'):
+    with pytest.raises(ProcessLayoutError, match='Unexpected process component content: other'):
         build_process_layout(
             manifest,
-            region_content={
+            component_content={
                 'proceso_principal': html.Div('center'),
                 'other': html.Div('other'),
             },

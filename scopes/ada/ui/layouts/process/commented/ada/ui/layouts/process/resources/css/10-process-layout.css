@@ -1,3 +1,4 @@
+/* Process conserva un gap pequeño entre roles sin imponer estructura al contenido interno. */
 .ada-process-layout {
     --ada-process-layout-gap: .2rem;
     display: grid;
@@ -6,6 +7,7 @@
     gap: var(--ada-process-layout-gap);
 }
 
+/* Bootstrap resuelve 2/8/2, 2/10, 10/2 o 12; bottom siempre utiliza una fila propia. */
 .ada-process-layout__main,
 .ada-process-layout__bottom {
     --bs-gutter-x: var(--ada-process-layout-gap);
@@ -13,37 +15,14 @@
     min-width: 0;
 }
 
-.ada-process-layout__region {
+/* Cada slot contiene un único componente funcional y permite que este determine su alto. */
+.ada-process-layout__slot {
     display: flex;
     min-width: 0;
     min-height: 0;
-    flex-direction: column;
 }
 
-.ada-process-layout__region-title {
-    flex: 0 0 auto;
-    min-width: 0;
-    padding: .2rem .35rem;
-    overflow-wrap: anywhere;
-    background: var(--secondary-background);
-    border: 1px solid var(--primary-border-color);
-    border-bottom: 0;
-    border-radius: .35rem .35rem 0 0;
-    font-size: .68rem;
-    font-weight: 700;
-    text-align: center;
-}
-
-.ada-process-layout__region-content {
-    display: flex;
-    min-width: 0;
-    min-height: 0;
+/* El contenedor del componente ocupa el ancho y alto disponibles del slot. */
+.ada-process-layout__component {
     flex: 1 1 auto;
-    flex-direction: column;
-}
-
-.ada-process-layout__region-content > * {
-    flex: 1 1 auto;
-    min-width: 0;
-    min-height: 0;
 }
