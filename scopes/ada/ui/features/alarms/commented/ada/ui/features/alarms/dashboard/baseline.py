@@ -18,6 +18,8 @@ class AlarmBaselineLayout(StrEnum):
 
 class AlarmBaselineTargetKind(StrEnum):
     COMPONENT = 'component'
+    # Los puntos usan componentes; las cards concretas del body usan subcomponentes.
+    SUBCOMPONENT = 'subcomponent'
     SLOT = 'slot'
 
 

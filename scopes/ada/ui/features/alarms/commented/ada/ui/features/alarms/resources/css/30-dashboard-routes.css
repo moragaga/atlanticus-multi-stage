@@ -4,13 +4,19 @@ Capa visual de rutas.
 - Activo rojo/amarillo: se dibuja exactamente encima del contexto de la alarma presentada.
 - Impacto: recorre únicamente el borde de las cards del body afectadas.
 */
+/* El scope contiene sus capas sin permitir que los overlays escapen a otros dashboards. */
+[data-ada-alarm-geometry-scope='true'] {
+    isolation: isolate;
+}
+
 .ada-alarm-dashboard-route {
     --ada-alarm-route-track-offset: 1.25rem;
     --ada-alarm-route-critical-color: #C82333;
     --ada-alarm-route-attention-color: #E0A800;
     --ada-alarm-route-context-color: #F4F4F4;
     position: absolute;
-    z-index: 2;
+    /* Sin stacking context propio, cada SVG puede ordenarse contra cards y baseline. */
+    z-index: auto;
     inset: 0;
     pointer-events: none;
 }
@@ -40,7 +46,8 @@ Capa visual de rutas.
 }
 
 .ada-alarm-dashboard-route__impact-svg {
-    z-index: 3;
+    /* El contorno queda por encima de la card; fill none conserva su contenido. */
+    z-index: 5;
 }
 
 .ada-alarm-dashboard-route__context-path,

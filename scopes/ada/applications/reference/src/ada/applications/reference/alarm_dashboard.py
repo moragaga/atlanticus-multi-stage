@@ -14,7 +14,11 @@ from ada.ui.features.alarms.dashboard import (
     build_integrated_operations_alarm_baseline,
     build_process_alarm_baseline,
 )
-from ada.ui.framework.core import component_identity_attributes, slot_identity_attributes
+from ada.ui.framework.core import (
+    component_identity_attributes,
+    slot_identity_attributes,
+    subcomponent_identity_attributes,
+)
 
 _IO_COMPONENTS = (
     ('general_mine', 'General Mina'),
@@ -27,6 +31,41 @@ _IO_COMPONENTS = (
     ('fluid_transport', 'Transporte Fluidos'),
     ('port', 'Puerto'),
 )
+_IO_SUBCOMPONENTS = {
+    'general_mine': (('general_mine_subcomponent_1', 'Subcomponente 1'),),
+    'loading': (
+        ('loading_subcomponent_1', 'Subcomponente 1'),
+        ('loading_subcomponent_2', 'Subcomponente 2'),
+    ),
+    'transport': (
+        ('transport_subcomponent_1', 'Subcomponente 1'),
+        ('transport_subcomponent_2', 'Subcomponente 2'),
+        ('transport_subcomponent_3', 'Subcomponente 3'),
+    ),
+    'crushing_stmg': (
+        ('crushing_stmg_subcomponent_1', 'Subcomponente 1'),
+        ('crushing_stmg_subcomponent_2', 'Subcomponente 2'),
+    ),
+    'stock_chacay': (('stock_chacay_subcomponent_1', 'Subcomponente 1'),),
+    'grinding': (
+        ('grinding_subcomponent_1', 'Subcomponente 1'),
+        ('grinding_subcomponent_2', 'Subcomponente 2'),
+        ('grinding_subcomponent_3', 'Subcomponente 3'),
+    ),
+    'flotation': (
+        ('flotation_selective', 'Selectiva'),
+        ('flotation_collective', 'Colectiva'),
+    ),
+    'fluid_transport': (
+        ('fluid_transport_subcomponent_1', 'Subcomponente 1'),
+        ('fluid_transport_subcomponent_2', 'Subcomponente 2'),
+        ('fluid_transport_subcomponent_3', 'Subcomponente 3'),
+    ),
+    'port': (
+        ('port_subcomponent_1', 'Subcomponente 1'),
+        ('port_subcomponent_2', 'Subcomponente 2'),
+    ),
+}
 _PROCESS_ALARM_COUNT = 6
 _PROCESS_ACTIVE_ALARM_INDEX = 2
 _TRACE_DWELL_MS = 15_000
@@ -93,9 +132,11 @@ def _build_integrated_operations_same_point_reference() -> html.Div:
     route = _route_definition(
         event_id='reference-io-same-point',
         assignment_key='component:general_mine',
+        placement_key='io-static-general-mine',
         card_key='io_same_point_alarm',
         origin=target,
-        impacts=(target,),
+        destinations=(target,),
+        affected_targets=(_subcomponent_target_definition('general_mine_subcomponent_1'),),
         tone=AlarmRouteTone.CRITICAL,
     )
     return _build_integrated_operations_static_scope(
@@ -109,11 +150,16 @@ def _build_integrated_operations_span_reference() -> html.Div:
     route = _route_definition(
         event_id='reference-io-span',
         assignment_key='component:loading',
+        placement_key='io-static-loading',
         card_key='io_loading_alarm',
         origin=_component_target_definition('loading'),
-        impacts=(
+        destinations=(
             _component_target_definition('flotation'),
             _component_target_definition('port'),
+        ),
+        affected_targets=(
+            _component_target_definition('flotation'),
+            _subcomponent_target_definition('port_subcomponent_1'),
         ),
         tone=AlarmRouteTone.ATTENTION,
     )
@@ -186,46 +232,63 @@ def _build_integrated_operations_player_reference() -> html.Div:
         'general_mine': _route_definition(
             event_id='io-player-gm-001',
             assignment_key='component:general_mine',
+            placement_key='io-general-mine-slot-1',
             card_key='io_player_gm_001',
             origin=_component_target_definition('general_mine'),
-            impacts=(_component_target_definition('general_mine'),),
+            destinations=(_component_target_definition('general_mine'),),
+            affected_targets=(_subcomponent_target_definition('general_mine_subcomponent_1'),),
             tone=AlarmRouteTone.CRITICAL,
         ),
         'loading': _route_definition(
             event_id='io-player-load-001',
             assignment_key='component:loading',
+            placement_key='io-loading-slot-1',
             card_key='io_player_load_001',
             origin=_component_target_definition('loading'),
-            impacts=(
+            destinations=(
                 _component_target_definition('flotation'),
                 _component_target_definition('fluid_transport'),
                 _component_target_definition('port'),
+            ),
+            affected_targets=(
+                _subcomponent_target_definition('flotation_selective'),
+                _subcomponent_target_definition('fluid_transport_subcomponent_2'),
+                _subcomponent_target_definition('port_subcomponent_2'),
             ),
             tone=AlarmRouteTone.ATTENTION,
         ),
         'transport': _route_definition(
             event_id='io-player-transport-001',
             assignment_key='component:transport',
+            placement_key='io-transport-slot-1',
             card_key='io_player_transport_001',
             origin=_component_target_definition('transport'),
-            impacts=(_component_target_definition('transport'),),
+            destinations=(_component_target_definition('transport'),),
+            affected_targets=(_subcomponent_target_definition('transport_subcomponent_2'),),
             tone=AlarmRouteTone.CRITICAL,
         ),
         'crushing_stmg': _route_definition(
             event_id='io-player-crushing-001',
             assignment_key='component:crushing_stmg',
+            placement_key='io-crushing-stmg-slot-1',
             card_key='io_player_crushing_001',
             origin=_component_target_definition('crushing_stmg'),
-            impacts=(_component_target_definition('crushing_stmg'),),
+            destinations=(_component_target_definition('crushing_stmg'),),
+            affected_targets=(_subcomponent_target_definition('crushing_stmg_subcomponent_1'),),
             tone=AlarmRouteTone.CRITICAL,
         ),
         'flotation': _route_definition(
             event_id='io-player-flotation-001',
             assignment_key='component:flotation',
+            placement_key='io-flotation-slot-1',
             card_key='io_player_flotation_001',
             origin=_component_target_definition('flotation'),
-            impacts=(
+            destinations=(
                 _component_target_definition('grinding'),
+                _component_target_definition('flotation'),
+            ),
+            affected_targets=(
+                _subcomponent_target_definition('grinding_subcomponent_2'),
                 _component_target_definition('flotation'),
             ),
             tone=AlarmRouteTone.ATTENTION,
@@ -233,9 +296,11 @@ def _build_integrated_operations_player_reference() -> html.Div:
         'port': _route_definition(
             event_id='io-player-port-001',
             assignment_key='component:port',
+            placement_key='io-port-slot-1',
             card_key='io_player_port_001',
             origin=_component_target_definition('port'),
-            impacts=(_component_target_definition('port'),),
+            destinations=(_component_target_definition('port'),),
+            affected_targets=(_subcomponent_target_definition('port_subcomponent_1'),),
             tone=AlarmRouteTone.CRITICAL,
         ),
     }
@@ -300,9 +365,11 @@ def _build_process_reference(variant: str, slots: tuple[str, ...]) -> html.Div:
     route = _route_definition(
         event_id=f'reference-{prefix}',
         assignment_key=f'process_slot_{_PROCESS_ACTIVE_ALARM_INDEX + 1}',
+        placement_key=f'{prefix}-slot-{_PROCESS_ACTIVE_ALARM_INDEX + 1}',
         card_key=f'{prefix}_alarm_{_PROCESS_ACTIVE_ALARM_INDEX + 1}',
         origin=center,
-        impacts=(center,),
+        destinations=(center,),
+        affected_targets=(center,),
         tone=AlarmRouteTone.CRITICAL,
     )
     labels = {
@@ -356,9 +423,11 @@ def _build_process_player_reference() -> html.Div:
         _route_definition(
             event_id=f'process-player-{index:03d}',
             assignment_key=f'process_slot_{index}',
+            placement_key=f'process-slot-{index}',
             card_key=f'process_player_{index:03d}',
             origin=center,
-            impacts=(center,),
+            destinations=(center,),
+            affected_targets=(center,),
             tone=AlarmRouteTone.CRITICAL if index in {1, 4} else AlarmRouteTone.ATTENTION,
         )
         for index in range(1, _PROCESS_ALARM_COUNT + 1)
@@ -366,7 +435,7 @@ def _build_process_player_reference() -> html.Div:
     return html.Div(
         [
             html.Div(
-                'Process · player aislado · 6 slots fijos · sin rotación de cards',
+                'Process · center fijo · una única card del body afectada',
                 className='reference-ada__alarm-example-label',
             ),
             html.Div(
@@ -405,52 +474,14 @@ def _build_process_player_reference() -> html.Div:
 
 def _build_integrated_operations_grid(slot_builder) -> html.Div:
     return html.Div(
-        [
-            slot_builder('general_mine'),
-            html.Div(
-                [slot_builder('loading'), slot_builder('transport')],
-                className='reference-ada__alarm-io-double',
-            ),
-            *(
-                slot_builder(key)
-                for key in (
-                    'crushing_stmg',
-                    'stock_chacay',
-                    'grinding',
-                    'flotation',
-                    'fluid_transport',
-                    'port',
-                )
-            ),
-        ],
+        [slot_builder(key) for key, _ in _IO_COMPONENTS],
         className='reference-ada__alarm-io-placement-grid',
     )
 
 
 def _build_integrated_operations_body_grid() -> html.Div:
-    by_key = dict(_IO_COMPONENTS)
     return html.Div(
-        [
-            _component_target('general_mine', by_key['general_mine']),
-            html.Div(
-                [
-                    _component_target('loading', by_key['loading']),
-                    _component_target('transport', by_key['transport']),
-                ],
-                className='reference-ada__alarm-io-double',
-            ),
-            *(
-                _component_target(key, by_key[key])
-                for key in (
-                    'crushing_stmg',
-                    'stock_chacay',
-                    'grinding',
-                    'flotation',
-                    'fluid_transport',
-                    'port',
-                )
-            ),
-        ],
+        [_component_lane(key, label) for key, label in _IO_COMPONENTS],
         className='reference-ada__alarm-io-grid',
     )
 
@@ -503,17 +534,21 @@ def _route_definition(
     *,
     event_id: str,
     assignment_key: str,
+    placement_key: str,
     card_key: str,
     origin: AlarmBaselineTarget,
-    impacts: tuple[AlarmBaselineTarget, ...],
+    destinations: tuple[AlarmBaselineTarget, ...],
+    affected_targets: tuple[AlarmBaselineTarget, ...],
     tone: AlarmRouteTone,
 ) -> AlarmDashboardRouteDefinition:
     return AlarmDashboardRouteDefinition(
         event_id=event_id,
         assignment_key=assignment_key,
+        placement_key=placement_key,
         card_key=card_key,
         origin=origin,
-        impacts=impacts,
+        destinations=destinations,
+        affected_targets=affected_targets,
         tone=tone,
     )
 
@@ -522,10 +557,24 @@ def _component_target_definition(key: str) -> AlarmBaselineTarget:
     return AlarmBaselineTarget(AlarmBaselineTargetKind.COMPONENT, key)
 
 
-def _component_target(key: str, label: str) -> html.Div:
+def _subcomponent_target_definition(key: str) -> AlarmBaselineTarget:
+    return AlarmBaselineTarget(AlarmBaselineTargetKind.SUBCOMPONENT, key)
+
+
+def _component_lane(key: str, label: str) -> html.Div:
     return html.Div(
-        label,
-        className='reference-ada__alarm-target',
+        [
+            html.Div(label, className='reference-ada__alarm-component-label'),
+            *(
+                html.Div(
+                    subcomponent_label,
+                    className='reference-ada__alarm-subcomponent-card',
+                    **subcomponent_identity_attributes(subcomponent_key),
+                )
+                for subcomponent_key, subcomponent_label in _IO_SUBCOMPONENTS[key]
+            ),
+        ],
+        className='reference-ada__alarm-component-lane',
         **component_identity_attributes(key),
     )
 

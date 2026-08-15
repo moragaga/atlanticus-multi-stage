@@ -22,7 +22,11 @@ from ada.ui.features.alarms.dashboard import (
     build_integrated_operations_alarm_baseline,
     build_process_alarm_baseline,
 )
-from ada.ui.framework.core import component_identity_attributes, slot_identity_attributes
+from ada.ui.framework.core import (
+    component_identity_attributes,
+    slot_identity_attributes,
+    subcomponent_identity_attributes,
+)
 
 
 def _props(component) -> dict[str, object]:
@@ -33,16 +37,23 @@ def _route_definition(
     *,
     event_id: str = 'event-001',
     assignment_key: str = 'component:loading',
+    placement_key: str = 'io-loading-slot-1',
     card_key: str = 'alarm_1',
     tone: AlarmRouteTone = AlarmRouteTone.CRITICAL,
 ) -> AlarmDashboardRouteDefinition:
     origin = AlarmBaselineTarget(AlarmBaselineTargetKind.COMPONENT, 'loading')
+    affected = AlarmBaselineTarget(
+        AlarmBaselineTargetKind.SUBCOMPONENT,
+        'loading_subcomponent_1',
+    )
     return AlarmDashboardRouteDefinition(
         event_id=event_id,
         assignment_key=assignment_key,
+        placement_key=placement_key,
         card_key=card_key,
         origin=origin,
-        impacts=(origin,),
+        destinations=(origin,),
+        affected_targets=(affected,),
         tone=tone,
     )
 
@@ -82,9 +93,12 @@ def test_baseline_rejects_duplicate_and_invalid_targets() -> None:
         AlarmBaselineDefinition.integrated_operations(('Grinding Card',))
 
 
-def test_dom_contract_exposes_stable_scope_component_slot_and_alarm_card_attributes() -> None:
+def test_dom_contract_exposes_stable_scope_target_and_alarm_card_attributes() -> None:
     assert alarm_geometry_scope_attributes() == {'data-ada-alarm-geometry-scope': 'true'}
     assert component_identity_attributes('grinding') == {'data-ada-component-key': 'grinding'}
+    assert subcomponent_identity_attributes('flotation_selective') == {
+        'data-ada-subcomponent-key': 'flotation_selective'
+    }
     assert slot_identity_attributes('center') == {'data-ada-slot-key': 'center'}
     assert alarm_card_identity_attributes('alarm_1') == {'data-ada-alarm-card-key': 'alarm_1'}
 
@@ -116,40 +130,91 @@ def test_route_definition_keeps_event_identity_separate_from_assignment() -> Non
     span = AlarmDashboardRouteDefinition(
         event_id='event-abc-123',
         assignment_key='component:loading',
+        placement_key='io-loading-slot-2',
         card_key='alarm_2',
         origin=origin,
-        impacts=(
+        destinations=(
             AlarmBaselineTarget(AlarmBaselineTargetKind.COMPONENT, 'flotation'),
             AlarmBaselineTarget(AlarmBaselineTargetKind.COMPONENT, 'port'),
+        ),
+        affected_targets=(
+            AlarmBaselineTarget(AlarmBaselineTargetKind.SUBCOMPONENT, 'flotation_selective'),
+            AlarmBaselineTarget(AlarmBaselineTargetKind.SUBCOMPONENT, 'port_shipping'),
         ),
         tone=AlarmRouteTone.ATTENTION,
     )
 
     assert span.event_id == 'event-abc-123'
     assert span.assignment_key == 'component:loading'
-    assert tuple(target.key for target in span.impacts) == ('flotation', 'port')
+    assert span.placement_key == 'io-loading-slot-2'
+    assert tuple(target.key for target in span.destinations) == ('flotation', 'port')
+    assert tuple(target.kind for target in span.affected_targets) == (
+        AlarmBaselineTargetKind.SUBCOMPONENT,
+        AlarmBaselineTargetKind.SUBCOMPONENT,
+    )
+    assert tuple(target.key for target in span.affected_targets) == (
+        'flotation_selective',
+        'port_shipping',
+    )
 
 
-def test_route_definition_rejects_invalid_or_duplicate_impacts() -> None:
+def test_process_route_targets_only_the_complete_center_card() -> None:
+    center = AlarmBaselineTarget(AlarmBaselineTargetKind.SLOT, 'center')
+
+    definition = AlarmDashboardRouteDefinition(
+        event_id='process-001',
+        assignment_key='process_slot_1',
+        placement_key='process-slot-1',
+        card_key='process_alarm_1',
+        origin=center,
+        destinations=(center,),
+        affected_targets=(center,),
+        tone=AlarmRouteTone.CRITICAL,
+    )
+
+    attributes = alarm_card_presentation_attributes(definition)
+
+    assert attributes['data-ada-alarm-route-origin'] == 'slot:center'
+    assert attributes['data-ada-alarm-route-destinations'] == 'slot:center'
+    assert attributes['data-ada-alarm-affected-targets'] == 'slot:center'
+
+
+def test_route_definition_rejects_empty_or_duplicate_target_groups() -> None:
     origin = AlarmBaselineTarget(AlarmBaselineTargetKind.SLOT, 'center')
 
-    with pytest.raises(AlarmDefinitionError, match='at least one impact'):
+    with pytest.raises(AlarmDefinitionError, match='Invalid alarm placement key'):
         AlarmDashboardRouteDefinition(
             event_id='event-001',
             assignment_key='process_slot_1',
+            placement_key=' ',
             card_key='alarm_1',
             origin=origin,
-            impacts=(),
+            destinations=(origin,),
+            affected_targets=(origin,),
             tone=AlarmRouteTone.CRITICAL,
         )
 
-    with pytest.raises(AlarmDefinitionError, match='duplicate impact targets'):
+    with pytest.raises(AlarmDefinitionError, match='at least one route destination'):
         AlarmDashboardRouteDefinition(
             event_id='event-001',
             assignment_key='process_slot_1',
+            placement_key='process-slot-1',
             card_key='alarm_1',
             origin=origin,
-            impacts=(origin, origin),
+            destinations=(),
+            affected_targets=(origin,),
+            tone=AlarmRouteTone.CRITICAL,
+        )
+
+    with pytest.raises(AlarmDefinitionError, match='duplicate affected targets'):
+        AlarmDashboardRouteDefinition(
+            event_id='event-001',
+            assignment_key='process_slot_1',
+            placement_key='process-slot-1',
+            card_key='alarm_1',
+            origin=origin,
+            destinations=(origin,),
+            affected_targets=(origin, origin),
             tone=AlarmRouteTone.CRITICAL,
         )
 
@@ -162,9 +227,11 @@ def test_card_presentation_serializes_event_assignment_tone_and_route_geometry()
     assert attributes['data-ada-alarm-card-key'] == 'alarm_1'
     assert attributes['data-ada-alarm-event-id'] == 'event-001'
     assert attributes['data-ada-alarm-assignment-key'] == 'component:loading'
+    assert attributes['data-ada-alarm-placement-key'] == 'io-loading-slot-1'
     assert attributes['data-ada-alarm-card-tone'] == 'attention'
     assert attributes['data-ada-alarm-route-origin'] == 'component:loading'
-    assert attributes['data-ada-alarm-route-impacts'] == 'component:loading'
+    assert attributes['data-ada-alarm-route-destinations'] == 'component:loading'
+    assert attributes['data-ada-alarm-affected-targets'] == ('subcomponent:loading_subcomponent_1')
     assert attributes['data-ada-alarm-distributed'] == 'true'
     assert attributes['data-ada-alarm-selected'] == 'false'
 
@@ -178,6 +245,7 @@ def test_route_layer_can_be_dynamic_or_seeded_for_static_reference() -> None:
     assert 'data-ada-alarm-route-event-id' not in dynamic
     assert seeded['data-ada-alarm-route-event-id'] == 'event-001'
     assert seeded['data-ada-alarm-route-card-key'] == 'alarm_1'
+    assert seeded['data-ada-alarm-route-placement-key'] == 'io-loading-slot-1'
     assert seeded['data-ada-alarm-route-state'] == 'active'
     assert seeded['data-ada-alarm-route-replay'] == '1'
 
@@ -247,8 +315,7 @@ def test_dashboard_assets_keep_white_context_and_use_one_sequential_player() -> 
     assert 'MOTION_SCOPE_WIDTHS_PER_SECOND = 0.2' in routes_js
     assert 'MIN_MOTION_SPEED_PX_PER_SECOND = 160' in routes_js
     assert 'MAX_MOTION_SPEED_PX_PER_SECOND = 960' in routes_js
-    assert 'PREFIX_GAP_PX = 24' in routes_js
-    assert 'PREFIX_GAP_RATIO = 0.08' in routes_js
+    assert 'MOTION_SAMPLE_STEP_PX = 2' in routes_js
     assert 'IMPACT_MIN_DURATION_MS = 1_600' in routes_js
     assert 'IMPACT_MAX_DURATION_MS = 2_400' in routes_js
     assert 'SHARED_TRUNK_DURATION_MS' not in routes_js
@@ -262,27 +329,34 @@ def test_dashboard_assets_keep_white_context_and_use_one_sequential_player() -> 
     assert 'specification.geometry.contextPath' not in routes_js
     assert 'sharedTrunk,' in routes_js
     assert 'originLeg,' in routes_js
-    assert 'impactLegs,' in routes_js
+    assert 'destinationSegments,' in routes_js
+    assert 'destinationRouteSegments(' in routes_js
+    assert 'let cursorX = originX;' in routes_js
+    assert 'cursorX = x;' in routes_js
+    assert 'destinationLegs' not in routes_js
     assert 'contextSegments: [' in routes_js
     assert 'createImpactPaths' in routes_js
     assert 'createImpactPath(' not in routes_js
     assert 'return [leftPath, rightPath];' in routes_js
 
     assert 'startMotion(' in routes_js
-    assert 'beginMotionPhase(' in routes_js
+    assert 'createMotionSteps(' in routes_js
+    assert 'beginNextMotionStep()' in routes_js
     assert 'tickMotion(timestamp)' in routes_js
     assert 'prepareMotionStroke(' in routes_js
+    assert 'createMotionSamples(' in routes_js
+    assert 'motionPrefixData(' in routes_js
     assert 'commitMotionStroke(' in routes_js
     assert 'finishMotion()' in routes_js
     assert 'cancelMotion(reason)' in routes_js
-    assert "phase: 'shared-trunk'" in routes_js
-    assert "this.beginMotionPhase('fan-out')" in routes_js
-    assert "this.beginMotionPhase('impact')" in routes_js
-    assert '`impact-leg:${target.kind}:${target.key}`' in routes_js
+    assert "stage: 'shared-trunk'" in routes_js
+    assert '`destination-leg:${target.kind}:${target.key}`' in routes_js
+    assert '`affected:${target.kind}:${target.key}`' in routes_js
     assert "const side = pathIndex === 0 ? 'left' : 'right';" in routes_js
-    assert (
-        'this.motion.phaseDurationMs = this.impactPhaseDuration(this.motion.strokes);' in routes_js
-    )
+    assert 'this.motion.stepDurationMs = this.motionStepDuration(' in routes_js
+    assert 'lastTimestamp: null' in routes_js
+    assert 'stepElapsedMs: 0' in routes_js
+    assert 'stepStartedAt' not in routes_js
 
     speed_start = routes_js.index('        motionSpeed() {')
     speed_end = routes_js.index('\n        startMotion(', speed_start)
@@ -293,56 +367,77 @@ def test_dashboard_assets_keep_white_context_and_use_one_sequential_player() -> 
     assert 'MIN_MOTION_SPEED_PX_PER_SECOND' in speed_body
 
     stroke_start = routes_js.index('        prepareMotionStroke(')
-    stroke_end = routes_js.index('\n        impactPhaseDuration(', stroke_start)
+    stroke_end = routes_js.index('\n        createMotionSamples(', stroke_start)
     stroke_body = routes_js[stroke_start:stroke_end]
     assert "path.style.visibility = 'hidden'" in stroke_body
     assert "path.style.opacity = '0'" in stroke_body
     assert "path.style.strokeLinecap = 'butt'" in stroke_body
-    assert "path.style.strokeDashoffset = '0'" in stroke_body
     assert 'container.appendChild(path)' in stroke_body
     assert 'path.getTotalLength()' in stroke_body
-    assert 'Math.max(PREFIX_GAP_PX, length * PREFIX_GAP_RATIO)' in stroke_body
-    assert 'const gapLength = length + guard;' in stroke_body
-    assert 'path.style.strokeDasharray = `0 ${gapLength}`' in stroke_body
-    assert 'drawLength' not in stroke_body
+    assert "const fullData = path.getAttribute('d') || '';" in stroke_body
+    assert 'samples = this.createMotionSamples(path, length);' in stroke_body
+    assert "path.setAttribute('d', this.motionPrefixData(stroke, 0));" in stroke_body
+    assert 'strokeDash' not in stroke_body
 
-    impact_duration_start = routes_js.index('        impactPhaseDuration(')
-    impact_duration_end = routes_js.index('\n        easeImpactProgress(', impact_duration_start)
+    samples_start = routes_js.index('        createMotionSamples(')
+    samples_end = routes_js.index('\n        motionPrefixData(', samples_start)
+    samples_body = routes_js[samples_start:samples_end]
+    assert 'Math.ceil(length / MOTION_SAMPLE_STEP_PX)' in samples_body
+    assert 'path.getPointAtLength(distance)' in samples_body
+
+    prefix_start = routes_js.index('        motionPrefixData(')
+    prefix_end = routes_js.index('\n        motionPointCommand(', prefix_start)
+    prefix_body = routes_js[prefix_start:prefix_end]
+    assert "const commands = [this.motionPointCommand('M', stroke.samples[0])];" in prefix_body
+    assert "commands.push(this.motionPointCommand('L', stroke.samples[index]));" in prefix_body
+    assert "return commands.join(' ');" in prefix_body
+
+    impact_duration_start = routes_js.index('        motionStepDuration(')
+    impact_duration_end = routes_js.index('\n        easeAffectedProgress(', impact_duration_start)
     impact_duration_body = routes_js[impact_duration_start:impact_duration_end]
     assert 'Math.max(...strokes.map((stroke) => stroke.length))' in impact_duration_body
     assert '(longest / this.motion.speed) * 1000' in impact_duration_body
+    assert "if (type === 'route')" in impact_duration_body
     assert 'IMPACT_MIN_DURATION_MS' in impact_duration_body
     assert 'IMPACT_MAX_DURATION_MS' in impact_duration_body
 
     reveal_start = routes_js.index('        revealMotionStroke(')
-    reveal_end = routes_js.index('\n        tickMotion(', reveal_start)
+    reveal_end = routes_js.index('\n        completeMotionStep(', reveal_start)
     reveal_body = routes_js[reveal_start:reveal_end]
-    assert '`${clamped} ${stroke.gapLength}`' in reveal_body
-    assert "stroke.path.style.visibility = 'visible'" in reveal_body
-    assert "stroke.path.style.opacity = '1'" in reveal_body
-    assert 'strokeDashoffset' not in reveal_body
+    assert (
+        "stroke.path.setAttribute('d', this.motionPrefixData(stroke, visibleLength));"
+        in reveal_body
+    )
+    assert 'strokeDash' not in reveal_body
 
     tick_start = routes_js.index('        tickMotion(timestamp) {')
     tick_end = routes_js.index('\n        commitMotionStroke(', tick_start)
     tick_body = routes_js[tick_start:tick_end]
-    assert 'elapsedSeconds * motion.speed' in tick_body
-    assert "motion.phase === 'impact'" in tick_body
-    assert 'this.easeImpactProgress(elapsedMs / motion.phaseDurationMs)' in tick_body
-    assert 'Math.min(stroke.length, distance)' in tick_body
-    assert 'stroke.length * impactProgress' in tick_body
+    assert 'timestamp - this.motion.lastTimestamp' in tick_body
+    assert 'let remainingMs =' in tick_body
+    assert 'while (this.motion?.step' in tick_body
+    assert 'const consumedMs = Math.min(remainingMs, availableMs);' in tick_body
+    assert 'motion.stepElapsedMs += consumedMs;' in tick_body
+    assert 'remainingMs -= consumedMs;' in tick_body
+    assert "motion.step.type === 'affected'" in tick_body
+    assert 'this.easeAffectedProgress(rawProgress)' in tick_body
+    assert 'const visibleLength = stroke.length * progress;' in tick_body
     assert 'this.revealMotionStroke(stroke, visibleLength)' in tick_body
-    assert 'visibleLength >= stroke.length' in tick_body
-    assert 'complete = false' in tick_body
+    assert 'rawProgress >= 1' in tick_body
     assert 'requestAnimationFrame((nextTimestamp)' in tick_body
-    assert 'strokeDashoffset' not in tick_body
+    assert 'strokeDash' not in tick_body
 
     commit_start = routes_js.index('        commitMotionStroke(')
     commit_end = routes_js.index('\n        finishMotion()', commit_start)
     commit_body = routes_js[commit_start:commit_end]
+    assert "stroke.path.setAttribute('d', stroke.fullData)" in commit_body
     assert "stroke.path.style.visibility = 'visible'" in commit_body
-    assert "stroke.path.style.strokeDasharray = 'none'" in commit_body
-    assert "stroke.path.style.strokeDashoffset = '0'" in commit_body
     assert "stroke.path.style.removeProperty('stroke-linecap')" in commit_body
+    assert 'strokeDash' not in commit_body
+
+    assert 'strokeDasharray' not in routes_js
+    assert 'strokeDashoffset' not in routes_js
+    assert 'pathLength' not in routes_js
 
     assert 'adaAlarmFlow' not in routes_js
     assert 'animationend' not in routes_js
@@ -368,6 +463,13 @@ def test_dashboard_assets_keep_white_context_and_use_one_sequential_player() -> 
     assert "this.debug('refresh.begin'" in routes_js
     assert "this.debug('visual.clear'" in routes_js
     assert "this.markGeometryDirty('resize')" in routes_js
+    assert 'this.reconcilePresentation(' in routes_js
+    assert 'previousSpecification.placementKey !== nextSpecification.placementKey' in routes_js
+    assert 'previousSpecification.signature !== nextSpecification.signature' in routes_js
+    assert 'this.pendingPresentationReconcile = true;' in routes_js
+    assert 'this.restartAutoAt(replayIndex' in routes_js
+    assert 'card.dataset.adaAlarmPlacementKey' in routes_js
+    assert 'this.root.dataset.adaAlarmRoutePlacementKey = specification.placementKey;' in routes_js
     assert "this.ensureFreshCatalog('auto.present')" in routes_js
     assert 'this.observeGeometry([this.scope, this.root])' in routes_js
     assert 'schedulePresentationGeometrySync' in routes_js
@@ -375,7 +477,7 @@ def test_dashboard_assets_keep_white_context_and_use_one_sequential_player() -> 
     assert 'this.cancelMotion(reason);' in routes_js
 
     sync_start = routes_js.index('syncPresentationGeometry(eventId) {')
-    sync_end = routes_js.index('buildCatalogSnapshot() {', sync_start)
+    sync_end = routes_js.index('reconcilePresentation(reason) {', sync_start)
     sync_body = routes_js[sync_start:sync_end]
     assert 'this.generation +=' not in sync_body
     assert '++this.generation' not in sync_body
@@ -394,6 +496,23 @@ def test_dashboard_assets_keep_white_context_and_use_one_sequential_player() -> 
     assert 'clearTimers' not in resize_body
     assert 'clearActiveVisualState' not in resize_body
     assert 'rebuildCatalog' not in resize_body
+
+    target_start = routes_js.index('        findTarget(target) {')
+    target_end = routes_js.index('\n        findNode(target) {', target_start)
+    target_body = routes_js[target_start:target_end]
+    assert "component: 'data-ada-component-key'" in target_body
+    assert "subcomponent: 'data-ada-subcomponent-key'" in target_body
+    assert "slot: 'data-ada-slot-key'" in target_body
+    assert 'if (!attribute)' in target_body
+
+    affected_start = routes_js.index('        resolveAffectedTargets(targets) {')
+    affected_end = routes_js.index('\n        cardSpecificationSignature(card) {', affected_start)
+    affected_body = routes_js[affected_start:affected_end]
+    assert "if (target.kind === 'component')" in affected_body
+    assert "component.querySelectorAll('[data-ada-subcomponent-key]')" in affected_body
+    assert "kind: 'subcomponent'" in affected_body
+    assert 'const identities = new Set();' in affected_body
+    assert 'resolved.push(entry);' in affected_body
 
     assert 'setInterval' not in routes_js
     assert 'fetch(' not in routes_js

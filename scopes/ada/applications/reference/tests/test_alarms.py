@@ -99,6 +99,9 @@ def test_reference_exposes_geometry_and_isolated_trace_player_harnesses() -> Non
         'critical',
         'critical',
     ]
+    assert _prop(routes[1], 'data-ada-alarm-affected-targets') == (
+        'component:flotation|subcomponent:port_subcomponent_1'
+    )
 
     static_process_scopes = scopes[2:6]
     slot_sets = [
@@ -149,9 +152,86 @@ def test_reference_exposes_geometry_and_isolated_trace_player_harnesses() -> Non
     loading = next(
         item for item in io_events if _prop(item, 'data-ada-alarm-event-id') == 'io-player-load-001'
     )
-    assert _prop(loading, 'data-ada-alarm-route-impacts') == (
+    flotation = next(
+        item
+        for item in io_events
+        if _prop(item, 'data-ada-alarm-event-id') == 'io-player-flotation-001'
+    )
+    assert _prop(loading, 'data-ada-alarm-route-destinations') == (
         'component:flotation|component:fluid_transport|component:port'
     )
+    assert _prop(loading, 'data-ada-alarm-affected-targets') == (
+        'subcomponent:flotation_selective|'
+        'subcomponent:fluid_transport_subcomponent_2|'
+        'subcomponent:port_subcomponent_2'
+    )
+    assert _prop(flotation, 'data-ada-alarm-affected-targets') == (
+        'subcomponent:grinding_subcomponent_2|component:flotation'
+    )
+    assert all(_prop(event, 'data-ada-alarm-placement-key') for event in io_events)
+    assert all(_prop(event, 'data-ada-alarm-placement-key') for event in process_events)
+    assert all(
+        _prop(event, 'data-ada-alarm-route-destinations') == 'slot:center'
+        for event in process_events
+    )
+    assert all(
+        _prop(event, 'data-ada-alarm-affected-targets') == 'slot:center' for event in process_events
+    )
+    process_components = {
+        _optional_prop(item, 'data-ada-component-key')
+        for item in _walk(process_player)
+        if (_optional_prop(item, 'data-ada-component-key') or '').startswith('process_')
+    }
+    assert process_components == set()
+
+    io_lanes = [
+        item
+        for item in _walk(io_player)
+        if 'reference-ada__alarm-component-lane'
+        in (_optional_prop(item, 'className') or '').split()
+    ]
+    assert [_prop(item, 'data-ada-component-key') for item in io_lanes] == [
+        'general_mine',
+        'loading',
+        'transport',
+        'crushing_stmg',
+        'stock_chacay',
+        'grinding',
+        'flotation',
+        'fluid_transport',
+        'port',
+    ]
+    assert all(
+        all(
+            'reference-ada__alarm-subcomponent-card'
+            in (_optional_prop(child, 'className') or '').split()
+            for child in _prop(lane, 'children')[1:]
+        )
+        for lane in io_lanes
+    )
+    assert [
+        len(
+            [
+                item
+                for item in _walk(lane)
+                if 'reference-ada__alarm-subcomponent-card'
+                in (_optional_prop(item, 'className') or '').split()
+            ]
+        )
+        for lane in io_lanes
+    ] == [1, 2, 3, 2, 1, 3, 2, 3, 2]
+    assert {
+        _optional_prop(item, 'data-ada-subcomponent-key')
+        for item in _walk(io_player)
+        if 'reference-ada__alarm-subcomponent-card'
+        in (_optional_prop(item, 'className') or '').split()
+    } >= {
+        'general_mine_subcomponent_1',
+        'flotation_selective',
+        'flotation_collective',
+        'fluid_transport_subcomponent_2',
+        'port_subcomponent_2',
+    }
 
 
 def test_reference_alarm_harness_separates_baseline_from_card_and_body_frames() -> None:
@@ -167,6 +247,13 @@ def test_reference_alarm_harness_separates_baseline_from_card_and_body_frames() 
     assert 'grid-template-columns: var(--reference-alarm-io-columns);' in css
     assert '.reference-ada__alarm-process-placement-grid {' in css
     assert 'grid-template-columns: repeat(6, minmax(0, 1fr));' in css
+    assert '--reference-alarm-io-columns: repeat(9, minmax(0, 1fr));' in css
+    assert '.reference-ada__alarm-component-lane {' in css
+    assert '.reference-ada__alarm-subcomponent-card {' in css
+    assert '.reference-ada__alarm-target--component {' not in css
+    assert '.reference-ada__alarm-component-stack {' not in css
+    assert '.reference-ada__alarm-io-double {' not in css
+    assert '.reference-ada__alarm-process-component-stack {' not in css
     assert '[data-ada-alarm-process-queue]\n    > [data-ada-alarm-event-id]' in css
     assert 'grid-row: 1;' in css
     assert 'var(--ada-alarm-card-color, #BDBDBD)' not in css

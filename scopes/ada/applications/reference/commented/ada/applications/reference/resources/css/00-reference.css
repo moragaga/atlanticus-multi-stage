@@ -1,7 +1,6 @@
 /*
-Espejo pedagógico del harness visual de referencia.
-Las seis posiciones de Process pertenecen siempre a una sola fila. El harness no
-puede modificar el placement aprobado mientras prueba scheduler y animación.
+Espejo pedagógico del harness visual de referencia. Process mantiene una sola card
+center; IO usa lanes transparentes y ComponentCard hermanas para sus subcomponentes.
 */
 html,
 body {
@@ -113,10 +112,7 @@ body {
 .reference-ada__alarm-geometry-scope {
     --reference-alarm-frame-padding: .75rem;
     --reference-alarm-layout-gap: .35rem;
-    --reference-alarm-io-columns:
-        minmax(0, 1fr)
-        minmax(0, 2fr)
-        repeat(6, minmax(0, 1fr));
+    --reference-alarm-io-columns: repeat(9, minmax(0, 1fr));
     position: relative;
     min-width: 0;
     padding-block: .75rem;
@@ -191,13 +187,6 @@ body {
     gap: var(--reference-alarm-layout-gap);
 }
 
-.reference-ada__alarm-io-double {
-    display: grid;
-    min-width: 0;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--reference-alarm-layout-gap);
-}
-
 .reference-ada__alarm-process-placement-grid {
     display: grid;
     min-width: 0;
@@ -265,6 +254,44 @@ body {
 
 .reference-ada__alarm-target--right {
     grid-area: right;
+}
+
+/* El lane posiciona el punto sin crear una card contenedora visible. */
+.reference-ada__alarm-component-lane {
+    display: grid;
+    min-width: 0;
+    align-content: start;
+    grid-template-rows: auto;
+    grid-auto-rows: minmax(3rem, auto);
+    gap: .25rem;
+}
+
+.reference-ada__alarm-component-label {
+    display: flex;
+    min-width: 0;
+    min-height: 1.25rem;
+    align-items: center;
+    justify-content: center;
+    overflow-wrap: anywhere;
+    font-size: .55rem;
+    font-weight: 700;
+    line-height: 1.15;
+    text-align: center;
+}
+
+/* Cada subcomponente es una card externa hermana y puede delinearse por separado. */
+.reference-ada__alarm-subcomponent-card {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: center;
+    padding: .3rem;
+    background: #EBEBEB;
+    border: 1px solid var(--primary-border-color);
+    border-radius: .35rem;
+    color: var(--custom-text-color);
+    font-size: .55rem;
+    font-weight: 600;
 }
 
 .reference-ada__alarm-behavior-grid {

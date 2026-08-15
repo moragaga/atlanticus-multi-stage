@@ -19,25 +19,24 @@ class AlarmRouteTone(StrEnum):
 class AlarmDashboardRouteDefinition:
     event_id: str
     assignment_key: str
+    placement_key: str
     card_key: str
     origin: AlarmBaselineTarget
-    impacts: tuple[AlarmBaselineTarget, ...]
+    destinations: tuple[AlarmBaselineTarget, ...]
+    affected_targets: tuple[AlarmBaselineTarget, ...]
     tone: AlarmRouteTone
 
     def __post_init__(self) -> None:
         _validate_identity(self.event_id, 'event id')
         _validate_identity(self.assignment_key, 'assignment key')
+        _validate_identity(self.placement_key, 'placement key')
         _validate_card_key(self.card_key)
         if not isinstance(self.origin, AlarmBaselineTarget):
             raise AlarmDefinitionError(f'Invalid alarm route origin: {self.origin!r}')
-        object.__setattr__(self, 'impacts', tuple(self.impacts))
-        if not self.impacts:
-            raise AlarmDefinitionError('Alarm route requires at least one impact target')
-        if any(not isinstance(target, AlarmBaselineTarget) for target in self.impacts):
-            raise AlarmDefinitionError('Alarm route contains an invalid impact target')
-        identities = [(target.kind, target.key) for target in self.impacts]
-        if len(identities) != len(set(identities)):
-            raise AlarmDefinitionError('Alarm route contains duplicate impact targets')
+        object.__setattr__(self, 'destinations', tuple(self.destinations))
+        object.__setattr__(self, 'affected_targets', tuple(self.affected_targets))
+        _validate_targets(self.destinations, 'route destination')
+        _validate_targets(self.affected_targets, 'affected')
         if not isinstance(self.tone, AlarmRouteTone):
             raise AlarmDefinitionError(f'Invalid alarm route tone: {self.tone!r}')
 
@@ -56,14 +55,21 @@ def alarm_card_presentation_attributes(
         raise AlarmDefinitionError(f'Invalid alarm route definition: {definition!r}')
     if not isinstance(distributed, bool):
         raise AlarmDefinitionError(f'Invalid distributed alarm flag: {distributed!r}')
-    impacts = '|'.join(f'{target.kind.value}:{target.key}' for target in definition.impacts)
+    destinations = '|'.join(
+        f'{target.kind.value}:{target.key}' for target in definition.destinations
+    )
+    affected_targets = '|'.join(
+        f'{target.kind.value}:{target.key}' for target in definition.affected_targets
+    )
     return {
         **alarm_card_identity_attributes(definition.card_key),
         'data-ada-alarm-event-id': definition.event_id,
         'data-ada-alarm-assignment-key': definition.assignment_key,
+        'data-ada-alarm-placement-key': definition.placement_key,
         'data-ada-alarm-card-tone': definition.tone.value,
         'data-ada-alarm-route-origin': (f'{definition.origin.kind.value}:{definition.origin.key}'),
-        'data-ada-alarm-route-impacts': impacts,
+        'data-ada-alarm-route-destinations': destinations,
+        'data-ada-alarm-affected-targets': affected_targets,
         'data-ada-alarm-distributed': str(distributed).lower(),
         'data-ada-alarm-selected': 'false',
     }
@@ -77,3 +83,13 @@ def _validate_card_key(value: str) -> None:
 def _validate_identity(value: str, label: str) -> None:
     if not isinstance(value, str) or not value or value.strip() != value:
         raise AlarmDefinitionError(f'Invalid alarm {label}: {value!r}')
+
+
+def _validate_targets(targets: tuple[AlarmBaselineTarget, ...], label: str) -> None:
+    if not targets:
+        raise AlarmDefinitionError(f'Alarm route requires at least one {label} target')
+    if any(not isinstance(target, AlarmBaselineTarget) for target in targets):
+        raise AlarmDefinitionError(f'Alarm route contains an invalid {label} target')
+    identities = [(target.kind, target.key) for target in targets]
+    if len(identities) != len(set(identities)):
+        raise AlarmDefinitionError(f'Alarm route contains duplicate {label} targets')

@@ -1,5 +1,9 @@
 # Espejo pedagógico de las exportaciones públicas de ADA UI Core.
-from ada.ui.framework.core.dom import component_identity_attributes, slot_identity_attributes
+from ada.ui.framework.core.dom import (
+    component_identity_attributes,
+    slot_identity_attributes,
+    subcomponent_identity_attributes,
+)
 from ada.ui.framework.core.module import ADA_UI_ASSET_LAYER, create_ada_ui_module
 from ada.ui.framework.core.ready import build_ready_scope, ready_attributes
 from ada.ui.framework.core.status import (
@@ -22,4 +26,5 @@ __all__ = [
     'ready_attributes',
     'resolve_status_visual',
     'slot_identity_attributes',
+    'subcomponent_identity_attributes',
 ]

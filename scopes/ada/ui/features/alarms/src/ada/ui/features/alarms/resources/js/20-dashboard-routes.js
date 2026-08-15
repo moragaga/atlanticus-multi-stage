@@ -11,8 +11,7 @@
     const MOTION_SCOPE_WIDTHS_PER_SECOND = 0.2;
     const MIN_MOTION_SPEED_PX_PER_SECOND = 160;
     const MAX_MOTION_SPEED_PX_PER_SECOND = 960;
-    const PREFIX_GAP_PX = 24;
-    const PREFIX_GAP_RATIO = 0.08;
+    const MOTION_SAMPLE_STEP_PX = 2;
     const IMPACT_MIN_DURATION_MS = 1_600;
     const IMPACT_MAX_DURATION_MS = 2_400;
     const DEFAULT_DWELL_MS = 15_000;
@@ -40,12 +39,13 @@
             this.geometryDirty = false;
             this.geometryDirtyReason = '';
             this.geometrySyncTimer = null;
+            this.pendingPresentationReconcile = false;
             this.started = false;
             this.debugEnabled =
                 new URLSearchParams(window.location.search).get(DEBUG_QUERY_PARAMETER) === '1';
             this.debugStartedAt = performance.now();
             this.onClick = (event) => this.handleClick(event);
-            this.onRefresh = () => this.markGeometryDirty('explicit');
+            this.onRefresh = () => this.handleRefresh();
         }
 
         start() {
@@ -136,6 +136,14 @@
             return this.presentationScope()?.dataset.adaAlarmInteraction === 'interactive';
         }
 
+        handleRefresh() {
+            if (this.isPresentationScope()) {
+                this.reconcilePresentation('explicit');
+                return;
+            }
+            this.markGeometryDirty('explicit');
+        }
+
         markGeometryDirty(reason) {
             this.geometryDirty = true;
             this.geometryDirtyReason = reason;
@@ -189,7 +197,9 @@
                 return;
             }
             if (this.motion) {
-                this.debug('geometry.sync.deferred', { phase: this.motion.phase });
+                this.debug('geometry.sync.deferred', {
+                    stage: this.motion.step?.stage || '',
+                });
                 return;
             }
             if (this.geometrySyncTimer !== null) {
@@ -253,6 +263,87 @@
             this.activeSvg = nextActiveSvg;
             this.impactSvg = nextImpactSvg;
             this.applyStaticNodeStates(specification, color, foreground);
+        }
+
+        reconcilePresentation(reason) {
+            if (!this.root.isConnected || !this.isPresentationScope()) {
+                return;
+            }
+            const activeEventId = this.pinnedEventId || this.currentEventId();
+            const previousSpecification = this.catalog.get(activeEventId);
+            const previousIndex = this.autoIndex;
+            const snapshot = this.buildCatalogSnapshot();
+            const nextSpecification = snapshot.catalog.get(activeEventId);
+            const placementChanged = Boolean(
+                previousSpecification &&
+                    nextSpecification &&
+                    previousSpecification.placementKey !== nextSpecification.placementKey,
+            );
+            const signatureChanged = Boolean(
+                previousSpecification &&
+                    nextSpecification &&
+                    previousSpecification.signature !== nextSpecification.signature,
+            );
+            this.replaceContextCatalog(snapshot);
+            this.debug('presentation.reconcile', {
+                reason,
+                activeEventId,
+                placementChanged,
+                signatureChanged,
+                catalogSize: this.catalog.size,
+            });
+            if (this.catalog.size === 0) {
+                this.generation += 1;
+                this.clearTimers();
+                this.pinnedEventId = null;
+                this.clearSelections();
+                this.clearActiveVisualState('presentation.empty');
+                this.clearRouteIdentity();
+                return;
+            }
+            if (
+                previousSpecification &&
+                nextSpecification &&
+                !placementChanged &&
+                !signatureChanged &&
+                this.motion
+            ) {
+                this.pendingPresentationReconcile = true;
+                return;
+            }
+            if (
+                previousSpecification &&
+                nextSpecification &&
+                !placementChanged &&
+                !signatureChanged
+            ) {
+                const card = this.cardByEventId(activeEventId);
+                if (!card) {
+                    return;
+                }
+                const generation = ++this.generation;
+                this.clearTimers();
+                this.clearActiveVisualState('presentation.refresh');
+                this.playCard(card, generation, false);
+                if (!this.pinnedEventId) {
+                    const index = this.visibleCards().findIndex(
+                        (candidate) => candidate.dataset.adaAlarmEventId === activeEventId,
+                    );
+                    this.autoIndex = index >= 0 ? index : 0;
+                    this.scheduleAutoAdvance(this.autoIndex, generation, activeEventId);
+                }
+                return;
+            }
+            this.pendingPresentationReconcile = false;
+            this.pinnedEventId = null;
+            this.clearSelections();
+            const cards = this.visibleCards();
+            const activeIndex = cards.findIndex(
+                (card) => card.dataset.adaAlarmEventId === activeEventId,
+            );
+            const replayIndex =
+                activeIndex >= 0 ? activeIndex : Math.min(previousIndex, cards.length - 1);
+            this.restartAutoAt(replayIndex, 'presentation.replay');
         }
 
         buildCatalogSnapshot() {
@@ -355,31 +446,60 @@
                 eventId,
             });
             this.playCard(card, generation, true, () => {
+                this.scheduleAutoAdvance(normalizedIndex, generation, eventId);
+            });
+        }
+
+        scheduleAutoAdvance(index, generation, eventId) {
+            if (!this.isGenerationCurrent(generation) || this.pinnedEventId) {
+                return;
+            }
+            const cards = this.visibleCards();
+            if (cards.length <= 1) {
+                return;
+            }
+            const dwellMs = this.dwellMs();
+            this.debug('auto.dwell', { generation, eventId, dwellMs });
+            this.scheduleTimer(() => {
                 if (!this.isGenerationCurrent(generation) || this.pinnedEventId) {
                     return;
                 }
-                const dwellMs = this.dwellMs();
-                this.debug('auto.dwell', { generation, eventId, dwellMs });
-                this.scheduleTimer(() => {
-                    if (!this.isGenerationCurrent(generation) || this.pinnedEventId) {
-                        return;
-                    }
-                    const nextCards = this.visibleCards();
-                    if (nextCards.length <= 1) {
-                        return;
-                    }
-                    this.debug('auto.next', {
-                        generation,
-                        fromEventId: eventId,
-                        nextIndex: (normalizedIndex + 1) % nextCards.length,
-                    });
-                    this.clearActiveVisualState('auto.next');
-                    this.presentAutoIndex(
-                        (normalizedIndex + 1) % nextCards.length,
-                        generation,
-                    );
-                }, dwellMs, generation, 'auto.next');
-            });
+                const nextCards = this.visibleCards();
+                if (nextCards.length <= 1) {
+                    return;
+                }
+                const currentIndex = nextCards.findIndex(
+                    (candidate) => candidate.dataset.adaAlarmEventId === eventId,
+                );
+                const nextIndex =
+                    currentIndex >= 0
+                        ? (currentIndex + 1) % nextCards.length
+                        : index % nextCards.length;
+                this.debug('auto.next', {
+                    generation,
+                    fromEventId: eventId,
+                    nextIndex,
+                });
+                this.clearActiveVisualState('auto.next');
+                this.presentAutoIndex(nextIndex, generation);
+            }, dwellMs, generation, 'auto.next');
+        }
+
+        restartAutoAt(index, reason) {
+            const cards = this.visibleCards();
+            if (cards.length === 0) {
+                return;
+            }
+            const normalizedIndex = Math.max(0, index) % cards.length;
+            const generation = ++this.generation;
+            this.autoIndex = normalizedIndex;
+            this.clearTimers();
+            this.clearActiveVisualState(reason);
+            if (cards.length === 1) {
+                this.playCard(cards[0], generation, true);
+                return;
+            }
+            this.presentAutoIndex(normalizedIndex, generation);
         }
 
         playPinned(card) {
@@ -411,6 +531,7 @@
             }
             this.root.dataset.adaAlarmRouteEventId = eventId;
             this.root.dataset.adaAlarmRouteCardKey = card.dataset.adaAlarmCardKey || '';
+            this.root.dataset.adaAlarmRoutePlacementKey = specification.placementKey;
             this.root.dataset.adaAlarmRouteTone = tone || '';
             this.activeSvg = this.createSvg(
                 'ada-alarm-dashboard-route__svg ada-alarm-dashboard-route__active-svg',
@@ -427,7 +548,12 @@
                 eventId,
                 tone,
                 shouldAnimate,
-                impacts: specification.impacts.map((target) => `${target.kind}:${target.key}`),
+                destinations: specification.destinations.map(
+                    (target) => `${target.kind}:${target.key}`,
+                ),
+                affectedTargets: specification.affectedTargets.map(
+                    (target) => `${target.kind}:${target.key}`,
+                ),
             });
 
             if (!shouldAnimate) {
@@ -468,15 +594,15 @@
                     eventId,
                 });
             });
-            specification.impactElements.forEach((target, index) => {
-                const impactPaths = this.createImpactPaths(target, color);
-                impactPaths.forEach((impactPath, pathIndex) => {
+            specification.affectedElements.forEach((target, index) => {
+                const affectedPaths = this.createImpactPaths(target, color);
+                affectedPaths.forEach((impactPath, pathIndex) => {
                     impactSvg.appendChild(impactPath);
                     this.commitStroke(impactPath);
                     const side = pathIndex === 0 ? 'left' : 'right';
-                    const impact = specification.impacts[index];
+                    const affected = specification.affectedTargets[index];
                     this.debug('stroke.static', {
-                        stage: `impact-${side}:${impact.kind}:${impact.key}`,
+                        stage: `affected-${side}:${affected.kind}:${affected.key}`,
                         eventId,
                     });
                 });
@@ -485,19 +611,19 @@
 
         applyStaticNodeStates(specification, color, foreground) {
             this.resetNodes();
-            const originIsImpact = specification.impacts.some((target) =>
+            const originIsDestination = specification.destinations.some((target) =>
                 this.sameTarget(target, specification.origin),
             );
             const originNode = this.findNode(specification.origin);
             if (originNode) {
                 this.applyNodeState(
                     originNode,
-                    originIsImpact ? 'origin-impact' : 'origin',
+                    originIsDestination ? 'origin-impact' : 'origin',
                     color,
                     foreground,
                 );
             }
-            specification.impacts.forEach((target) => {
+            specification.destinations.forEach((target) => {
                 if (this.sameTarget(target, specification.origin)) {
                     return;
                 }
@@ -541,68 +667,104 @@
                 generation,
                 onComplete,
                 speed: this.motionSpeed(),
-                phase: 'shared-trunk',
-                phaseStartedAt: null,
-                phaseDurationMs: null,
+                steps: this.createMotionSteps(specification),
+                stepIndex: -1,
+                step: null,
+                lastTimestamp: null,
+                stepElapsedMs: 0,
+                stepDurationMs: 0,
                 strokes: [],
             };
-            this.beginMotionPhase('shared-trunk');
             this.debug('motion.start', {
                 eventId,
                 generation,
                 speed: this.motion.speed,
             });
+            this.beginNextMotionStep();
             this.motionFrame = requestAnimationFrame((timestamp) => this.tickMotion(timestamp));
         }
 
-        beginMotionPhase(phase) {
+        createMotionSteps(specification) {
+            const steps = [
+                {
+                    stage: 'shared-trunk',
+                    type: 'route',
+                    segments: [
+                        {
+                            data: specification.geometry.sharedTrunk,
+                            stage: 'shared-trunk',
+                        },
+                    ],
+                },
+                {
+                    stage: 'origin-leg',
+                    type: 'route',
+                    segments: [
+                        {
+                            data: specification.geometry.originLeg,
+                            stage: 'origin-leg',
+                        },
+                    ],
+                    nodeTarget: specification.origin,
+                    nodeState: specification.destinations.some((target) =>
+                        this.sameTarget(target, specification.origin),
+                    )
+                        ? 'origin-impact'
+                        : 'origin',
+                },
+            ];
+            specification.geometry.destinationSegments.forEach(({ index, data }) => {
+                const target = specification.destinations[index];
+                steps.push({
+                    stage: `destination-leg:${target.kind}:${target.key}`,
+                    type: 'route',
+                    segments: [
+                        {
+                            data,
+                            stage: `destination-leg:${target.kind}:${target.key}`,
+                        },
+                    ],
+                    nodeTarget: target,
+                    nodeState: 'impact',
+                });
+            });
+            specification.affectedTargets.forEach((target, index) => {
+                steps.push({
+                    stage: `affected:${target.kind}:${target.key}`,
+                    type: 'affected',
+                    target,
+                    targetElement: specification.affectedElements[index],
+                });
+            });
+            return steps;
+        }
+
+        beginNextMotionStep() {
             if (!this.motion || !this.isGenerationCurrent(this.motion.generation)) {
                 return;
             }
-            this.motion.phase = phase;
-            this.motion.phaseStartedAt = null;
-            this.motion.phaseDurationMs = null;
-            if (phase === 'shared-trunk') {
-                this.motion.strokes = this.createRouteMotionStrokes([
-                    {
-                        data: this.motion.specification.geometry.sharedTrunk,
-                        stage: 'shared-trunk',
-                    },
-                ]);
-            } else if (phase === 'fan-out') {
-                const segments = [
-                    {
-                        data: this.motion.specification.geometry.originLeg,
-                        stage: 'origin-leg',
-                    },
-                ];
-                this.motion.specification.impacts.forEach((target, index) => {
-                    if (this.sameTarget(target, this.motion.specification.origin)) {
-                        return;
-                    }
-                    const data = this.motion.specification.geometry.impactLegs[index];
-                    if (data) {
-                        segments.push({
-                            data,
-                            stage: `impact-leg:${target.kind}:${target.key}`,
-                        });
-                    }
-                });
-                this.motion.strokes = this.createRouteMotionStrokes(segments);
-            } else if (phase === 'impact') {
-                this.applyStaticNodeStates(
-                    this.motion.specification,
-                    this.motion.color,
-                    this.motion.foreground,
-                );
-                this.motion.strokes = this.createImpactMotionStrokes();
-                this.motion.phaseDurationMs = this.impactPhaseDuration(this.motion.strokes);
+            this.motion.stepIndex += 1;
+            if (this.motion.stepIndex >= this.motion.steps.length) {
+                this.finishMotion();
+                return;
             }
-            this.debug('motion.phase.start', {
-                phase,
+            const step = this.motion.steps[this.motion.stepIndex];
+            this.motion.step = step;
+            this.motion.stepElapsedMs = 0;
+            if (step.type === 'route') {
+                this.motion.strokes = this.createRouteMotionStrokes(step.segments);
+            } else {
+                this.motion.strokes = this.createAffectedMotionStrokes(step);
+            }
+            this.motion.stepDurationMs = this.motionStepDuration(
+                this.motion.strokes,
+                step.type,
+            );
+            this.debug('motion.step.start', {
+                stage: step.stage,
                 eventId: this.motion.eventId,
                 speed: this.motion.speed,
-                phaseDurationMs: this.motion.phaseDurationMs,
+                stepDurationMs: this.motion.stepDurationMs,
                 strokes: this.motion.strokes.map(({ stage, length }) => ({ stage, length })),
             });
         }
@@ -622,23 +784,17 @@
                 .filter(Boolean);
         }
 
-        createImpactMotionStrokes() {
+        createAffectedMotionStrokes(step) {
             if (!this.impactSvg?.isConnected || !this.motion) {
                 return [];
             }
-            const strokes = [];
-            this.motion.specification.impactElements.forEach((target, index) => {
-                const impact = this.motion.specification.impacts[index];
-                this.createImpactPaths(target, this.motion.color).forEach((path, pathIndex) => {
+            return this.createImpactPaths(step.targetElement, this.motion.color)
+                .map((path, pathIndex) => {
                     const side = pathIndex === 0 ? 'left' : 'right';
-                    const stage = `impact-${side}:${impact.kind}:${impact.key}`;
-                    const stroke = this.prepareMotionStroke(path, stage, this.impactSvg);
-                    if (stroke) {
-                        strokes.push(stroke);
-                    }
-                });
-            });
-            return strokes;
+                    const stage = `affected-${side}:${step.target.kind}:${step.target.key}`;
+                    return this.prepareMotionStroke(path, stage, this.impactSvg);
+                })
+                .filter(Boolean);
         }
 
         prepareMotionStroke(path, stage, container) {
@@ -649,8 +805,8 @@
             path.style.visibility = 'hidden';
             path.style.opacity = '0';
             path.style.strokeLinecap = 'butt';
-            path.style.strokeDashoffset = '0';
             container.appendChild(path);
+            const fullData = path.getAttribute('d') || '';
             let length = 0;
             try {
                 length = path.getTotalLength();
@@ -672,93 +828,173 @@
                 });
                 return null;
             }
-            const guard = Math.max(PREFIX_GAP_PX, length * PREFIX_GAP_RATIO);
-            const gapLength = length + guard;
-            path.style.strokeDasharray = `0 ${gapLength}`;
-            return {
+            let samples = [];
+            try {
+                samples = this.createMotionSamples(path, length);
+            } catch (error) {
+                path.remove();
+                this.debug('stroke.samples.error', {
+                    stage,
+                    eventId: this.motion.eventId,
+                    error: String(error),
+                });
+                return null;
+            }
+            if (samples.length < 2) {
+                path.remove();
+                return null;
+            }
+            const stroke = {
                 path,
                 stage,
                 length,
-                gapLength,
+                fullData,
+                samples,
                 committed: false,
             };
+            path.setAttribute('d', this.motionPrefixData(stroke, 0));
+            path.style.visibility = 'visible';
+            path.style.opacity = '1';
+            return stroke;
         }
 
-        impactPhaseDuration(strokes) {
+        createMotionSamples(path, length) {
+            const segmentCount = Math.max(1, Math.ceil(length / MOTION_SAMPLE_STEP_PX));
+            const samples = [];
+            for (let index = 0; index <= segmentCount; index += 1) {
+                const distance = (length * index) / segmentCount;
+                const point = path.getPointAtLength(distance);
+                samples.push({ distance, x: point.x, y: point.y });
+            }
+            return samples;
+        }
+
+        motionPrefixData(stroke, visibleLength) {
+            const clamped = Math.min(stroke.length, Math.max(0, visibleLength));
+            const lastIndex = stroke.samples.length - 1;
+            const scaledIndex = stroke.length > 0 ? (clamped / stroke.length) * lastIndex : 0;
+            const completedIndex = Math.min(lastIndex, Math.floor(scaledIndex));
+            const commands = [this.motionPointCommand('M', stroke.samples[0])];
+            for (let index = 1; index <= completedIndex; index += 1) {
+                commands.push(this.motionPointCommand('L', stroke.samples[index]));
+            }
+            if (completedIndex < lastIndex) {
+                const ratio = scaledIndex - completedIndex;
+                if (ratio > 0) {
+                    const start = stroke.samples[completedIndex];
+                    const end = stroke.samples[completedIndex + 1];
+                    commands.push(
+                        this.motionPointCommand('L', {
+                            x: start.x + (end.x - start.x) * ratio,
+                            y: start.y + (end.y - start.y) * ratio,
+                        }),
+                    );
+                }
+            }
+            return commands.join(' ');
+        }
+
+        motionPointCommand(command, point) {
+            return `${command} ${this.motionCoordinate(point.x)} ${this.motionCoordinate(point.y)}`;
+        }
+
+        motionCoordinate(value) {
+            return Number(value.toFixed(3));
+        }
+
+        motionStepDuration(strokes, type) {
             if (!this.motion || strokes.length === 0) {
                 return 0;
             }
             const longest = Math.max(...strokes.map((stroke) => stroke.length));
             const naturalDuration = (longest / this.motion.speed) * 1000;
+            if (type === 'route') {
+                return naturalDuration;
+            }
             return Math.min(
                 IMPACT_MAX_DURATION_MS,
                 Math.max(IMPACT_MIN_DURATION_MS, naturalDuration),
             );
         }
 
-        easeImpactProgress(progress) {
+        easeAffectedProgress(progress) {
             const clamped = Math.min(1, Math.max(0, progress));
             return 0.5 - Math.cos(Math.PI * clamped) / 2;
         }
 
         revealMotionStroke(stroke, visibleLength) {
-            if (stroke.committed || !stroke.path.isConnected || visibleLength <= 0) {
+            if (stroke.committed || !stroke.path.isConnected) {
                 return;
             }
-            const clamped = Math.min(stroke.length, visibleLength);
-            stroke.path.style.strokeDasharray = `${clamped} ${stroke.gapLength}`;
-            stroke.path.style.visibility = 'visible';
-            stroke.path.style.opacity = '1';
+            stroke.path.setAttribute('d', this.motionPrefixData(stroke, visibleLength));
+        }
+
+        completeMotionStep(step) {
+            if (!this.motion || !step?.nodeTarget || !step.nodeState) {
+                return;
+            }
+            const node = this.findNode(step.nodeTarget);
+            if (node) {
+                this.applyNodeState(
+                    node,
+                    step.nodeState,
+                    this.motion.color,
+                    this.motion.foreground,
+                );
+            }
         }
 
         tickMotion(timestamp) {
             this.motionFrame = null;
-            const motion = this.motion;
-            if (!motion || !this.isGenerationCurrent(motion.generation)) {
+            if (!this.motion || !this.isGenerationCurrent(this.motion.generation)) {
                 return;
             }
-            if (motion.phaseStartedAt === null) {
-                motion.phaseStartedAt = timestamp;
+            if (!this.motion.step) {
+                return;
             }
-            const elapsedMs = Math.max(0, timestamp - motion.phaseStartedAt);
-            const elapsedSeconds = elapsedMs / 1000;
-            const distance = elapsedSeconds * motion.speed;
-            const impactProgress =
-                motion.phase === 'impact' && motion.phaseDurationMs > 0
-                    ? this.easeImpactProgress(elapsedMs / motion.phaseDurationMs)
-                    : null;
-            let complete = true;
-            motion.strokes.forEach((stroke) => {
-                if (stroke.committed || !stroke.path.isConnected) {
-                    return;
-                }
-                const visibleLength =
-                    impactProgress === null
-                        ? Math.min(stroke.length, distance)
-                        : stroke.length * impactProgress;
-                this.revealMotionStroke(stroke, visibleLength);
-                if (visibleLength >= stroke.length) {
-                    this.commitMotionStroke(stroke);
-                } else {
-                    complete = false;
-                }
-            });
-            if (motion.strokes.length === 0) {
-                complete = true;
+            if (this.motion.lastTimestamp === null) {
+                this.motion.lastTimestamp = timestamp;
             }
-            if (complete) {
-                this.debug('motion.phase.end', {
-                    phase: motion.phase,
-                    eventId: motion.eventId,
-                    elapsedMs,
+            let remainingMs = Math.max(0, timestamp - this.motion.lastTimestamp);
+            this.motion.lastTimestamp = timestamp;
+            let completedSteps = 0;
+            while (this.motion?.step && completedSteps <= this.motion.steps.length) {
+                const motion = this.motion;
+                const durationMs = Math.max(0, motion.stepDurationMs);
+                const availableMs = Math.max(0, durationMs - motion.stepElapsedMs);
+                const consumedMs = Math.min(remainingMs, availableMs);
+                motion.stepElapsedMs += consumedMs;
+                remainingMs -= consumedMs;
+                const rawProgress =
+                    durationMs > 0 ? Math.min(1, motion.stepElapsedMs / durationMs) : 1;
+                const progress =
+                    motion.step.type === 'affected'
+                        ? this.easeAffectedProgress(rawProgress)
+                        : rawProgress;
+                motion.strokes.forEach((stroke) => {
+                    if (stroke.committed || !stroke.path.isConnected) {
+                        return;
+                    }
+                    const visibleLength = stroke.length * progress;
+                    this.revealMotionStroke(stroke, visibleLength);
+                    if (rawProgress >= 1) {
+                        this.commitMotionStroke(stroke);
+                    }
                 });
-                if (motion.phase === 'shared-trunk') {
-                    this.beginMotionPhase('fan-out');
-                } else if (motion.phase === 'fan-out') {
-                    this.beginMotionPhase('impact');
-                } else {
-                    this.finishMotion();
-                    return;
+                if (rawProgress < 1) {
+                    break;
+                }
+                const completedStep = motion.step;
+                this.debug('motion.step.end', {
+                    stage: completedStep.stage,
+                    eventId: motion.eventId,
+                    elapsedMs: motion.stepElapsedMs,
+                });
+                this.completeMotionStep(completedStep);
+                this.beginNextMotionStep();
+                completedSteps += 1;
+                if (remainingMs <= 0) {
+                    break;
                 }
             }
             if (this.motion) {
@@ -773,10 +1009,9 @@
                 return;
             }
             stroke.committed = true;
+            stroke.path.setAttribute('d', stroke.fullData);
             stroke.path.style.visibility = 'visible';
             stroke.path.style.opacity = '1';
-            stroke.path.style.strokeDasharray = 'none';
-            stroke.path.style.strokeDashoffset = '0';
             stroke.path.style.removeProperty('stroke-linecap');
             this.debug('stroke.committed', {
                 stage: stroke.stage,
@@ -796,6 +1031,11 @@
                 eventId: motion.eventId,
                 generation: motion.generation,
             });
+            if (this.pendingPresentationReconcile) {
+                this.pendingPresentationReconcile = false;
+                this.reconcilePresentation('motion.complete');
+                return;
+            }
             if (this.geometryDirty) {
                 this.schedulePresentationGeometrySync();
             }
@@ -810,11 +1050,12 @@
             if (this.motion) {
                 this.debug('motion.cancel', {
                     reason,
-                    phase: this.motion.phase,
+                    stage: this.motion.step?.stage || '',
                     eventId: this.motion.eventId,
                 });
             }
             this.motion = null;
+            this.pendingPresentationReconcile = false;
         }
 
         commitStroke(path) {
@@ -822,8 +1063,6 @@
                 return;
             }
             path.style.opacity = '1';
-            path.style.strokeDasharray = 'none';
-            path.style.strokeDashoffset = '0';
             path.style.removeProperty('stroke-linecap');
         }
 
@@ -893,6 +1132,13 @@
             });
         }
 
+        clearRouteIdentity() {
+            delete this.root.dataset.adaAlarmRouteEventId;
+            delete this.root.dataset.adaAlarmRouteCardKey;
+            delete this.root.dataset.adaAlarmRoutePlacementKey;
+            delete this.root.dataset.adaAlarmRouteTone;
+        }
+
         clearActiveVisualState(reason = 'unspecified') {
             this.cancelMotion(reason);
             this.debug('visual.clear', {
@@ -918,20 +1164,33 @@
 
         cardSpecification(card, baseline) {
             const origin = this.parseTarget(card.dataset.adaAlarmRouteOrigin);
-            const impacts = this.parseTargets(card.dataset.adaAlarmRouteImpacts);
-            if (!origin || impacts.length === 0) {
+            const destinations = this.parseTargets(card.dataset.adaAlarmRouteDestinations);
+            const affectedTargets = this.parseTargets(card.dataset.adaAlarmAffectedTargets);
+            const placementKey = card.dataset.adaAlarmPlacementKey;
+            if (
+                !origin ||
+                !placementKey ||
+                destinations.length === 0 ||
+                affectedTargets.length === 0
+            ) {
                 return null;
             }
             const originElement = this.findTarget(origin);
-            const impactElements = impacts.map((target) => this.findTarget(target));
-            if (!originElement || impactElements.some((target) => !target)) {
+            const destinationElements = destinations.map((target) => this.findTarget(target));
+            const resolvedAffectedTargets = this.resolveAffectedTargets(affectedTargets);
+            if (
+                !originElement ||
+                destinationElements.some((target) => !target) ||
+                !resolvedAffectedTargets ||
+                resolvedAffectedTargets.length === 0
+            ) {
                 return null;
             }
             const geometry = this.routeGeometry(
                 baseline,
                 card,
                 originElement,
-                impactElements,
+                destinationElements,
             );
             if (!geometry) {
                 return null;
@@ -939,14 +1198,70 @@
             return {
                 card,
                 origin,
-                impacts,
+                destinations,
+                affectedTargets: resolvedAffectedTargets.map(({ target }) => target),
                 originElement,
-                impactElements,
+                destinationElements,
+                affectedElements: resolvedAffectedTargets.map(({ element }) => element),
                 geometry,
+                placementKey,
+                signature: this.cardSpecificationSignature(card),
             };
         }
 
-        routeGeometry(baseline, card, originElement, impactElements) {
+        resolveAffectedTargets(targets) {
+            const resolved = [];
+            const identities = new Set();
+            for (const target of targets) {
+                const entries = [];
+                if (target.kind === 'component') {
+                    const component = this.findTarget(target);
+                    if (!component) {
+                        return null;
+                    }
+                    component.querySelectorAll('[data-ada-subcomponent-key]').forEach((element) => {
+                        entries.push({
+                            target: {
+                                kind: 'subcomponent',
+                                key: element.dataset.adaSubcomponentKey,
+                            },
+                            element,
+                        });
+                    });
+                } else {
+                    const element = this.findTarget(target);
+                    if (!element) {
+                        return null;
+                    }
+                    entries.push({ target, element });
+                }
+                if (entries.length === 0) {
+                    return null;
+                }
+                entries.forEach((entry) => {
+                    const identity = `${entry.target.kind}:${entry.target.key}`;
+                    if (!identities.has(identity)) {
+                        identities.add(identity);
+                        resolved.push(entry);
+                    }
+                });
+            }
+            return resolved;
+        }
+
+        cardSpecificationSignature(card) {
+            return [
+                card.dataset.adaAlarmCardKey || '',
+                card.dataset.adaAlarmAssignmentKey || '',
+                card.dataset.adaAlarmCardTone || '',
+                card.dataset.adaAlarmRouteOrigin || '',
+                card.dataset.adaAlarmRouteDestinations || '',
+                card.dataset.adaAlarmAffectedTargets || '',
+                card.dataset.adaAlarmDistributed || '',
+            ].join('|');
+        }
+
+        routeGeometry(baseline, card, originElement, destinationElements) {
             const rootRect = this.root.getBoundingClientRect();
             const baselineRect = baseline.getBoundingClientRect();
             const cardRect = card.getBoundingClientRect();
@@ -957,28 +1272,51 @@
             const cardX = cardRect.left + cardRect.width / 2 - rootRect.left;
             const cardBottom = cardRect.bottom - rootRect.top;
             const originX = this.targetCenterX(originElement, rootRect);
-            const impactXs = impactElements.map((target) =>
+            const destinationXs = destinationElements.map((target) =>
                 this.targetCenterX(target, rootRect),
             );
             const trackY = Math.max(cardBottom, baselineY - this.readTrackOffset());
             const sharedTrunk = `M ${cardX} ${cardBottom} L ${cardX} ${trackY} L ${originX} ${trackY}`;
             const originLeg = `M ${originX} ${trackY} L ${originX} ${baselineY}`;
-            const impactLegs = impactXs.map((impactX) => {
-                if (Math.abs(impactX - originX) < 0.5) {
-                    return null;
-                }
-                return `M ${originX} ${trackY} L ${impactX} ${trackY} L ${impactX} ${baselineY}`;
-            });
+            const destinationSegments = this.destinationRouteSegments(
+                destinationXs,
+                originX,
+                trackY,
+                baselineY,
+            );
             return {
                 sharedTrunk,
                 originLeg,
-                impactLegs,
+                destinationSegments,
                 contextSegments: [
                     sharedTrunk,
                     originLeg,
-                    ...impactLegs.filter(Boolean),
+                    ...destinationSegments.map(({ data }) => data),
                 ],
             };
+        }
+
+        destinationRouteSegments(destinationXs, originX, trackY, baselineY) {
+            const candidates = destinationXs
+                .map((x, index) => ({ index, x }))
+                .filter(({ x }) => Math.abs(x - originX) >= 0.5);
+            const groups = [
+                candidates.filter(({ x }) => x < originX).sort((left, right) => right.x - left.x),
+                candidates.filter(({ x }) => x > originX).sort((left, right) => left.x - right.x),
+            ].filter((group) => group.length > 0);
+            groups.sort(
+                (left, right) =>
+                    Math.min(...left.map(({ index }) => index)) -
+                    Math.min(...right.map(({ index }) => index)),
+            );
+            return groups.flatMap((group) => {
+                let cursorX = originX;
+                return group.map(({ index, x }) => {
+                    const data = `M ${cursorX} ${trackY} L ${x} ${trackY} L ${x} ${baselineY}`;
+                    cursorX = x;
+                    return { index, data };
+                });
+            });
         }
 
         createSvg(className) {
@@ -1076,6 +1414,7 @@
                 className: element.className?.baseVal || element.className || '',
                 eventId: element.dataset?.adaAlarmEventId || '',
                 componentKey: element.dataset?.adaComponentKey || '',
+                subcomponentKey: element.dataset?.adaSubcomponentKey || '',
                 slotKey: element.dataset?.adaSlotKey || '',
             };
         }
@@ -1114,8 +1453,14 @@
         }
 
         findTarget(target) {
-            const attribute =
-                target.kind === 'slot' ? 'data-ada-slot-key' : 'data-ada-component-key';
+            const attribute = {
+                component: 'data-ada-component-key',
+                subcomponent: 'data-ada-subcomponent-key',
+                slot: 'data-ada-slot-key',
+            }[target.kind];
+            if (!attribute) {
+                return null;
+            }
             return Array.from(this.scope.querySelectorAll(`[${attribute}]`)).find(
                 (candidate) => candidate.getAttribute(attribute) === target.key,
             );

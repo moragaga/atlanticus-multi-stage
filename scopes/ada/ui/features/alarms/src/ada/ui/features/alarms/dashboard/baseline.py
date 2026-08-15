@@ -16,6 +16,7 @@ class AlarmBaselineLayout(StrEnum):
 
 class AlarmBaselineTargetKind(StrEnum):
     COMPONENT = 'component'
+    SUBCOMPONENT = 'subcomponent'
     SLOT = 'slot'
 
 
