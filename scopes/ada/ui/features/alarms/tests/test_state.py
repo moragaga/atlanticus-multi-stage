@@ -4,8 +4,11 @@ from ada.contracts.tool_manifest import (
     INTEGRATED_OPERATIONS_MANIFEST,
     ProcessBodySection,
     ToolScope,
+    ToolSection,
+    ToolSectionKind,
     ToolSource,
     ToolSourceKey,
+    ToolTarget,
     build_process_manifest,
 )
 from ada.ui.features.alarms import AlarmDefinitionError
@@ -16,12 +19,45 @@ from ada.ui.features.alarms.management_summary import (
 from ada.ui.features.alarms.notifications import create_alarm_status_state
 
 
+def _process_center_region(
+    *,
+    key: str,
+    display_name: str,
+    scope: ToolScope,
+) -> ToolSection:
+    return ToolSection(
+        key=key,
+        display_name=display_name,
+        kind=ToolSectionKind.REGION,
+        scope=scope,
+        parent_key='body',
+        targets=(ToolTarget.KPI, ToolTarget.ALARM),
+        layout_role=ProcessBodySection.CENTER,
+    )
+
+
 def test_integrated_operations_management_summary_accepts_mine_and_plant() -> None:
     state = create_alarm_management_summary_state(
         manifest=INTEGRATED_OPERATIONS_MANIFEST,
         segments=(
-            AlarmManagementSummarySegmentState('alarm_management_mine', ToolScope.MINE, 'G3', 60),
-            AlarmManagementSummarySegmentState('alarm_management_plant', ToolScope.PLANT, 'G1', 45),
+            AlarmManagementSummarySegmentState(
+                INTEGRATED_OPERATIONS_MANIFEST.subcomponent(
+                    component='alarm_management',
+                    subcomponent='mine',
+                ).key,
+                ToolScope.MINE,
+                'G3',
+                60,
+            ),
+            AlarmManagementSummarySegmentState(
+                INTEGRATED_OPERATIONS_MANIFEST.subcomponent(
+                    component='alarm_management',
+                    subcomponent='plant',
+                ).key,
+                ToolScope.PLANT,
+                'G1',
+                45,
+            ),
         ),
     )
 
@@ -37,7 +73,13 @@ def test_process_management_summary_uses_operational_scope() -> None:
         display_name='Chancado-STMG',
         sources=(ToolSource(ToolSourceKey.PI, stale_after_seconds=300),),
         operational_scope=ToolScope.MINE,
-        body_sections=(ProcessBodySection.CENTER,),
+        body_sections=(
+            _process_center_region(
+                key='proceso_chancado',
+                display_name='Proceso Chancado',
+                scope=ToolScope.MINE,
+            ),
+        ),
     )
     state = create_alarm_management_summary_state(
         manifest=manifest,
@@ -55,7 +97,13 @@ def test_management_summary_rejects_scope_that_disagrees_with_manifest() -> None
         display_name='Flotación Selectiva',
         sources=(ToolSource(ToolSourceKey.PI, stale_after_seconds=300),),
         operational_scope=ToolScope.PLANT,
-        body_sections=(ProcessBodySection.CENTER,),
+        body_sections=(
+            _process_center_region(
+                key='planta_molibdeno',
+                display_name='Planta Molibdeno',
+                scope=ToolScope.PLANT,
+            ),
+        ),
     )
 
     with pytest.raises(AlarmDefinitionError, match='scope does not match'):

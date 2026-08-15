@@ -16,14 +16,20 @@ def test_management_summary_owns_header_presentation_and_readiness() -> None:
         manifest=INTEGRATED_OPERATIONS_MANIFEST,
         segments=(
             AlarmManagementSummarySegmentState(
-                'alarm_management_mine',
+                INTEGRATED_OPERATIONS_MANIFEST.subcomponent(
+                    component='alarm_management',
+                    subcomponent='mine',
+                ).key,
                 ToolScope.MINE,
                 'G3',
                 60,
                 AlarmManagementSummaryTone.ATTENTION,
             ),
             AlarmManagementSummarySegmentState(
-                'alarm_management_plant',
+                INTEGRATED_OPERATIONS_MANIFEST.subcomponent(
+                    component='alarm_management',
+                    subcomponent='plant',
+                ).key,
                 ToolScope.PLANT,
                 'G1',
                 45,

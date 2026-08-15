@@ -6,8 +6,11 @@ from dash.development.base_component import Component
 from ada.contracts.tool_manifest import (
     ProcessBodySection,
     ToolScope,
+    ToolSection,
+    ToolSectionKind,
     ToolSource,
     ToolSourceKey,
+    ToolTarget,
     build_process_manifest,
 )
 from ada.ui.components.branding import ATLANTICUS_BRAND_MANIFEST, BrandContext, resolve_brand
@@ -24,13 +27,36 @@ from ada.ui.shell.header import (
 )
 
 
+def _process_center_region(
+    *,
+    key: str,
+    display_name: str,
+    scope: ToolScope,
+) -> ToolSection:
+    return ToolSection(
+        key=key,
+        display_name=display_name,
+        kind=ToolSectionKind.REGION,
+        scope=scope,
+        parent_key='body',
+        targets=(ToolTarget.KPI, ToolTarget.ALARM),
+        layout_role=ProcessBodySection.CENTER,
+    )
+
+
 def test_process_header_owns_slots_but_not_alarm_presentations() -> None:
     manifest = build_process_manifest(
         tool_key='flotacion_selectiva',
         display_name='Flotación Selectiva',
         sources=(ToolSource(ToolSourceKey.PI, stale_after_seconds=300),),
         operational_scope=ToolScope.PLANT,
-        body_sections=(ProcessBodySection.CENTER,),
+        body_sections=(
+            _process_center_region(
+                key='planta_molibdeno',
+                display_name='Planta Molibdeno',
+                scope=ToolScope.PLANT,
+            ),
+        ),
     )
     state = create_header_state(
         manifest=manifest,
@@ -91,7 +117,13 @@ def test_broken_global_indicator_is_covered_without_breaking_header(monkeypatch)
         display_name='Chancado STMG',
         sources=(ToolSource(ToolSourceKey.PI, stale_after_seconds=300),),
         operational_scope=ToolScope.MINE,
-        body_sections=(ProcessBodySection.CENTER,),
+        body_sections=(
+            _process_center_region(
+                key='proceso_chancado',
+                display_name='Proceso Chancado',
+                scope=ToolScope.MINE,
+            ),
+        ),
     )
     state = create_header_state(
         manifest=manifest,

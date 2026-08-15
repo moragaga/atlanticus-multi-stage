@@ -6,8 +6,11 @@ from ada.contracts.tool_manifest import (
     INTEGRATED_OPERATIONS_MANIFEST,
     ProcessBodySection,
     ToolScope,
+    ToolSection,
+    ToolSectionKind,
     ToolSource,
     ToolSourceKey,
+    ToolTarget,
     build_process_manifest,
 )
 from ada.ui.components.branding import ATLANTICUS_BRAND_MANIFEST, BrandContext, resolve_brand
@@ -22,6 +25,23 @@ def _brand():
     return resolve_brand(
         ATLANTICUS_BRAND_MANIFEST,
         BrandContext(current_date=date(2026, 8, 12)),
+    )
+
+
+def _process_center_region(
+    *,
+    key: str,
+    display_name: str,
+    scope: ToolScope,
+) -> ToolSection:
+    return ToolSection(
+        key=key,
+        display_name=display_name,
+        kind=ToolSectionKind.REGION,
+        scope=scope,
+        parent_key='body',
+        targets=(ToolTarget.KPI, ToolTarget.ALARM),
+        layout_role=ProcessBodySection.CENTER,
     )
 
 
@@ -49,9 +69,18 @@ def test_integrated_operations_header_accepts_mine_and_plant_indicators() -> Non
         brand=_brand(),
         application_name='ADA',
         global_indicators=(
-            _placement('global_indicators_mine', ToolScope.MINE),
+            _placement(
+                INTEGRATED_OPERATIONS_MANIFEST.subcomponent(
+                    component='global_indicators',
+                    subcomponent='mine',
+                ).key,
+                ToolScope.MINE,
+            ),
             HeaderIndicatorPlacement(
-                section_key='global_indicators_plant',
+                section_key=INTEGRATED_OPERATIONS_MANIFEST.subcomponent(
+                    component='global_indicators',
+                    subcomponent='plant',
+                ).key,
                 scope=ToolScope.PLANT,
                 indicator=GlobalIndicatorState(
                     key='molienda',
@@ -81,7 +110,13 @@ def test_process_header_accepts_last_measurement_and_operational_scope() -> None
         display_name='Flotación Selectiva',
         sources=(ToolSource(ToolSourceKey.PI, stale_after_seconds=300),),
         operational_scope=ToolScope.PLANT,
-        body_sections=(ProcessBodySection.CENTER,),
+        body_sections=(
+            _process_center_region(
+                key='planta_molibdeno',
+                display_name='Planta Molibdeno',
+                scope=ToolScope.PLANT,
+            ),
+        ),
     )
     state = create_header_state(
         manifest=manifest,
@@ -100,7 +135,13 @@ def test_header_rejects_scope_that_disagrees_with_manifest() -> None:
         display_name='Flotación Selectiva',
         sources=(ToolSource(ToolSourceKey.PI, stale_after_seconds=300),),
         operational_scope=ToolScope.PLANT,
-        body_sections=(ProcessBodySection.CENTER,),
+        body_sections=(
+            _process_center_region(
+                key='planta_molibdeno',
+                display_name='Planta Molibdeno',
+                scope=ToolScope.PLANT,
+            ),
+        ),
     )
 
     with pytest.raises(HeaderDefinitionError, match='scope does not match'):

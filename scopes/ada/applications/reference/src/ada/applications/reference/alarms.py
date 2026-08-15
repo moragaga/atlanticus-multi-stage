@@ -16,14 +16,14 @@ def build_reference_alarm_management_summary(manifest: ToolManifest):
         manifest=manifest,
         segments=(
             AlarmManagementSummarySegmentState(
-                section_key='alarm_management_mine',
+                section_key=_alarm_management_section_key(manifest, ToolScope.MINE),
                 scope=ToolScope.MINE,
                 group='G3',
                 management_percentage=60,
                 tone=AlarmManagementSummaryTone.ATTENTION,
             ),
             AlarmManagementSummarySegmentState(
-                section_key='alarm_management_plant',
+                section_key=_alarm_management_section_key(manifest, ToolScope.PLANT),
                 scope=ToolScope.PLANT,
                 group='G1',
                 management_percentage=45,
@@ -32,6 +32,17 @@ def build_reference_alarm_management_summary(manifest: ToolManifest):
         ),
     )
     return build_alarm_management_summary(state, cover=ComponentCover.stale())
+
+
+def _alarm_management_section_key(manifest: ToolManifest, scope: ToolScope) -> str:
+    subcomponent = {
+        ToolScope.MINE: 'mine',
+        ToolScope.PLANT: 'plant',
+    }[scope]
+    return manifest.subcomponent(
+        component='alarm_management',
+        subcomponent=subcomponent,
+    ).key
 
 
 def build_reference_alarm_status():

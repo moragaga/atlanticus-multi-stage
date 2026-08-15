@@ -26,10 +26,11 @@ def build_reference_header_state(services: ServiceRegistry, manifest: ToolManife
         ),
         application_name='ADA',
         global_indicators=(
-            _indicator(snapshot, 'transportado', 'Transportado', 'kt', ToolScope.MINE, '220'),
-            _indicator(snapshot, 'molienda', 'Molienda', 'kt', ToolScope.PLANT, '210'),
-            _indicator(snapshot, 'ley_cobre', 'Ley de Cobre', '%', ToolScope.PLANT, '0,55'),
+            _indicator(manifest, snapshot, 'transportado', 'Transportado', 'kt', ToolScope.MINE, '220'),
+            _indicator(manifest, snapshot, 'molienda', 'Molienda', 'kt', ToolScope.PLANT, '210'),
+            _indicator(manifest, snapshot, 'ley_cobre', 'Ley de Cobre', '%', ToolScope.PLANT, '0,55'),
             _indicator(
+                manifest,
                 snapshot,
                 'recuperacion_cu',
                 'Recuperación Cu',
@@ -38,6 +39,7 @@ def build_reference_header_state(services: ServiceRegistry, manifest: ToolManife
                 '90,5',
             ),
             _indicator(
+                manifest,
                 snapshot,
                 'cu_fino_producido',
                 'Cu Fino Producido',
@@ -46,6 +48,7 @@ def build_reference_header_state(services: ServiceRegistry, manifest: ToolManife
                 '1.050',
             ),
             _indicator(
+                manifest,
                 snapshot,
                 'mo_fino_producido',
                 'Mo Fino Producido',
@@ -53,8 +56,9 @@ def build_reference_header_state(services: ServiceRegistry, manifest: ToolManife
                 ToolScope.PLANT,
                 '33',
             ),
-            _indicator(snapshot, 'expit', 'ExPit', 't', ToolScope.MINE, '426'),
+            _indicator(manifest, snapshot, 'expit', 'ExPit', 't', ToolScope.MINE, '426'),
             _indicator(
+                manifest,
                 snapshot,
                 'cu_fino_filtrado_pagable',
                 'Cu Fino Filtr. Pag.',
@@ -80,6 +84,7 @@ def _cover_from_guard(state: GuardState) -> ComponentCover:
 
 
 def _indicator(
+    manifest: ToolManifest,
     snapshot,
     key: str,
     label: str,
@@ -87,10 +92,14 @@ def _indicator(
     scope: ToolScope,
     plan: str,
 ) -> HeaderIndicatorPlacement:
-    section_key = {
-        ToolScope.MINE: 'global_indicators_mine',
-        ToolScope.PLANT: 'global_indicators_plant',
+    subcomponent = {
+        ToolScope.MINE: 'mine',
+        ToolScope.PLANT: 'plant',
     }[scope]
+    section_key = manifest.subcomponent(
+        component='global_indicators',
+        subcomponent=subcomponent,
+    ).key
     value = coerce_display_value(snapshot.value(key))
     return HeaderIndicatorPlacement(
         section_key=section_key,
