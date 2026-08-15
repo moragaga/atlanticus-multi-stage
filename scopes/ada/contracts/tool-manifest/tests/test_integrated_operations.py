@@ -16,11 +16,13 @@ def test_integrated_operations_has_expected_top_level_sections() -> None:
     assert [section.key for section in manifest.roots()] == ['header', 'time_status', 'body']
 
 
-def test_integrated_operations_preserves_expandable_mine_and_plant_groups() -> None:
+def test_integrated_operations_preserves_macro_components_and_shared_component() -> None:
     manifest = INTEGRATED_OPERATIONS_MANIFEST
 
     assert [section.key for section in manifest.children('mine')] == [
         'general_mina',
+        'carguio',
+        'transporte',
         'carguio_transporte',
         'chancado_stmg',
     ]
@@ -33,29 +35,58 @@ def test_integrated_operations_preserves_expandable_mine_and_plant_groups() -> N
     ]
 
 
-def test_integrated_operations_exposes_real_subcomponents() -> None:
+def test_integrated_operations_shared_component_links_carguio_and_transporte() -> None:
     manifest = INTEGRATED_OPERATIONS_MANIFEST
 
-    assert [section.key for section in manifest.children('carguio_transporte')] == [
+    assert [section.key for section in manifest.linked_components('carguio_transporte')] == [
         'carguio',
         'transporte',
     ]
+    assert [section.key for section in manifest.linked_components('carguio')] == [
+        'carguio_transporte'
+    ]
+    assert [section.key for section in manifest.linked_components('transporte')] == [
+        'carguio_transporte'
+    ]
+
+
+def test_integrated_operations_subcomponent_keys_are_derived_internally() -> None:
+    manifest = INTEGRATED_OPERATIONS_MANIFEST
+
+    colectiva = manifest.subcomponent(component='flotacion', subcomponent='colectiva')
+    selectiva = manifest.subcomponent(component='flotacion', subcomponent='selectiva')
+
+    assert colectiva.key == 'flotacion_colectiva'
+    assert colectiva.parent_key == 'flotacion'
+    assert selectiva.key == 'flotacion_selectiva'
     assert [section.key for section in manifest.children('flotacion')] == [
         'flotacion_colectiva',
         'flotacion_selectiva',
     ]
 
 
-def test_header_groups_expose_mine_and_plant_without_becoming_alarm_targets() -> None:
+def test_global_indicators_and_time_status_are_configurable_alarm_units() -> None:
     manifest = INTEGRATED_OPERATIONS_MANIFEST
 
-    indicator_groups = manifest.children('global_indicators')
-    management_groups = manifest.children('alarm_management')
+    assert manifest.require_target('global_indicators', ToolTarget.KPI).scope is ToolScope.GLOBAL
+    assert manifest.require_target('global_indicators', ToolTarget.ALARM).scope is ToolScope.GLOBAL
+    assert manifest.require_target('time_status', ToolTarget.KPI).scope is ToolScope.GLOBAL
+    assert manifest.require_target('time_status', ToolTarget.ALARM).scope is ToolScope.GLOBAL
 
+    indicator_groups = manifest.children('global_indicators')
     assert [(section.key, section.scope) for section in indicator_groups] == [
         ('global_indicators_mine', ToolScope.MINE),
         ('global_indicators_plant', ToolScope.PLANT),
     ]
+    assert all(section.accepts(ToolTarget.KPI) for section in indicator_groups)
+    assert all(not section.accepts(ToolTarget.ALARM) for section in indicator_groups)
+
+
+def test_alarm_management_groups_remain_structural_and_not_alarm_targets() -> None:
+    manifest = INTEGRATED_OPERATIONS_MANIFEST
+
+    management_groups = manifest.children('alarm_management')
+
     assert [(section.key, section.scope) for section in management_groups] == [
         ('alarm_management_mine', ToolScope.MINE),
         ('alarm_management_plant', ToolScope.PLANT),
@@ -63,31 +94,53 @@ def test_header_groups_expose_mine_and_plant_without_becoming_alarm_targets() ->
     assert all(not section.accepts(ToolTarget.ALARM) for section in management_groups)
 
 
-def test_kpi_configuration_can_query_only_valid_kpi_targets() -> None:
+def test_kpi_configuration_accepts_all_integrated_operations_components() -> None:
     manifest = INTEGRATED_OPERATIONS_MANIFEST
-
     keys = {section.key for section in manifest.sections_for_target(ToolTarget.KPI)}
 
-    assert 'global_indicators_mine' in keys
-    assert 'global_indicators_plant' in keys
-    assert 'flotacion_selectiva' in keys
-    assert 'time_status' not in keys
+    expected_components = {
+        'general_mina',
+        'carguio',
+        'transporte',
+        'carguio_transporte',
+        'chancado_stmg',
+        'stock_chacay',
+        'molienda',
+        'flotacion',
+        'transporte_fluidos',
+        'puerto',
+    }
+
+    assert expected_components <= keys
+    assert {'global_indicators', 'time_status'} <= keys
+    assert 'flotacion_colectiva' not in keys
+    assert 'flotacion_selectiva' not in keys
     assert 'alarm_management' not in keys
     assert 'alarm_status' not in keys
 
 
-def test_falarm_can_query_body_alarm_targets_without_header_summary_sections() -> None:
+def test_alarm_configuration_accepts_components_and_real_subcomponents() -> None:
     manifest = INTEGRATED_OPERATIONS_MANIFEST
-
     keys = {section.key for section in manifest.sections_for_target(ToolTarget.ALARM)}
 
-    assert 'general_mina' in keys
-    assert 'carguio_transporte' in keys
-    assert 'carguio' in keys
-    assert 'transporte' in keys
-    assert 'flotacion' in keys
-    assert 'flotacion_colectiva' in keys
-    assert 'flotacion_selectiva' in keys
+    expected_components = {
+        'general_mina',
+        'carguio',
+        'transporte',
+        'carguio_transporte',
+        'chancado_stmg',
+        'stock_chacay',
+        'molienda',
+        'flotacion',
+        'transporte_fluidos',
+        'puerto',
+    }
+
+    assert expected_components <= keys
+    assert {'global_indicators', 'time_status'} <= keys
+    assert {'flotacion_colectiva', 'flotacion_selectiva'} <= keys
+    assert 'global_indicators_mine' not in keys
+    assert 'global_indicators_plant' not in keys
     assert 'alarm_management_mine' not in keys
     assert 'alarm_management_plant' not in keys
     assert 'alarm_status' not in keys
