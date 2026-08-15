@@ -12,3 +12,12 @@ def test_legacy_ui_namespaces_are_not_exposed() -> None:
 
     for name in legacy_names:
         assert find_spec(name) is None
+
+
+def test_feature_ownership_is_not_exposed_under_ui() -> None:
+    for name in ('ada.ui.features.alarms', 'ada.ui.features.dashboard'):
+        try:
+            spec = find_spec(name)
+        except ModuleNotFoundError:
+            spec = None
+        assert spec is None

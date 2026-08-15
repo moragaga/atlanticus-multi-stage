@@ -3,11 +3,11 @@ import pytest
 from ada.applications.reference.application import build_definition
 from ada.applications.reference.navigation import build_reference_navigation
 from ada.contracts.tool_manifest import ToolManifestResolution
+from ada.features.alarms import ADA_ALARMS_ASSET_LAYER
 from ada.ui.components.component_card import ADA_COMPONENT_CARD_ASSET_LAYER
 from ada.ui.components.component_container import ADA_COMPONENT_CONTAINER_ASSET_LAYER
 from ada.ui.components.global_indicator import ADA_GLOBAL_INDICATOR_ASSET_LAYER
 from ada.ui.components.state_wrapper import ADA_STATE_WRAPPER_ASSET_LAYER
-from ada.ui.features.alarms import ADA_ALARMS_ASSET_LAYER
 from ada.ui.framework.core import ADA_UI_ASSET_LAYER
 from ada.ui.layouts.integrated_operations import ADA_INTEGRATED_OPERATIONS_LAYOUT_ASSET_LAYER
 from ada.ui.layouts.process import ADA_PROCESS_LAYOUT_ASSET_LAYER

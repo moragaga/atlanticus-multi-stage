@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from ada.contracts.tool_manifest import ToolManifest, ToolScope
-from ada.ui.components.state_wrapper import ComponentCover
-from ada.ui.features.alarms.management_summary import (
+from ada.features.alarms.management_summary import (
     AlarmManagementSummarySegmentState,
     AlarmManagementSummaryTone,
     build_alarm_management_summary,
     create_alarm_management_summary_state,
 )
-from ada.ui.features.alarms.notifications import build_alarm_status
+from ada.features.alarms.notifications import build_alarm_status
+from ada.ui.components.state_wrapper import ComponentCover
 
 
 def build_reference_alarm_management_summary(manifest: ToolManifest):

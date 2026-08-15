@@ -1,0 +1,14 @@
+# Espejo pedagógico en español; la lógica ejecutable es equivalente al archivo productivo.
+from dataclasses import dataclass
+
+from ada.features.alarms.core.errors import AlarmDefinitionError
+
+
+@dataclass(frozen=True, slots=True)
+class AlarmStatusState:
+    active_count: int
+    managed_count: int
+
+    def __post_init__(self) -> None:
+        if self.active_count < 0 or self.managed_count < 0:
+            raise AlarmDefinitionError('Alarm status counts cannot be negative')

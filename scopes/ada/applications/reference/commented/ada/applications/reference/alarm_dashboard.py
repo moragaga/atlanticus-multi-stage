@@ -1,6 +1,6 @@
 from dash import html
 
-from ada.ui.features.alarms.dashboard import (
+from ada.features.alarms.dashboard import (
     AlarmBaselineTarget,
     AlarmBaselineTargetKind,
     AlarmDashboardRouteDefinition,

@@ -9,11 +9,11 @@ from ada.applications.reference.module import create_reference_module
 from ada.applications.reference.navigation import build_reference_navigation
 from ada.applications.reference.runtime import create_reference_runtime_module
 from ada.contracts.tool_manifest import ToolManifestResolution
+from ada.features.alarms import create_ada_alarms_module
 from ada.ui.components.component_card import create_ada_component_card_module
 from ada.ui.components.component_container import create_ada_component_container_module
 from ada.ui.components.global_indicator import create_ada_global_indicator_module
 from ada.ui.components.state_wrapper import create_ada_state_wrapper_module
-from ada.ui.features.alarms import create_ada_alarms_module
 from ada.ui.framework.core import create_ada_ui_module
 from ada.ui.layouts.integrated_operations import (
     create_ada_integrated_operations_layout_module,

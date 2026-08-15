@@ -22,8 +22,8 @@ package = false
 ada-application-reference = { workspace = true }
 ada-contracts-tool-manifest = { workspace = true }
 ada-runtime-web = { workspace = true }
-ada-ui-feature-alarms = { workspace = true }
-ada-ui-feature-dashboard = { workspace = true }
+ada-feature-alarms = { workspace = true }
+ada-feature-dashboard = { workspace = true }
 ada-ui-framework-core = { workspace = true }
 ada-ui-layout-integrated-operations = { workspace = true }
 ada-ui-layout-process = { workspace = true }
@@ -50,8 +50,8 @@ members = [
     "ui/framework/core",
     "ui/layouts/integrated-operations",
     "ui/layouts/process",
-    "ui/features/alarms",
-    "ui/features/dashboard",
+    "features/alarms",
+    "features/dashboard",
     "ui/components/branding",
     "ui/components/component-card",
     "ui/components/component-container",
@@ -95,8 +95,8 @@ testpaths = [
     "ui/framework/core/tests",
     "ui/layouts/integrated-operations/tests",
     "ui/layouts/process/tests",
-    "ui/features/alarms/tests",
-    "ui/features/dashboard/tests",
+    "features/alarms/tests",
+    "features/dashboard/tests",
     "ui/components/branding/tests",
     "ui/components/component-card/tests",
     "ui/components/component-container/tests",
