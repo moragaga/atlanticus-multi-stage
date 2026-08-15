@@ -1,6 +1,6 @@
 # Superficie pública del runtime web, incluyendo las proyecciones por componente.
 
-from .errors import RuntimeDefinitionError
+from .errors import RuntimeDefinitionError, SharedSnapshotConsistencyError
 from .gate import Gate
 from .guard import GuardResult, GuardState, resolve_guard
 from .projections import (
@@ -11,6 +11,13 @@ from .projections import (
     TimeSeriesWindowSnapshot,
 )
 from .runtime import AdaRuntime, RefreshResult, RefreshState, RuntimeView
+from .shared_snapshot import (
+    SharedSnapshot,
+    SharedSnapshotReader,
+    SnapshotChannel,
+    SnapshotRepository,
+    snapshot_revision_datetime_utc,
+)
 from .snapshot import (
     Freshness,
     RuntimeDefinition,
@@ -35,6 +42,11 @@ __all__ = [
     'RefreshResult',
     'RefreshState',
     'RuntimeDefinitionError',
+    'SharedSnapshot',
+    'SharedSnapshotConsistencyError',
+    'SharedSnapshotReader',
+    'SnapshotChannel',
+    'SnapshotRepository',
     'RuntimeDefinition',
     'RuntimeSnapshot',
     'RuntimeSourceDefinition',
@@ -45,4 +57,5 @@ __all__ = [
     'ValueState',
     'ValueStatus',
     'resolve_guard',
+    'snapshot_revision_datetime_utc',
 ]

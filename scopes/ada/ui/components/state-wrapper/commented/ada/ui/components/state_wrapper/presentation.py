@@ -1,4 +1,4 @@
-# Espejo comentado del wrapper transversal y su frontera de render seguro.
+# Espejo comentado del wrapper transversal y de su overlay reutilizable en callbacks dinámicos.
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
@@ -11,6 +11,7 @@ from .models import ComponentCover, normalize_ready_name
 StateWrapperContent = Component | Sequence[Component] | None
 
 
+# Construye el boundary estable que conserva el contenido aunque cambie su estado visual.
 def build_state_wrapper(
     *,
     content: StateWrapperContent = None,
@@ -27,7 +28,7 @@ def build_state_wrapper(
             children=content,
         )
     ]
-    overlay = _build_overlay(resolved_cover)
+    overlay = build_state_overlay(resolved_cover)
     if overlay is not None:
         children.append(overlay)
 
@@ -45,6 +46,7 @@ def build_state_wrapper(
     return html.Div(**properties)
 
 
+# Convierte una excepción local del renderer en un error aislado del componente.
 def build_safe_state_wrapper(
     *,
     build_content: Callable[[], StateWrapperContent],
@@ -79,7 +81,10 @@ def build_safe_state_wrapper(
     )
 
 
-def _build_overlay(cover: ComponentCover) -> html.Div | None:
+# Expone solo el overlay para que Dashboard pueda actualizar estado sin reconstruir el contenido.
+def build_state_overlay(cover: ComponentCover) -> html.Div | None:
+    if not isinstance(cover, ComponentCover):
+        raise TypeError('State overlay requires ComponentCover')
     if not cover.covered:
         return None
 

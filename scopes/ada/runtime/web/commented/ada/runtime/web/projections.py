@@ -1,5 +1,4 @@
 # Contratos de proyección que cruzan desde el runtime hacia la capa de dashboard.
-# Las revisiones pertenecen a la proyección efectiva del componente, no a PI/Dispatch.
 # La ausencia de snapshot se mantiene distinta de una clave presente cuyo valor sea None.
 # Las ventanas de series conservan solo start/end UTC y valores; no duplican timestamps.
 
@@ -28,12 +27,10 @@ class ComponentProjectionState(StrEnum):
 @dataclass(frozen=True, slots=True)
 class ComponentDataSnapshot:
     component_key: str
-    revision: int
     payload: Mapping[str, object] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         _require_component_key(self.component_key)
-        _require_revision(self.revision)
         object.__setattr__(self, 'payload', _freeze_payload(self.payload))
 
 
@@ -62,12 +59,10 @@ class TimeSeriesWindowSnapshot:
 @dataclass(frozen=True, slots=True)
 class ComponentTimeSeriesSnapshot:
     component_key: str
-    revision: int
     windows: tuple[TimeSeriesWindowSnapshot, ...]
 
     def __post_init__(self) -> None:
         _require_component_key(self.component_key)
-        _require_revision(self.revision)
         windows = tuple(self.windows)
         if not windows:
             raise RuntimeDefinitionError('Component time-series snapshot requires at least one window')
@@ -82,12 +77,10 @@ class ComponentTimeSeriesSnapshot:
 @dataclass(frozen=True, slots=True)
 class ComponentStateSnapshot:
     component_key: str
-    revision: int
     state: ComponentProjectionState
 
     def __post_init__(self) -> None:
         _require_component_key(self.component_key)
-        _require_revision(self.revision)
         if not isinstance(self.state, ComponentProjectionState):
             raise RuntimeDefinitionError(f'Invalid component projection state: {self.state!r}')
 
@@ -125,13 +118,6 @@ def _freeze_series(
 def _require_component_key(value: str) -> None:
     if not isinstance(value, str) or not _COMPONENT_KEY_PATTERN.fullmatch(value):
         raise RuntimeDefinitionError(f'Invalid component key: {value!r}')
-
-
-def _require_revision(value: int) -> None:
-    if isinstance(value, bool) or not isinstance(value, int):
-        raise RuntimeDefinitionError('Projection revision must be an integer')
-    if value <= 0:
-        raise RuntimeDefinitionError('Projection revision must be greater than zero')
 
 
 def _require_hours(value: int) -> None:

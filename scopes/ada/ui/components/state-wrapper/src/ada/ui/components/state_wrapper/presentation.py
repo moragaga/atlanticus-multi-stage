@@ -26,7 +26,7 @@ def build_state_wrapper(
             children=content,
         )
     ]
-    overlay = _build_overlay(resolved_cover)
+    overlay = build_state_overlay(resolved_cover)
     if overlay is not None:
         children.append(overlay)
 
@@ -78,7 +78,9 @@ def build_safe_state_wrapper(
     )
 
 
-def _build_overlay(cover: ComponentCover) -> html.Div | None:
+def build_state_overlay(cover: ComponentCover) -> html.Div | None:
+    if not isinstance(cover, ComponentCover):
+        raise TypeError('State overlay requires ComponentCover')
     if not cover.covered:
         return None
 

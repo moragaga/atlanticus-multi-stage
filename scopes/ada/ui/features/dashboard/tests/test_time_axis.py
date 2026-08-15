@@ -108,7 +108,6 @@ def test_time_axis_rejects_window_not_aligned_to_tool_step() -> None:
 def test_time_axis_builds_each_horizon_once_per_component_snapshot() -> None:
     snapshot = ComponentTimeSeriesSnapshot(
         component_key='flotacion',
-        revision=2,
         windows=(
             TimeSeriesWindowSnapshot(
                 hours=1,

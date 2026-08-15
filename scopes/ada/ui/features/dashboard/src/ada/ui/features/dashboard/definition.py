@@ -9,6 +9,7 @@ from .models import (
     ComponentProjectionDefinition,
     ComponentRenderer,
     ComponentRendererRegistry,
+    DashboardPollingSettings,
     DashboardToolConfiguration,
 )
 
@@ -21,7 +22,7 @@ class DashboardComponentDefinition:
 
     @property
     def construction(self) -> bool:
-        return self.renderer is None
+        return self.renderer is None or self.projection is None
 
     @property
     def callback_required(self) -> bool:
@@ -33,6 +34,7 @@ class DashboardDefinition:
     manifest: ToolManifest
     configuration: DashboardToolConfiguration
     components: tuple[DashboardComponentDefinition, ...]
+    polling: DashboardPollingSettings | None = None
 
     @classmethod
     def build(
@@ -41,6 +43,7 @@ class DashboardDefinition:
         manifest: ToolManifest,
         configuration: DashboardToolConfiguration,
         renderers: ComponentRendererRegistry,
+        polling: DashboardPollingSettings | None = None,
     ) -> DashboardDefinition:
         if not isinstance(manifest, ToolManifest):
             raise DashboardDefinitionError('Dashboard requires a ToolManifest')
@@ -48,6 +51,8 @@ class DashboardDefinition:
             raise DashboardDefinitionError('Dashboard requires DashboardToolConfiguration')
         if not isinstance(renderers, ComponentRendererRegistry):
             raise DashboardDefinitionError('Dashboard requires ComponentRendererRegistry')
+        if polling is not None and not isinstance(polling, DashboardPollingSettings):
+            raise DashboardDefinitionError('Dashboard polling must use DashboardPollingSettings')
 
         components = _body_components(manifest)
         component_keys = {section.key for section in components}
@@ -66,6 +71,7 @@ class DashboardDefinition:
             manifest=manifest,
             configuration=configuration,
             components=definitions,
+            polling=polling,
         )
 
     def component(self, component_key: str) -> DashboardComponentDefinition:

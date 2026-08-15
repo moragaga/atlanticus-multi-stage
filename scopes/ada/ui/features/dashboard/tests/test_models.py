@@ -75,7 +75,6 @@ def test_component_bundle_keeps_missing_snapshot_distinct_from_explicit_none_pay
     missing = build_component_bundle(component_key='flotacion')
     snapshot = ComponentDataSnapshot(
         component_key='flotacion',
-        revision=1,
         payload={'ley': None},
     )
     available = build_component_bundle(component_key='flotacion', data_snapshot=snapshot)
@@ -89,7 +88,6 @@ def test_component_bundle_keeps_missing_snapshot_distinct_from_explicit_none_pay
 def test_component_bundle_hydrates_compact_time_series_snapshot_without_timestamp_arrays() -> None:
     snapshot = ComponentTimeSeriesSnapshot(
         component_key='flotacion',
-        revision=1,
         windows=(
             TimeSeriesWindowSnapshot(
                 hours=1,
@@ -112,3 +110,15 @@ def test_component_bundle_hydrates_compact_time_series_snapshot_without_timestam
 
     assert bundle.time_series[1].series['ley'] == (1, 2, 3, 4, 5, 6)
     assert len(bundle.time_series[1].axis.utc) == 6
+
+
+def test_dashboard_polling_settings_keep_single_generic_interval() -> None:
+    from ada.ui.features.dashboard import DashboardPollingSettings
+
+    settings = DashboardPollingSettings(interval_seconds=5)
+
+    assert settings.interval_seconds == 5.0
+    assert settings.interval_milliseconds == 5000
+
+    with pytest.raises(DashboardDefinitionError, match='greater than zero'):
+        DashboardPollingSettings(interval_seconds=0)

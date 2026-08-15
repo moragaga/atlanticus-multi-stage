@@ -15,7 +15,6 @@ from ada.runtime.web import (
 def test_component_data_snapshot_preserves_missing_and_explicit_none_semantics() -> None:
     snapshot = ComponentDataSnapshot(
         component_key='flotacion',
-        revision=1,
         payload={'ley': None, 'recuperacion': 87.2},
     )
 
@@ -26,18 +25,12 @@ def test_component_data_snapshot_preserves_missing_and_explicit_none_semantics()
 
 def test_component_data_snapshot_freezes_top_level_payload() -> None:
     payload = {'value': 1}
-    snapshot = ComponentDataSnapshot(component_key='molienda', revision=3, payload=payload)
+    snapshot = ComponentDataSnapshot(component_key='molienda', payload=payload)
     payload['value'] = 2
 
     assert snapshot.payload['value'] == 1
     with pytest.raises(TypeError):
         snapshot.payload['value'] = 3
-
-
-@pytest.mark.parametrize('revision', [0, -1, True, 1.5])
-def test_projection_revision_must_be_positive_integer(revision: object) -> None:
-    with pytest.raises(RuntimeDefinitionError, match='Projection revision'):
-        ComponentDataSnapshot(component_key='puerto', revision=revision, payload={})
 
 
 def test_time_series_window_normalizes_aware_timestamps_to_utc() -> None:
@@ -90,7 +83,6 @@ def test_component_time_series_snapshot_groups_unique_horizons() -> None:
 
     snapshot = ComponentTimeSeriesSnapshot(
         component_key='flotacion',
-        revision=9,
         windows=(one_hour, five_hours),
     )
 
@@ -114,7 +106,6 @@ def test_component_time_series_snapshot_rejects_duplicate_horizons() -> None:
     with pytest.raises(RuntimeDefinitionError, match='duplicate windows'):
         ComponentTimeSeriesSnapshot(
             component_key='flotacion',
-            revision=2,
             windows=(first, second),
         )
 
@@ -122,7 +113,6 @@ def test_component_time_series_snapshot_rejects_duplicate_horizons() -> None:
 def test_component_state_snapshot_contains_projected_state_without_source_details() -> None:
     snapshot = ComponentStateSnapshot(
         component_key='molienda',
-        revision=4,
         state=ComponentProjectionState.STALE,
     )
 

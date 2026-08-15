@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
@@ -12,6 +13,27 @@ from ada.runtime.web import ComponentDataSnapshot, ComponentTimeSeriesSnapshot
 from .errors import DashboardDefinitionError
 
 _COMPONENT_KEY_PATTERN = re.compile(r'^[a-z][a-z0-9_]*$')
+
+
+@dataclass(frozen=True, slots=True)
+class DashboardPollingSettings:
+    interval_seconds: float
+
+    def __post_init__(self) -> None:
+        if isinstance(self.interval_seconds, bool) or not isinstance(
+            self.interval_seconds, int | float
+        ):
+            raise DashboardDefinitionError('Dashboard polling interval_seconds must be numeric')
+        value = float(self.interval_seconds)
+        if not math.isfinite(value) or value <= 0:
+            raise DashboardDefinitionError(
+                'Dashboard polling interval_seconds must be greater than zero'
+            )
+        object.__setattr__(self, 'interval_seconds', value)
+
+    @property
+    def interval_milliseconds(self) -> int:
+        return max(1, round(self.interval_seconds * 1000))
 
 
 @dataclass(frozen=True, slots=True)

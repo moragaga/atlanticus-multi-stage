@@ -1,8 +1,4 @@
-# Resolución de manifest + configuración + registry hacia una definición ejecutable futura.
-# La estructura del body se descubre sin imponer geometría: IO puede tener mine/plant y Process roles.
-# Un componente sin renderer queda marcado como construcción; no es un error de configuración.
-# Un renderer o proyección para un component_key inexistente sí falla durante el arranque.
-
+# Compone manifest, proyecciones, renderers y polling sin introducir detalles del repositorio compartido.
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -14,6 +10,7 @@ from .models import (
     ComponentProjectionDefinition,
     ComponentRenderer,
     ComponentRendererRegistry,
+    DashboardPollingSettings,
     DashboardToolConfiguration,
 )
 
@@ -26,7 +23,7 @@ class DashboardComponentDefinition:
 
     @property
     def construction(self) -> bool:
-        return self.renderer is None
+        return self.renderer is None or self.projection is None
 
     @property
     def callback_required(self) -> bool:
@@ -34,10 +31,12 @@ class DashboardComponentDefinition:
 
 
 @dataclass(frozen=True, slots=True)
+# Polling es opcional para conservar referencias/demos sin repositorio compartido.
 class DashboardDefinition:
     manifest: ToolManifest
     configuration: DashboardToolConfiguration
     components: tuple[DashboardComponentDefinition, ...]
+    polling: DashboardPollingSettings | None = None
 
     @classmethod
     def build(
@@ -46,6 +45,7 @@ class DashboardDefinition:
         manifest: ToolManifest,
         configuration: DashboardToolConfiguration,
         renderers: ComponentRendererRegistry,
+        polling: DashboardPollingSettings | None = None,
     ) -> DashboardDefinition:
         if not isinstance(manifest, ToolManifest):
             raise DashboardDefinitionError('Dashboard requires a ToolManifest')
@@ -53,6 +53,8 @@ class DashboardDefinition:
             raise DashboardDefinitionError('Dashboard requires DashboardToolConfiguration')
         if not isinstance(renderers, ComponentRendererRegistry):
             raise DashboardDefinitionError('Dashboard requires ComponentRendererRegistry')
+        if polling is not None and not isinstance(polling, DashboardPollingSettings):
+            raise DashboardDefinitionError('Dashboard polling must use DashboardPollingSettings')
 
         components = _body_components(manifest)
         component_keys = {section.key for section in components}
@@ -71,6 +73,7 @@ class DashboardDefinition:
             manifest=manifest,
             configuration=configuration,
             components=definitions,
+            polling=polling,
         )
 
     def component(self, component_key: str) -> DashboardComponentDefinition:

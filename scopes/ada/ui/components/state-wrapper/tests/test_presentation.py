@@ -64,3 +64,13 @@ def test_safe_wrapper_turns_isolated_failure_into_component_error() -> None:
     assert props['data-ready'] == 'true'
     assert props['data-ready-name'] == 'broken-component'
     assert len(observed) == 1
+
+
+def test_state_overlay_can_be_built_independently_for_dynamic_boundaries() -> None:
+    from ada.ui.components.state_wrapper import build_state_overlay
+
+    overlay = build_state_overlay(ComponentCover.stale())
+
+    assert overlay is not None
+    assert _props(overlay)['data-overlay-kind'] == 'stale'
+    assert build_state_overlay(ComponentCover.none()) is None
