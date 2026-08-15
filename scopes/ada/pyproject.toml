@@ -24,6 +24,7 @@ ada-contracts-tool-manifest = { workspace = true }
 ada-runtime-web = { workspace = true }
 ada-ui-feature-alarms = { workspace = true }
 ada-ui-framework-core = { workspace = true }
+ada-ui-layout-integrated-operations = { workspace = true }
 ada-ui-component-branding = { workspace = true }
 ada-ui-component-global-indicator = { workspace = true }
 ada-ui-component-state-wrapper = { workspace = true }
@@ -43,6 +44,7 @@ members = [
     "contracts/tool-manifest",
     "runtime/web",
     "ui/framework/core",
+    "ui/layouts/integrated-operations",
     "ui/features/alarms",
     "ui/components/branding",
     "ui/components/global-indicator",
@@ -83,6 +85,7 @@ testpaths = [
     "contracts/tool-manifest/tests",
     "runtime/web/tests",
     "ui/framework/core/tests",
+    "ui/layouts/integrated-operations/tests",
     "ui/features/alarms/tests",
     "ui/components/branding/tests",
     "ui/components/global-indicator/tests",

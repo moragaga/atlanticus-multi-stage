@@ -1,0 +1,99 @@
+.ada-io-layout {
+    --ada-io-layout-gap: .2rem;
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    gap: var(--ada-io-layout-gap);
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.ada-io-layout__scope {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    gap: var(--ada-io-layout-gap);
+    align-items: stretch;
+}
+
+.ada-io-layout__scope--mine,
+.ada-io-layout__scope--plant {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.ada-io-layout__component {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+}
+
+.ada-io-layout__component > * {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+}
+
+.ada-io-layout[data-ada-io-view='mine'] .ada-io-layout__scope--plant,
+.ada-io-layout[data-ada-io-view='plant'] .ada-io-layout__scope--mine {
+    display: none;
+}
+
+@media (min-width: 21.875rem) {
+    .ada-io-layout__scope--plant {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 48rem) {
+    .ada-io-layout__scope--plant {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 80rem) {
+    .ada-io-layout__scope--mine {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-rows: repeat(2, auto);
+    }
+
+    .ada-io-layout__scope--plant {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .ada-io-layout__component--general_mina {
+        grid-column: 1;
+        grid-row: 1 / 3;
+    }
+
+    .ada-io-layout__component--carguio {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    .ada-io-layout__component--transporte {
+        grid-column: 3;
+        grid-row: 1;
+    }
+
+    .ada-io-layout__component--carguio_transporte {
+        grid-column: 2 / 4;
+        grid-row: 2;
+    }
+
+    .ada-io-layout__component--chancado_stmg {
+        grid-column: 4;
+        grid-row: 1 / 3;
+    }
+}
+
+@media (min-width: 96rem) {
+    .ada-io-layout[data-ada-io-view='overview'] {
+        grid-template-columns: minmax(0, 4fr) minmax(0, 5fr);
+    }
+
+    .ada-io-layout[data-ada-io-view='mine'],
+    .ada-io-layout[data-ada-io-view='plant'] {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

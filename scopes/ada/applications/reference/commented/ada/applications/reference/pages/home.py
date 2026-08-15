@@ -2,6 +2,9 @@
 from dash import html, register_page
 
 from ada.applications.reference.alarm_dashboard import build_reference_alarm_dashboard_baselines
+from ada.applications.reference.integrated_operations import (
+    build_reference_integrated_operations_layout,
+)
 from ada.ui.components.state_wrapper import (
     ComponentCover,
     build_safe_state_wrapper,
@@ -43,6 +46,7 @@ layout = html.Div(
                 ),
             ],
         ),
+        build_reference_integrated_operations_layout(),
         build_reference_alarm_dashboard_baselines(),
     ],
     className='reference-ada__page',

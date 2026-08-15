@@ -1,7 +1,3 @@
-/*
-Espejo pedagógico del harness visual de referencia. Process mantiene una sola card
-center; IO usa lanes transparentes y ComponentCard hermanas para sus subcomponentes.
-*/
 html,
 body {
     min-height: 100%;
@@ -256,7 +252,6 @@ body {
     grid-area: right;
 }
 
-/* El lane posiciona el punto sin crear una card contenedora visible. */
 .reference-ada__alarm-component-lane {
     display: grid;
     min-width: 0;
@@ -279,7 +274,6 @@ body {
     text-align: center;
 }
 
-/* Cada subcomponente es una card externa hermana y puede delinearse por separado. */
 .reference-ada__alarm-subcomponent-card {
     display: flex;
     min-width: 0;
@@ -333,4 +327,34 @@ body {
 .reference-ada__alarm-process-placement-grid[data-ada-alarm-process-queue]
     > [data-ada-alarm-event-id] {
     grid-row: 1;
+}
+
+.reference-ada__io-layout-demo {
+    display: grid;
+    gap: .75rem;
+    margin-top: 2rem;
+}
+
+.reference-ada__io-layout-demo > h2,
+.reference-ada__io-layout-demo > p {
+    margin: 0;
+}
+
+.reference-ada__io-placeholder {
+    display: flex;
+    min-height: 7rem;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .35rem;
+    padding: .75rem;
+    background: var(--secondary-background);
+    border: 1px solid var(--primary-border-color);
+    border-radius: .5rem;
+    color: var(--custom-text-color);
+    text-align: center;
+}
+
+.reference-ada__io-placeholder > span {
+    font-size: .7rem;
 }

@@ -1,0 +1,2 @@
+class IntegratedOperationsLayoutError(ValueError):
+    pass

@@ -17,6 +17,7 @@ dependencies = [
     "ada-ui-component-state-wrapper==0.1.0",
     "ada-ui-feature-alarms==0.1.0",
     "ada-ui-framework-core==0.1.0",
+    "ada-ui-layout-integrated-operations==0.1.0",
     "ada-ui-shell-header==0.1.0",
     "ada-ui-shell-navigation==0.1.0",
     "ada-ui-shell-time-status==0.1.0",
@@ -35,6 +36,7 @@ ada-ui-component-global-indicator = { workspace = true }
 ada-ui-component-state-wrapper = { workspace = true }
 ada-ui-feature-alarms = { workspace = true }
 ada-ui-framework-core = { workspace = true }
+ada-ui-layout-integrated-operations = { workspace = true }
 ada-ui-shell-header = { workspace = true }
 ada-ui-shell-navigation = { workspace = true }
 ada-ui-shell-time-status = { workspace = true }

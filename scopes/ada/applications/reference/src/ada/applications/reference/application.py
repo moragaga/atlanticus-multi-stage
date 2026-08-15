@@ -13,6 +13,9 @@ from ada.ui.components.global_indicator import create_ada_global_indicator_modul
 from ada.ui.components.state_wrapper import create_ada_state_wrapper_module
 from ada.ui.features.alarms import create_ada_alarms_module
 from ada.ui.framework.core import create_ada_ui_module
+from ada.ui.layouts.integrated_operations import (
+    create_ada_integrated_operations_layout_module,
+)
 from ada.ui.shell.header import create_ada_header_module
 from ada.ui.shell.navigation import create_ada_navigation_module
 from ada.ui.shell.time_status import create_ada_time_status_module
@@ -61,6 +64,7 @@ def build_definition(
                 create_ada_navigation_module(),
                 create_ada_state_wrapper_module(),
                 create_ada_global_indicator_module(),
+                create_ada_integrated_operations_layout_module(),
                 create_ada_alarms_module(),
                 create_ada_header_module(),
                 create_ada_time_status_module(),

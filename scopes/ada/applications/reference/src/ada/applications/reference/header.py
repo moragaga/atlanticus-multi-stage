@@ -26,9 +26,13 @@ def build_reference_header_state(services: ServiceRegistry, manifest: ToolManife
         ),
         application_name='ADA',
         global_indicators=(
-            _indicator(manifest, snapshot, 'transportado', 'Transportado', 'kt', ToolScope.MINE, '220'),
+            _indicator(
+                manifest, snapshot, 'transportado', 'Transportado', 'kt', ToolScope.MINE, '220'
+            ),
             _indicator(manifest, snapshot, 'molienda', 'Molienda', 'kt', ToolScope.PLANT, '210'),
-            _indicator(manifest, snapshot, 'ley_cobre', 'Ley de Cobre', '%', ToolScope.PLANT, '0,55'),
+            _indicator(
+                manifest, snapshot, 'ley_cobre', 'Ley de Cobre', '%', ToolScope.PLANT, '0,55'
+            ),
             _indicator(
                 manifest,
                 snapshot,
