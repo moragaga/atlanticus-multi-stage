@@ -1,5 +1,5 @@
-# Espejo pedagógico en español; la lógica ejecutable es equivalente al archivo productivo.
 from __future__ import annotations
+# Espejo comentado: conserva la misma lógica productiva y documenta su responsabilidad.
 
 from functools import partial
 
@@ -11,12 +11,12 @@ from ada.features.dashboard.core.definition import (
     DashboardComponentDefinition,
     DashboardDefinition,
 )
-from .ids import DashboardComponentIds
+from .ids import DashboardComponentIds, DashboardSubcomponentIds
 from .wiring import (
     ComponentRenderErrorHandler,
     encode_render_status,
     render_component_from_stores,
-    resolve_component_cover,
+    resolve_subcomponent_cover,
 )
 
 
@@ -31,15 +31,32 @@ def register_dashboard_callbacks(
     for component in definition.components:
         if not component.callback_required:
             continue
-        ids = DashboardComponentIds(resolved_dashboard_key, component.section.key)
+        component_ids = DashboardComponentIds(
+            resolved_dashboard_key,
+            component.section.key,
+        )
+        subcomponent_ids = tuple(
+            DashboardSubcomponentIds(
+                resolved_dashboard_key,
+                component.section.key,
+                section.key,
+            )
+            for section in component.subcomponents
+        )
         _register_render_callback(
             app,
             definition=definition,
             component=component,
-            ids=ids,
+            component_ids=component_ids,
+            subcomponent_ids=subcomponent_ids,
             on_error=on_error,
         )
-        _register_state_callback(app, component=component, ids=ids)
+        _register_state_callback(
+            app,
+            component=component,
+            component_ids=component_ids,
+            subcomponent_ids=subcomponent_ids,
+        )
 
 
 def _register_render_callback(
@@ -47,7 +64,8 @@ def _register_render_callback(
     *,
     definition: DashboardDefinition,
     component: DashboardComponentDefinition,
-    ids: DashboardComponentIds,
+    component_ids: DashboardComponentIds,
+    subcomponent_ids: tuple[DashboardSubcomponentIds, ...],
     on_error: ComponentRenderErrorHandler | None,
 ) -> None:
     projection = component.projection
@@ -55,9 +73,9 @@ def _register_render_callback(
         return
     inputs: list[Input] = []
     if projection.data:
-        inputs.append(Input(ids.data_store, 'data'))
+        inputs.append(Input(component_ids.data_store, 'data'))
     if projection.time_series:
-        inputs.append(Input(ids.time_series_store, 'data'))
+        inputs.append(Input(component_ids.time_series_store, 'data'))
 
     callback = partial(
         _render_callback,
@@ -65,9 +83,10 @@ def _register_render_callback(
         definition=definition,
         on_error=on_error,
     )
+    outputs = [Output(ids.content, 'children') for ids in subcomponent_ids]
+    outputs.append(Output(component_ids.render_status_store, 'data'))
     app.callback(
-        Output(ids.content, 'children'),
-        Output(ids.render_status_store, 'data'),
+        *outputs,
         *inputs,
         prevent_initial_call=False,
     )(callback)
@@ -77,17 +96,21 @@ def _register_state_callback(
     app: Dash,
     *,
     component: DashboardComponentDefinition,
-    ids: DashboardComponentIds,
+    component_ids: DashboardComponentIds,
+    subcomponent_ids: tuple[DashboardSubcomponentIds, ...],
 ) -> None:
+    if not subcomponent_ids:
+        return
+    outputs = [Output(ids.overlay, 'children') for ids in subcomponent_ids]
     app.callback(
-        Output(ids.overlay, 'children'),
-        Input(ids.state_store, 'data'),
-        Input(ids.render_status_store, 'data'),
+        *outputs,
+        Input(component_ids.state_store, 'data'),
+        Input(component_ids.render_status_store, 'data'),
         prevent_initial_call=False,
     )(
         partial(
             _state_callback,
-            component_key=component.section.key,
+            component=component,
         )
     )
 
@@ -100,7 +123,7 @@ def _render_callback(
 ):
     projection = component.projection
     if projection is None:
-        return no_update, no_update
+        return (*([no_update] * len(component.subcomponents)), no_update)
     index = 0
     data_value = None
     time_series_value = None
@@ -117,19 +140,34 @@ def _render_callback(
         time_series_value=time_series_value,
         on_error=on_error,
     )
-    content = no_update if result.preserve_content else result.content
-    return content, encode_render_status(result.status)
+    if result.preserve_content or result.content is None:
+        content = [no_update] * len(component.subcomponents)
+    else:
+        content = [
+            result.content[section.subcomponent]
+            for section in component.subcomponents
+            if section.subcomponent is not None
+        ]
+    return (*content, encode_render_status(result.status))
 
 
 def _state_callback(
     state_value: object,
     render_status_value: object,
     *,
-    component_key: str,
+    component: DashboardComponentDefinition,
 ):
-    cover = resolve_component_cover(
-        component_key=component_key,
-        state_value=state_value,
-        render_status_value=render_status_value,
-    )
-    return build_state_overlay(cover)
+    covers = [
+        resolve_subcomponent_cover(
+            component_key=component.section.key,
+            subcomponent_key=section.subcomponent,
+            state_value=state_value,
+            render_status_value=render_status_value,
+        )
+        for section in component.subcomponents
+        if section.subcomponent is not None
+    ]
+    overlays = [build_state_overlay(cover) for cover in covers]
+    if len(overlays) == 1:
+        return overlays[0]
+    return tuple(overlays)

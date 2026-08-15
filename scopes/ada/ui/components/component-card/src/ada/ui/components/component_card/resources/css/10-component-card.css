@@ -9,6 +9,7 @@
     flex-direction: column;
     box-sizing: border-box;
     overflow: hidden;
+    position: relative;
     border: 1px solid var(--ada-component-card-border);
     border-radius: .3rem;
     background: var(--ada-component-card-background);
@@ -40,6 +41,7 @@
 .ada-component-card__footer-corner {
     min-width: 0;
     overflow: hidden;
+    position: relative;
     text-overflow: ellipsis;
     white-space: nowrap;
 }

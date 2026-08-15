@@ -23,6 +23,7 @@ def build_component_card(
     label: str | None = None,
     corner: bool = False,
     corner_value: Any = _MISSING,
+    overlay: Any = None,
     class_name: str | None = None,
 ) -> html.Div:
     component_section = manifest.section(component)
@@ -52,6 +53,8 @@ def build_component_card(
     ]
     if footer is not None:
         children.append(footer)
+    if overlay is not None:
+        children.append(overlay)
 
     return html.Div(
         children,

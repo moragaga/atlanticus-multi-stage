@@ -1,5 +1,5 @@
-# Espejo pedagógico en español; la lógica ejecutable es equivalente al archivo productivo.
 from __future__ import annotations
+# Espejo comentado: conserva la misma lógica productiva y documenta su responsabilidad.
 
 import re
 from collections.abc import Mapping, Sequence
@@ -11,11 +11,13 @@ from types import MappingProxyType
 from ada.runtime.web.errors import RuntimeDefinitionError
 
 _COMPONENT_KEY_PATTERN = re.compile(r'^[a-z][a-z0-9_]*$')
+_SUBCOMPONENT_KEY_PATTERN = re.compile(r'^[a-z][a-z0-9_]*$')
 
 
 class ComponentProjectionState(StrEnum):
     READY = 'ready'
     STALE = 'stale'
+    CONSTRUCTION = 'construction'
     UNAVAILABLE = 'unavailable'
     INVALID = 'invalid'
     ERROR = 'error'
@@ -80,12 +82,25 @@ class ComponentTimeSeriesSnapshot:
 @dataclass(frozen=True, slots=True)
 class ComponentStateSnapshot:
     component_key: str
-    state: ComponentProjectionState
+    states: Mapping[str, ComponentProjectionState]
 
     def __post_init__(self) -> None:
         _require_component_key(self.component_key)
-        if not isinstance(self.state, ComponentProjectionState):
-            raise RuntimeDefinitionError(f'Invalid component projection state: {self.state!r}')
+        if not isinstance(self.states, Mapping):
+            raise RuntimeDefinitionError('Component state snapshot states must be a mapping')
+        states: dict[str, ComponentProjectionState] = {}
+        for subcomponent_key, state in self.states.items():
+            _require_subcomponent_key(subcomponent_key)
+            if not isinstance(state, ComponentProjectionState):
+                raise RuntimeDefinitionError(
+                    f'Invalid component projection state: {state!r}'
+                )
+            states[subcomponent_key] = state
+        object.__setattr__(self, 'states', MappingProxyType(states))
+
+    def state(self, subcomponent_key: str) -> ComponentProjectionState | None:
+        _require_subcomponent_key(subcomponent_key)
+        return self.states.get(subcomponent_key)
 
 
 def _freeze_payload(payload: Mapping[str, object]) -> Mapping[str, object]:
@@ -121,6 +136,11 @@ def _freeze_series(
 def _require_component_key(value: str) -> None:
     if not isinstance(value, str) or not _COMPONENT_KEY_PATTERN.fullmatch(value):
         raise RuntimeDefinitionError(f'Invalid component key: {value!r}')
+
+
+def _require_subcomponent_key(value: str) -> None:
+    if not isinstance(value, str) or not _SUBCOMPONENT_KEY_PATTERN.fullmatch(value):
+        raise RuntimeDefinitionError(f'Invalid subcomponent key: {value!r}')
 
 
 def _require_hours(value: int) -> None:

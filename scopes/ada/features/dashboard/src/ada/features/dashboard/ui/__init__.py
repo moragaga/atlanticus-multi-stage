@@ -1,7 +1,7 @@
 from .callbacks import register_dashboard_callbacks
-from .ids import DashboardComponentIds, DashboardPollingIds
+from .ids import DashboardComponentIds, DashboardPollingIds, DashboardSubcomponentIds
 from .module import create_ada_dashboard_module
-from .mount import DashboardMount, build_dashboard_mount
+from .mount import DashboardMount, DashboardSubcomponentSlot, build_dashboard_mount
 from .polling import (
     DashboardChannelUpdate,
     DashboardPollingErrorHandler,
@@ -16,7 +16,7 @@ from .wiring import (
     encode_render_status,
     initial_render_status,
     render_component_from_stores,
-    resolve_component_cover,
+    resolve_subcomponent_cover,
 )
 
 __all__ = [
@@ -28,6 +28,8 @@ __all__ = [
     'DashboardMount',
     'DashboardPollingErrorHandler',
     'DashboardPollingIds',
+    'DashboardSubcomponentIds',
+    'DashboardSubcomponentSlot',
     'build_dashboard_mount',
     'create_ada_dashboard_module',
     'dashboard_snapshot_channels',
@@ -37,5 +39,5 @@ __all__ = [
     'register_dashboard_callbacks',
     'register_dashboard_polling_callbacks',
     'render_component_from_stores',
-    'resolve_component_cover',
+    'resolve_subcomponent_cover',
 ]

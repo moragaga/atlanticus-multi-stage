@@ -75,22 +75,22 @@ def _definition():
             definitions=(
                 ComponentRendererDefinition(
                     component_key='center_process',
-                    renderer=lambda bundle: bundle.component_key,
+                    renderer=lambda _bundle: {'main': 'ok'},
                 ),
             )
         ),
     )
 
 
-def test_callback_factory_registers_two_callbacks_only_for_active_component() -> None:
+def test_callback_factory_targets_subcomponent_slots_only_for_active_component() -> None:
     app = Dash(__name__)
 
     register_dashboard_callbacks(app, _definition())
 
     assert len(app.callback_map) == 2
     callback_keys = tuple(app.callback_map)
-    assert any('center_process--content.children' in key for key in callback_keys)
-    assert any('center_process--overlay.children' in key for key in callback_keys)
+    assert any('--content.children' in key for key in callback_keys)
+    assert any('--overlay.children' in key for key in callback_keys)
     assert not any('right_process' in key for key in callback_keys)
 
 

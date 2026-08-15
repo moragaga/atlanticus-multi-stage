@@ -1,8 +1,12 @@
-.ada-state-wrapper {
+.ada-state-wrapper,
+.ada-state-wrapper__overlay {
     --ada-state-wrapper-overlay-background: rgba(75, 75, 75, .32);
     --ada-state-wrapper-strong-background: rgba(75, 75, 75, .62);
     --ada-state-wrapper-overlay-color: #FFFFFF;
     --ada-state-wrapper-overlay-message-size: .9rem;
+}
+
+.ada-state-wrapper {
     position: relative;
     width: 100%;
     height: 100%;

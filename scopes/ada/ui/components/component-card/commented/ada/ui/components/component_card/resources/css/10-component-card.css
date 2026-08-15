@@ -1,3 +1,4 @@
+/* Espejo comentado: la card conserva su geometría y admite overlays absolutos sin alterar el flujo. */
 .ada-component-card {
     --ada-component-card-border: var(--primary-border-color, #BDBDBD);
     --ada-component-card-background: var(--span-color, transparent);
@@ -9,6 +10,7 @@
     flex-direction: column;
     box-sizing: border-box;
     overflow: hidden;
+    position: relative;
     border: 1px solid var(--ada-component-card-border);
     border-radius: .3rem;
     background: var(--ada-component-card-background);
@@ -40,6 +42,7 @@
 .ada-component-card__footer-corner {
     min-width: 0;
     overflow: hidden;
+    position: relative;
     text-overflow: ellipsis;
     white-space: nowrap;
 }

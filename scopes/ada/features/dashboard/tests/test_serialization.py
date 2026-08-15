@@ -62,19 +62,27 @@ def test_time_series_snapshot_round_trip_keeps_compact_windows_without_timestamp
     assert decoded == snapshot
 
 
-def test_state_snapshot_round_trip_uses_projection_state_value() -> None:
+def test_state_snapshot_round_trip_preserves_each_subcomponent_state() -> None:
     snapshot = ComponentStateSnapshot(
         component_key='flotacion',
-        state=ComponentProjectionState.STALE,
+        states={
+            'colectiva': ComponentProjectionState.STALE,
+            'selectiva': ComponentProjectionState.CONSTRUCTION,
+        },
     )
 
     encoded = encode_component_state_snapshot(snapshot)
     decoded = decode_component_state_snapshot(encoded)
 
-    assert encoded['state'] == 'stale'
+    assert encoded['states'] == {'colectiva': 'stale', 'selectiva': 'construction'}
     assert decoded == snapshot
 
 
-def test_state_snapshot_decoder_rejects_unknown_state() -> None:
+def test_state_snapshot_decoder_rejects_unknown_subcomponent_state() -> None:
     with pytest.raises(DashboardStoreError, match='Unknown component projection state'):
-        decode_component_state_snapshot({'component_key': 'flotacion', 'state': 'mystery'})
+        decode_component_state_snapshot(
+            {
+                'component_key': 'flotacion',
+                'states': {'colectiva': 'mystery'},
+            }
+        )

@@ -34,11 +34,11 @@ def test_data_distribution_projects_aggregated_snapshot_by_component_key() -> No
         component_keys=('flotacion', 'molienda'),
     )
 
-    flotacion = decode_component_data_snapshot(result['flotacion'])
-    molienda = decode_component_data_snapshot(result['molienda'])
-    assert flotacion.component_key == 'flotacion'
-    assert flotacion.payload == {'recovery': 87.2, 'optional': None}
-    assert molienda.payload == {'power': 102}
+    assert decode_component_data_snapshot(result['flotacion']).payload == {
+        'recovery': 87.2,
+        'optional': None,
+    }
+    assert decode_component_data_snapshot(result['molienda']).payload == {'power': 102}
 
 
 def test_missing_component_clears_only_that_store() -> None:
@@ -89,17 +89,15 @@ def test_time_series_distribution_keeps_compact_windows_without_timestamp_arrays
     assert 'timestamps' not in result['flotacion']['windows'][0]
 
 
-def test_status_distribution_projects_component_states_only() -> None:
+def test_status_distribution_preserves_subcomponent_state_isolation() -> None:
     snapshot = SharedSnapshot(
         revision=_revision(),
         payload={
             'components': {
-                'flotacion': 'ready',
-                'molienda': 'stale',
+                'flotacion': {'colectiva': 'stale', 'selectiva': 'construction'},
+                'molienda': {'molienda': 'ready'},
             },
-            'sources': {
-                'pi': {'updated_at_utc': '2026-08-15T21:00:00Z'},
-            },
+            'sources': {'pi': {'updated_at_utc': '2026-08-15T21:00:00Z'}},
         },
     )
 
@@ -109,8 +107,10 @@ def test_status_distribution_projects_component_states_only() -> None:
         component_keys=('flotacion', 'molienda'),
     )
 
-    assert decode_component_state_snapshot(result['flotacion']).state.value == 'ready'
-    assert decode_component_state_snapshot(result['molienda']).state.value == 'stale'
+    flotacion = decode_component_state_snapshot(result['flotacion'])
+    assert flotacion.state('colectiva').value == 'stale'
+    assert flotacion.state('selectiva').value == 'construction'
+    assert decode_component_state_snapshot(result['molienda']).state('molienda').value == 'ready'
 
 
 def test_distribution_rejects_snapshot_without_components_envelope() -> None:

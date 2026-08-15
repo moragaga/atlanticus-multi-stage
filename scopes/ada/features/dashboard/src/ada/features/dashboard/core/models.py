@@ -173,7 +173,7 @@ class ComponentBundle:
         object.__setattr__(self, 'time_series', MappingProxyType(windows))
 
 
-ComponentRenderer = Callable[[ComponentBundle], object]
+ComponentRenderer = Callable[[ComponentBundle], Mapping[str, object]]
 
 
 @dataclass(frozen=True, slots=True)

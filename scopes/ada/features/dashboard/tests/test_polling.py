@@ -61,8 +61,8 @@ class Repository:
                 revision=self.revisions[SnapshotChannel.STATUS],
                 payload={
                     'components': {
-                        'center_process': 'ready',
-                        'right_process': 'stale',
+                        'center_process': {'main': 'ready'},
+                        'right_process': {'main': 'stale'},
                     }
                 },
             ),
@@ -138,11 +138,11 @@ def _definition() -> DashboardDefinition:
             definitions=(
                 ComponentRendererDefinition(
                     component_key='center_process',
-                    renderer=lambda bundle: bundle.component_key,
+                    renderer=lambda bundle: {'main': bundle.component_key},
                 ),
                 ComponentRendererDefinition(
                     component_key='right_process',
-                    renderer=lambda bundle: bundle.component_key,
+                    renderer=lambda bundle: {'main': bundle.component_key},
                 ),
             )
         ),
@@ -244,5 +244,5 @@ def test_status_is_independent_from_data_and_time_series_revisions() -> None:
 
     assert update is not None
     assert update.revision == repository.revisions[SnapshotChannel.STATUS]
-    assert update.component_values['center_process']['state'] == 'ready'
-    assert update.component_values['right_process']['state'] == 'stale'
+    assert update.component_values['center_process']['states'] == {'main': 'ready'}
+    assert update.component_values['right_process']['states'] == {'main': 'stale'}

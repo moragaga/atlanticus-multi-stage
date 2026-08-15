@@ -4,6 +4,10 @@ from functools import partial
 from pathlib import Path
 
 from ada.applications.reference.configuration import resolve_reference_tool_manifest
+from ada.applications.reference.dashboard import (
+    build_reference_dashboard_catalog,
+    create_reference_dashboard_module,
+)
 from ada.applications.reference.layout import build_layout
 from ada.applications.reference.module import create_reference_module
 from ada.applications.reference.navigation import build_reference_navigation
@@ -44,6 +48,7 @@ def build_definition(
         if tool_manifest_resolution is None
         else tool_manifest_resolution
     )
+    dashboard_catalog = build_reference_dashboard_catalog()
     profiles = ProfileCatalog()
     users_runtime = UsersRuntime()
     users_resolver = UsersAccessResolver(
@@ -74,6 +79,7 @@ def build_definition(
                 create_ada_alarms_module(),
                 create_ada_header_module(),
                 create_ada_time_status_module(),
+                create_reference_dashboard_module(dashboard_catalog),
             ]
         )
     else:

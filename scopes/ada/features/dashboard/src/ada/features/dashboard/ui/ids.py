@@ -33,6 +33,25 @@ class DashboardComponentIds:
     def render_status_store(self) -> str:
         return self._id('render-status')
 
+    def _id(self, kind: str) -> str:
+        return f'ada-dashboard--{self.dashboard_key}--{self.component_key}--{kind}'
+
+
+@dataclass(frozen=True, slots=True)
+class DashboardSubcomponentIds:
+    dashboard_key: str
+    component_key: str
+    section_key: str
+
+    def __post_init__(self) -> None:
+        for value, name in (
+            (self.dashboard_key, 'Dashboard key'),
+            (self.component_key, 'Dashboard component key'),
+            (self.section_key, 'Dashboard subcomponent key'),
+        ):
+            if not isinstance(value, str) or not value.strip():
+                raise DashboardDefinitionError(f'{name} cannot be empty')
+
     @property
     def content(self) -> str:
         return self._id('content')
@@ -41,12 +60,10 @@ class DashboardComponentIds:
     def overlay(self) -> str:
         return self._id('overlay')
 
-    @property
-    def wrapper(self) -> str:
-        return self._id('wrapper')
-
     def _id(self, kind: str) -> str:
-        return f'ada-dashboard--{self.dashboard_key}--{self.component_key}--{kind}'
+        return (
+            f'ada-dashboard--{self.dashboard_key}--{self.component_key}--{self.section_key}--{kind}'
+        )
 
 
 @dataclass(frozen=True, slots=True)

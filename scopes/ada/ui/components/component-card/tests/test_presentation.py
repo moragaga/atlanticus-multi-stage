@@ -113,3 +113,13 @@ def test_component_card_rejects_unknown_subcomponent() -> None:
             component='flotacion',
             subcomponent='unknown',
         )
+
+
+def test_component_card_accepts_overlay_without_wrapping_or_replacing_card_structure() -> None:
+    overlay = html.Div('overlay', id='overlay-slot')
+    card = _flotation_card(content=html.Div('Contenido'), label='Colectiva', overlay=overlay)
+    children = _props(card)['children']
+
+    assert children[0].to_plotly_json()['props']['className'] == 'ada-component-card__content'
+    assert children[1].to_plotly_json()['props']['className'] == 'ada-component-card__footer'
+    assert children[2] is overlay

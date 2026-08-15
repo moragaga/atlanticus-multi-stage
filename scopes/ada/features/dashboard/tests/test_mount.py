@@ -69,7 +69,11 @@ def _manifest():
     )
 
 
-def test_mount_creates_stores_only_for_components_with_renderer_and_projection() -> None:
+def _renderer(_bundle):
+    return {'main': html.Div('ok')}
+
+
+def test_mount_creates_slots_for_existing_cards_without_replacing_component_layout() -> None:
     definition = DashboardDefinition.build(
         manifest=_manifest(),
         configuration=DashboardToolConfiguration(
@@ -82,7 +86,7 @@ def test_mount_creates_stores_only_for_components_with_renderer_and_projection()
             definitions=(
                 ComponentRendererDefinition(
                     component_key='center_process',
-                    renderer=lambda bundle: html.Div(str(bundle.data)),
+                    renderer=_renderer,
                 ),
             )
         ),
@@ -90,14 +94,15 @@ def test_mount_creates_stores_only_for_components_with_renderer_and_projection()
 
     mount = build_dashboard_mount(definition)
 
-    assert tuple(mount.component_content) == ('center_process', 'right_process')
+    assert set(mount.subcomponent_slots) == {
+        ('center_process', 'main'),
+        ('right_process', 'main'),
+    }
+    assert not hasattr(mount, 'component_content')
     assert len(mount.stores) == 3
-    store_ids = {_props(store)['id'] for store in mount.stores}
-    assert any(value.endswith('--center_process--data') for value in store_ids)
-    assert any(value.endswith('--center_process--state') for value in store_ids)
-    assert any(value.endswith('--center_process--render-status') for value in store_ids)
-    assert not any('--right_process--' in value for value in store_ids)
-    assert _props(mount.component_content['right_process'])['data-cover'] == 'construction'
+    assert _props(mount.slot('center_process', 'main').content)['id'].endswith('--content')
+    construction_overlay = _props(mount.slot('right_process', 'main').overlay)['children']
+    assert construction_overlay is not None
 
 
 def test_mount_keeps_renderer_without_projection_in_construction_without_stores() -> None:
@@ -108,7 +113,7 @@ def test_mount_keeps_renderer_without_projection_in_construction_without_stores(
             definitions=(
                 ComponentRendererDefinition(
                     component_key='center_process',
-                    renderer=lambda bundle: html.Div(bundle.component_key),
+                    renderer=_renderer,
                 ),
             )
         ),
@@ -117,10 +122,10 @@ def test_mount_keeps_renderer_without_projection_in_construction_without_stores(
     mount = build_dashboard_mount(definition)
 
     assert mount.stores == ()
-    assert _props(mount.component_content['center_process'])['data-cover'] == 'construction'
+    assert _props(mount.slot('center_process', 'main').overlay)['children'] is not None
 
 
-def test_mount_uses_explicit_dashboard_key_for_generated_store_ids() -> None:
+def test_mount_uses_explicit_dashboard_key_for_generated_store_and_slot_ids() -> None:
     definition = DashboardDefinition.build(
         manifest=_manifest(),
         configuration=DashboardToolConfiguration(
@@ -128,19 +133,18 @@ def test_mount_uses_explicit_dashboard_key_for_generated_store_ids() -> None:
         ),
         renderers=ComponentRendererRegistry(
             definitions=(
-                ComponentRendererDefinition(
-                    component_key='center_process',
-                    renderer=lambda bundle: html.Div(bundle.component_key),
-                ),
+                ComponentRendererDefinition(component_key='center_process', renderer=_renderer),
             )
         ),
     )
 
     mount = build_dashboard_mount(definition, dashboard_key='instance-a')
     store_ids = {_props(store)['id'] for store in mount.stores}
+    slot_id = _props(mount.slot('center_process', 'main').content)['id']
 
     assert mount.dashboard_key == 'instance-a'
     assert all(value.startswith('ada-dashboard--instance-a--') for value in store_ids)
+    assert slot_id.startswith('ada-dashboard--instance-a--')
 
 
 def test_mount_adds_one_shared_interval_and_revision_store_per_active_channel() -> None:
@@ -151,10 +155,7 @@ def test_mount_adds_one_shared_interval_and_revision_store_per_active_channel() 
         ),
         renderers=ComponentRendererRegistry(
             definitions=(
-                ComponentRendererDefinition(
-                    component_key='center_process',
-                    renderer=lambda bundle: html.Div(bundle.component_key),
-                ),
+                ComponentRendererDefinition(component_key='center_process', renderer=_renderer),
             )
         ),
         polling=DashboardPollingSettings(interval_seconds=5),

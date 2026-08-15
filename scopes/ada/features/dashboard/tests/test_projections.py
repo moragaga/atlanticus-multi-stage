@@ -110,11 +110,15 @@ def test_component_time_series_snapshot_rejects_duplicate_horizons() -> None:
         )
 
 
-def test_component_state_snapshot_contains_projected_state_without_source_details() -> None:
+def test_component_state_snapshot_keeps_independent_subcomponent_states() -> None:
     snapshot = ComponentStateSnapshot(
-        component_key='molienda',
-        state=ComponentProjectionState.STALE,
+        component_key='flotacion',
+        states={
+            'colectiva': ComponentProjectionState.STALE,
+            'selectiva': ComponentProjectionState.CONSTRUCTION,
+        },
     )
 
-    assert snapshot.component_key == 'molienda'
-    assert snapshot.state is ComponentProjectionState.STALE
+    assert snapshot.state('colectiva') is ComponentProjectionState.STALE
+    assert snapshot.state('selectiva') is ComponentProjectionState.CONSTRUCTION
+    assert snapshot.state('missing') is None

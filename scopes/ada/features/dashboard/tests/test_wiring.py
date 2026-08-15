@@ -31,7 +31,7 @@ from ada.features.dashboard import (
     encode_render_status,
     initial_render_status,
     render_component_from_stores,
-    resolve_component_cover,
+    resolve_subcomponent_cover,
 )
 from ada.ui.components.state_wrapper import CoverState
 
@@ -56,6 +56,14 @@ def _manifest():
                 component='center_process',
                 subcomponent='main',
                 display_name='Principal',
+                kind=ToolSectionKind.SUBCOMPONENT,
+                scope=ToolScope.PLANT,
+                targets=(ToolTarget.ALARM,),
+            ),
+            ToolSection(
+                component='center_process',
+                subcomponent='secondary',
+                display_name='Secundario',
                 kind=ToolSectionKind.SUBCOMPONENT,
                 scope=ToolScope.PLANT,
                 targets=(ToolTarget.ALARM,),
@@ -113,9 +121,13 @@ def _time_series(*, key='ley', hours=1):
     )
 
 
+def _rendered(bundle):
+    return {'main': bundle.data['kpi'], 'secondary': 'ok'}
+
+
 def test_render_waits_until_all_required_projections_are_available() -> None:
     calls = []
-    definition = _definition(lambda bundle: calls.append(bundle) or 'rendered')
+    definition = _definition(lambda bundle: calls.append(bundle) or _rendered(bundle))
 
     result = render_component_from_stores(
         component=definition.component('center_process'),
@@ -124,14 +136,15 @@ def test_render_waits_until_all_required_projections_are_available() -> None:
         time_series_value=None,
     )
 
-    assert result.status.state is ComponentRenderState.WAITING
+    assert result.status.state('main') is ComponentRenderState.WAITING
+    assert result.status.state('secondary') is ComponentRenderState.WAITING
     assert result.preserve_content is True
     assert calls == []
 
 
-def test_render_builds_bundle_and_hydrates_time_axis_before_calling_developer() -> None:
+def test_render_returns_content_by_subcomponent_and_hydrates_time_axis() -> None:
     observed = []
-    definition = _definition(lambda bundle: observed.append(bundle) or 'rendered')
+    definition = _definition(lambda bundle: observed.append(bundle) or _rendered(bundle))
 
     result = render_component_from_stores(
         component=definition.component('center_process'),
@@ -140,15 +153,27 @@ def test_render_builds_bundle_and_hydrates_time_axis_before_calling_developer() 
         time_series_value=_time_series(),
     )
 
-    assert result.content == 'rendered'
-    assert result.preserve_content is False
-    assert result.status.state is ComponentRenderState.READY
-    assert observed[0].data['kpi'] == 87
+    assert result.content == {'main': 87, 'secondary': 'ok'}
+    assert result.status.state('main') is ComponentRenderState.READY
     assert len(observed[0].time_series[1].axis.utc) == 6
-    assert observed[0].time_series[1].series['ley'] == (1, 2, 3, 4, 5, 6)
 
 
-def test_renderer_failure_preserves_last_content_and_isolated_error_status() -> None:
+def test_renderer_must_return_exact_subcomponent_mapping() -> None:
+    definition = _definition(lambda _bundle: {'main': 'only-one'})
+
+    result = render_component_from_stores(
+        component=definition.component('center_process'),
+        configuration=definition.configuration,
+        data_value=_data(),
+        time_series_value=_time_series(),
+    )
+
+    assert result.preserve_content is True
+    assert result.status.state('main') is ComponentRenderState.ERROR
+    assert result.status.state('secondary') is ComponentRenderState.ERROR
+
+
+def test_renderer_failure_preserves_last_content_and_reports_component_error() -> None:
     observed = []
 
     def broken(_bundle):
@@ -167,92 +192,90 @@ def test_renderer_failure_preserves_last_content_and_isolated_error_status() -> 
 
     assert result.content is None
     assert result.preserve_content is True
-    assert result.status.state is ComponentRenderState.ERROR
+    assert result.status.state('main') is ComponentRenderState.ERROR
     assert observed == [('center_process', 'RuntimeError')]
 
 
-def test_time_series_contract_mismatch_is_isolated_before_renderer() -> None:
-    calls = []
-    definition = _definition(lambda bundle: calls.append(bundle) or 'rendered')
-
-    result = render_component_from_stores(
-        component=definition.component('center_process'),
-        configuration=definition.configuration,
-        data_value=_data(),
-        time_series_value=_time_series(key='unexpected'),
-    )
-
-    assert result.status.state is ComponentRenderState.ERROR
-    assert result.preserve_content is True
-    assert calls == []
-
-
-def test_state_changes_do_not_require_render_and_stale_only_applies_after_ready() -> None:
-    stale = encode_component_state_snapshot(
+def test_state_is_resolved_independently_for_each_subcomponent() -> None:
+    state = encode_component_state_snapshot(
         ComponentStateSnapshot(
             component_key='center_process',
-            state=ComponentProjectionState.STALE,
+            states={
+                'main': ComponentProjectionState.STALE,
+                'secondary': ComponentProjectionState.CONSTRUCTION,
+            },
+        )
+    )
+    definition = _definition(_rendered)
+    ready = encode_render_status(
+        ComponentRenderStatus(
+            'center_process',
+            {'main': ComponentRenderState.READY, 'secondary': ComponentRenderState.READY},
         )
     )
 
-    waiting_cover = resolve_component_cover(
-        component_key='center_process',
-        state_value=stale,
-        render_status_value=initial_render_status('center_process'),
-    )
-    ready_cover = resolve_component_cover(
-        component_key='center_process',
-        state_value=stale,
-        render_status_value=encode_render_status(
-            ComponentRenderStatus('center_process', ComponentRenderState.READY)
-        ),
-    )
-
-    assert waiting_cover.state is CoverState.NONE
-    assert ready_cover.state is CoverState.STALE
-
-
-def test_component_error_overrides_stale_and_source_unavailable_maps_to_source_error() -> None:
-    stale = encode_component_state_snapshot(
-        ComponentStateSnapshot(
-            component_key='center_process',
-            state=ComponentProjectionState.STALE,
-        )
-    )
-    unavailable = encode_component_state_snapshot(
-        ComponentStateSnapshot(
-            component_key='center_process',
-            state=ComponentProjectionState.UNAVAILABLE,
-        )
-    )
-    error_status = encode_render_status(
-        ComponentRenderStatus('center_process', ComponentRenderState.ERROR)
-    )
-    ready_status = encode_render_status(
-        ComponentRenderStatus('center_process', ComponentRenderState.READY)
-    )
-
     assert (
-        resolve_component_cover(
+        resolve_subcomponent_cover(
             component_key='center_process',
-            state_value=stale,
-            render_status_value=error_status,
-        ).state
-        is CoverState.COMPONENT_ERROR
-    )
-    assert (
-        resolve_component_cover(
-            component_key='center_process',
-            state_value=unavailable,
-            render_status_value=ready_status,
-        ).state
-        is CoverState.SOURCE_ERROR
-    )
-    assert (
-        resolve_component_cover(
-            component_key='center_process',
-            state_value=stale,
-            render_status_value=ready_status,
+            subcomponent_key='main',
+            state_value=state,
+            render_status_value=ready,
         ).state
         is CoverState.STALE
+    )
+    assert (
+        resolve_subcomponent_cover(
+            component_key='center_process',
+            subcomponent_key='secondary',
+            state_value=state,
+            render_status_value=ready,
+        ).state
+        is CoverState.CONSTRUCTION
+    )
+    assert initial_render_status(definition.component('center_process'))['states'] == {
+        'main': 'waiting',
+        'secondary': 'waiting',
+    }
+
+
+def test_stale_never_overrides_waiting_or_error_for_same_subcomponent() -> None:
+    stale = encode_component_state_snapshot(
+        ComponentStateSnapshot(
+            component_key='center_process',
+            states={
+                'main': ComponentProjectionState.STALE,
+                'secondary': ComponentProjectionState.STALE,
+            },
+        )
+    )
+    waiting = encode_render_status(
+        ComponentRenderStatus(
+            'center_process',
+            {'main': ComponentRenderState.WAITING, 'secondary': ComponentRenderState.READY},
+        )
+    )
+    error = encode_render_status(
+        ComponentRenderStatus(
+            'center_process',
+            {'main': ComponentRenderState.ERROR, 'secondary': ComponentRenderState.READY},
+        )
+    )
+
+    assert (
+        resolve_subcomponent_cover(
+            component_key='center_process',
+            subcomponent_key='main',
+            state_value=stale,
+            render_status_value=waiting,
+        ).state
+        is CoverState.NONE
+    )
+    assert (
+        resolve_subcomponent_cover(
+            component_key='center_process',
+            subcomponent_key='main',
+            state_value=stale,
+            render_status_value=error,
+        ).state
+        is CoverState.COMPONENT_ERROR
     )

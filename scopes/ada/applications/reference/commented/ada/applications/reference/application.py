@@ -1,21 +1,24 @@
-# Espejo pedagógico de la implementación productiva.
-# Conserva la misma estructura y comportamiento; los comentarios documentan su responsabilidad.
+# Espejo pedagógico: La aplicación de referencia registra el Dashboard E2E como módulo adicional sin alterar los módulos existentes.
 from __future__ import annotations
 
 from functools import partial
 from pathlib import Path
 
 from ada.applications.reference.configuration import resolve_reference_tool_manifest
+from ada.applications.reference.dashboard import (
+    build_reference_dashboard_catalog,
+    create_reference_dashboard_module,
+)
 from ada.applications.reference.layout import build_layout
 from ada.applications.reference.module import create_reference_module
 from ada.applications.reference.navigation import build_reference_navigation
 from ada.applications.reference.runtime import create_reference_runtime_module
 from ada.contracts.tool_manifest import ToolManifestResolution
+from ada.features.alarms import create_ada_alarms_module
 from ada.ui.components.component_card import create_ada_component_card_module
 from ada.ui.components.component_container import create_ada_component_container_module
 from ada.ui.components.global_indicator import create_ada_global_indicator_module
 from ada.ui.components.state_wrapper import create_ada_state_wrapper_module
-from ada.features.alarms import create_ada_alarms_module
 from ada.ui.framework.core import create_ada_ui_module
 from ada.ui.layouts.integrated_operations import (
     create_ada_integrated_operations_layout_module,
@@ -46,6 +49,7 @@ def build_definition(
         if tool_manifest_resolution is None
         else tool_manifest_resolution
     )
+    dashboard_catalog = build_reference_dashboard_catalog()
     profiles = ProfileCatalog()
     users_runtime = UsersRuntime()
     users_resolver = UsersAccessResolver(
@@ -76,6 +80,7 @@ def build_definition(
                 create_ada_alarms_module(),
                 create_ada_header_module(),
                 create_ada_time_status_module(),
+                create_reference_dashboard_module(dashboard_catalog),
             ]
         )
     else:

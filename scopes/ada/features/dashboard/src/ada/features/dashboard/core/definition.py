@@ -17,6 +17,7 @@ from .models import (
 @dataclass(frozen=True, slots=True)
 class DashboardComponentDefinition:
     section: ToolSection
+    subcomponents: tuple[ToolSection, ...]
     projection: ComponentProjectionDefinition | None
     renderer: ComponentRenderer | None
 
@@ -27,6 +28,14 @@ class DashboardComponentDefinition:
     @property
     def callback_required(self) -> bool:
         return self.renderer is not None and self.projection is not None
+
+    @property
+    def subcomponent_keys(self) -> tuple[str, ...]:
+        return tuple(
+            section.subcomponent
+            for section in self.subcomponents
+            if section.subcomponent is not None
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,6 +71,7 @@ class DashboardDefinition:
         definitions = tuple(
             DashboardComponentDefinition(
                 section=section,
+                subcomponents=_renderable_subcomponents(manifest, section.key),
                 projection=configuration.projection(section.key),
                 renderer=renderers.renderer(section.key),
             )
@@ -103,6 +113,17 @@ def _body_components(manifest: ToolManifest) -> tuple[ToolSection, ...]:
     if not resolved:
         raise DashboardDefinitionError('Dashboard body requires at least one component')
     return tuple(resolved)
+
+
+def _renderable_subcomponents(
+    manifest: ToolManifest,
+    component_key: str,
+) -> tuple[ToolSection, ...]:
+    return tuple(
+        section
+        for section in manifest.children(component_key)
+        if section.kind is ToolSectionKind.SUBCOMPONENT and not section.linked_component_keys
+    )
 
 
 def _validate_projection_keys(

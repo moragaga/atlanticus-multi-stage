@@ -1,7 +1,10 @@
-# Espejo pedagógico: la reference app construye cards de demostración; el layout sigue recibiendo contenido ya construido.
+from __future__ import annotations
+# Espejo comentado: conserva la misma lógica productiva y documenta su responsabilidad.
+
 from dash import html
 
 from ada.contracts.tool_manifest import INTEGRATED_OPERATIONS_MANIFEST
+from ada.features.dashboard import DashboardMount
 from ada.ui.components.component_card import build_component_card
 from ada.ui.layouts.integrated_operations import build_integrated_operations_layout
 
@@ -9,47 +12,68 @@ _SHARED_COMPONENT = 'carguio'
 _SHARED_SUBCOMPONENT = 'gestion_carguio_turno'
 
 
-def build_reference_integrated_operations_layout() -> html.Section:
+def build_reference_integrated_operations_layout(
+    *,
+    mount: DashboardMount | None = None,
+) -> html.Section:
     manifest = INTEGRATED_OPERATIONS_MANIFEST
     component_content = {
-        component.key: _build_component_cards(manifest, component.key)
+        component.key: _build_component_cards(
+            manifest,
+            component.key,
+            mount=mount,
+        )
         for scope_key in ('mine', 'plant')
         for component in manifest.children(scope_key)
     }
     shared_card = _build_shared_card(manifest)
+    children = [
+        html.H2('Integrated Operations Layout'),
+        html.P(
+            'ComponentCards reales del contrato IO con crecimiento determinado por su '
+            'contenido y estructura estable para zoom Mina/Planta.'
+        ),
+        build_integrated_operations_layout(
+            manifest,
+            component_content=component_content,
+            shared_card_content=shared_card,
+            layout_id='reference-integrated-operations-layout',
+        ),
+    ]
+    if mount is not None:
+        children.append(mount.runtime_host())
     return html.Section(
-        [
-            html.H2('Integrated Operations Layout'),
-            html.P(
-                'ComponentCards reales del contrato IO con crecimiento determinado por su '
-                'contenido y estructura estable para zoom Mina/Planta.'
-            ),
-            build_integrated_operations_layout(
-                manifest,
-                component_content=component_content,
-                shared_card_content=shared_card,
-                layout_id='reference-integrated-operations-layout',
-            ),
-        ],
+        children,
         className='reference-ada__io-layout-demo',
     )
 
 
-def _build_component_cards(manifest, component_key: str) -> html.Div:
+def _build_component_cards(
+    manifest,
+    component_key: str,
+    *,
+    mount: DashboardMount | None,
+) -> html.Div:
     cards = []
     for section in manifest.children(component_key):
         if section.subcomponent is None or section.linked_component_keys:
             continue
+        slot = mount.slot(component_key, section.subcomponent) if mount is not None else None
         cards.append(
             build_component_card(
                 manifest,
                 component=component_key,
                 subcomponent=section.subcomponent,
-                content=html.Div(
-                    'Contenido inyectado',
-                    className='reference-ada__component-card-content',
+                content=(
+                    slot.content
+                    if slot is not None
+                    else html.Div(
+                        'Contenido inyectado',
+                        className='reference-ada__component-card-content',
+                    )
                 ),
                 label=section.display_name,
+                overlay=slot.overlay if slot is not None else None,
                 class_name='flex-fill',
             )
         )
@@ -66,7 +90,7 @@ def _build_shared_card(manifest):
         component=_SHARED_COMPONENT,
         subcomponent=_SHARED_SUBCOMPONENT,
         content=html.Div(
-            'Contenido inyectado',
+            'Slot compartido específico IO',
             className='reference-ada__component-card-content',
         ),
         label=section.display_name,

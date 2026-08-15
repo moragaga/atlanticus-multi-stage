@@ -1,5 +1,5 @@
-# Espejo pedagógico en español; la lógica ejecutable es equivalente al archivo productivo.
 from __future__ import annotations
+# Espejo comentado: conserva la misma lógica productiva y documenta su responsabilidad.
 
 from collections.abc import Mapping
 
@@ -78,18 +78,27 @@ def _component_value(
         value['component_key'] = component_key
         return encode_component_time_series_snapshot(decode_component_time_series_snapshot(value))
     if channel is SnapshotChannel.STATUS:
-        if not isinstance(raw, str):
+        if not isinstance(raw, Mapping):
             raise DashboardStoreError(
-                f'Shared status snapshot for component {component_key!r} must be a string'
+                f'Shared status snapshot for component {component_key!r} must be a mapping'
             )
-        try:
-            state = ComponentProjectionState(raw)
-        except ValueError as error:
-            raise DashboardStoreError(
-                f'Unknown component projection state for {component_key!r}: {raw!r}'
-            ) from error
+        states: dict[str, ComponentProjectionState] = {}
+        for subcomponent_key, state_value in raw.items():
+            if not isinstance(subcomponent_key, str) or not subcomponent_key:
+                raise DashboardStoreError('Shared status subcomponent keys must be non-empty strings')
+            if not isinstance(state_value, str):
+                raise DashboardStoreError(
+                    f'Shared status state for {component_key!r}/{subcomponent_key!r} must be a string'
+                )
+            try:
+                states[subcomponent_key] = ComponentProjectionState(state_value)
+            except ValueError as error:
+                raise DashboardStoreError(
+                    'Unknown component projection state for '
+                    f'{component_key!r}/{subcomponent_key!r}: {state_value!r}'
+                ) from error
         return encode_component_state_snapshot(
-            ComponentStateSnapshot(component_key=component_key, state=state)
+            ComponentStateSnapshot(component_key=component_key, states=states)
         )
     raise DashboardStoreError(f'Unsupported dashboard snapshot channel: {channel!r}')
 

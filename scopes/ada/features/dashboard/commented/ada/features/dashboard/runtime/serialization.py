@@ -1,5 +1,5 @@
-# Espejo pedagógico en español; la lógica ejecutable es equivalente al archivo productivo.
 from __future__ import annotations
+# Espejo comentado: conserva la misma lógica productiva y documenta su responsabilidad.
 
 import math
 from collections.abc import Mapping, Sequence
@@ -71,20 +71,28 @@ def encode_component_state_snapshot(snapshot: ComponentStateSnapshot) -> dict[st
         raise DashboardStoreError('State store requires ComponentStateSnapshot')
     return {
         'component_key': snapshot.component_key,
-        'state': snapshot.state.value,
+        'states': {key: state.value for key, state in snapshot.states.items()},
     }
 
 
 def decode_component_state_snapshot(value: object) -> ComponentStateSnapshot:
     mapping = _mapping(value, 'State store payload must be a mapping')
-    state_value = _string(mapping, 'state')
-    try:
-        state = ComponentProjectionState(state_value)
-    except ValueError as error:
-        raise DashboardStoreError(f'Unknown component projection state: {state_value!r}') from error
+    raw_states = _mapping(mapping.get('states'), 'State store states must be a mapping')
+    states: dict[str, ComponentProjectionState] = {}
+    for key, state_value in raw_states.items():
+        if not isinstance(state_value, str):
+            raise DashboardStoreError(
+                f'Component projection state for {key!r} must be a string'
+            )
+        try:
+            states[key] = ComponentProjectionState(state_value)
+        except ValueError as error:
+            raise DashboardStoreError(
+                f'Unknown component projection state for {key!r}: {state_value!r}'
+            ) from error
     return ComponentStateSnapshot(
         component_key=_string(mapping, 'component_key'),
-        state=state,
+        states=states,
     )
 
 

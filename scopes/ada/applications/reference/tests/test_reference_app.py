@@ -40,6 +40,7 @@ def test_reference_composes_runtime_and_transversal_components_in_order() -> Non
         'ada-alarms',
         'ada-header',
         'ada-time-status',
+        'ada-dashboard-reference',
         'reference',
     )
     assert modules['navigation'].asset_layers == ()

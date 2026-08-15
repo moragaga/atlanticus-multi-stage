@@ -21,8 +21,8 @@ from ada.features.dashboard import (
 )
 
 
-def _renderer(bundle: object) -> object:
-    return bundle
+def _renderer(_bundle: object) -> dict[str, object]:
+    return {'main': 'ok'}
 
 
 def _process_manifest():
@@ -92,6 +92,16 @@ def test_dashboard_definition_discovers_only_real_io_body_components() -> None:
     )
 
 
+def test_io_shared_card_is_not_a_normal_dashboard_subcomponent_slot() -> None:
+    definition = DashboardDefinition.build(
+        manifest=INTEGRATED_OPERATIONS_MANIFEST,
+        configuration=DashboardToolConfiguration(),
+        renderers=ComponentRendererRegistry(),
+    )
+
+    assert 'gestion_carguio_turno' not in definition.component('carguio').subcomponent_keys
+
+
 def test_dashboard_definition_supports_generic_process_body_components() -> None:
     definition = DashboardDefinition.build(
         manifest=_process_manifest(),
@@ -103,6 +113,7 @@ def test_dashboard_definition_supports_generic_process_body_components() -> None
         'center_process',
         'right_process',
     )
+    assert definition.component('center_process').subcomponent_keys == ('main',)
 
 
 def test_declared_component_without_renderer_is_construction_and_needs_no_callback() -> None:

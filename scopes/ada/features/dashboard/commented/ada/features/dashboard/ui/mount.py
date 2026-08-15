@@ -1,5 +1,5 @@
-# Espejo pedagógico en español; la lógica ejecutable es equivalente al archivo productivo.
 from __future__ import annotations
+# Espejo comentado: conserva la misma lógica productiva y documenta su responsabilidad.
 
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -8,30 +8,50 @@ from types import MappingProxyType
 from dash import dcc, html
 from dash.development.base_component import Component
 
-from ada.ui.components.state_wrapper import ComponentCover, build_state_wrapper
+from ada.ui.components.state_wrapper import ComponentCover, build_state_overlay
 
 from ada.features.dashboard.core.definition import (
     DashboardComponentDefinition,
     DashboardDefinition,
 )
-from .ids import DashboardComponentIds, DashboardPollingIds
+from ada.features.dashboard.core.errors import DashboardDefinitionError
+from .ids import DashboardComponentIds, DashboardPollingIds, DashboardSubcomponentIds
 from .polling import dashboard_snapshot_channels
 from .wiring import initial_render_status
 
 
 @dataclass(frozen=True, slots=True)
+class DashboardSubcomponentSlot:
+    component_key: str
+    subcomponent_key: str
+    content: Component
+    overlay: Component
+
+
+@dataclass(frozen=True, slots=True)
 class DashboardMount:
     dashboard_key: str
-    component_content: Mapping[str, Component]
+    subcomponent_slots: Mapping[tuple[str, str], DashboardSubcomponentSlot]
     stores: tuple[dcc.Store, ...]
     intervals: tuple[dcc.Interval, ...] = ()
 
     def __post_init__(self) -> None:
         object.__setattr__(
-            self, 'component_content', MappingProxyType(dict(self.component_content))
+            self,
+            'subcomponent_slots',
+            MappingProxyType(dict(self.subcomponent_slots)),
         )
         object.__setattr__(self, 'stores', tuple(self.stores))
         object.__setattr__(self, 'intervals', tuple(self.intervals))
+
+    def slot(self, component_key: str, subcomponent_key: str) -> DashboardSubcomponentSlot:
+        try:
+            return self.subcomponent_slots[(component_key, subcomponent_key)]
+        except KeyError as error:
+            raise DashboardDefinitionError(
+                'Unknown dashboard subcomponent slot: '
+                f'{component_key!r}/{subcomponent_key!r}'
+            ) from error
 
     def runtime_host(self) -> html.Div:
         return html.Div((*self.stores, *self.intervals), style={'display': 'none'})
@@ -46,16 +66,38 @@ def build_dashboard_mount(
     dashboard_key: str | None = None,
 ) -> DashboardMount:
     resolved_dashboard_key = dashboard_key or definition.manifest.tool_key
-    content: dict[str, Component] = {}
+    slots: dict[tuple[str, str], DashboardSubcomponentSlot] = {}
     stores: list[dcc.Store] = []
     for component in definition.components:
-        ids = DashboardComponentIds(resolved_dashboard_key, component.section.key)
-        component_content, component_stores = _build_component_mount(
-            component,
-            ids=ids,
-        )
-        content[component.section.key] = component_content
-        stores.extend(component_stores)
+        for section in component.subcomponents:
+            if section.subcomponent is None:
+                continue
+            ids = DashboardSubcomponentIds(
+                resolved_dashboard_key,
+                component.section.key,
+                section.key,
+            )
+            overlay = (
+                build_state_overlay(ComponentCover.construction())
+                if component.construction
+                else None
+            )
+            slots[(component.section.key, section.subcomponent)] = DashboardSubcomponentSlot(
+                component_key=component.section.key,
+                subcomponent_key=section.subcomponent,
+                content=html.Div(id=ids.content),
+                overlay=html.Div(overlay, id=ids.overlay),
+            )
+        if component.callback_required:
+            stores.extend(
+                _build_component_stores(
+                    component,
+                    ids=DashboardComponentIds(
+                        resolved_dashboard_key,
+                        component.section.key,
+                    ),
+                )
+            )
     intervals: tuple[dcc.Interval, ...] = ()
     if definition.polling is not None:
         polling_ids = DashboardPollingIds(resolved_dashboard_key)
@@ -75,36 +117,10 @@ def build_dashboard_mount(
         )
     return DashboardMount(
         dashboard_key=resolved_dashboard_key,
-        component_content=content,
+        subcomponent_slots=slots,
         stores=tuple(stores),
         intervals=intervals,
     )
-
-
-def _build_component_mount(
-    component: DashboardComponentDefinition,
-    *,
-    ids: DashboardComponentIds,
-) -> tuple[Component, tuple[dcc.Store, ...]]:
-    if component.construction:
-        return (
-            build_state_wrapper(
-                cover=ComponentCover.construction(),
-                ready_name=_ready_name(component.section.key),
-            ),
-            (),
-        )
-
-    stores = _build_component_stores(component, ids=ids)
-    wrapper = build_state_wrapper(
-        content=[
-            html.Div(id=ids.content),
-            html.Div(id=ids.overlay),
-        ],
-        component_id=ids.wrapper,
-        ready_name=_ready_name(component.section.key),
-    )
-    return wrapper, stores
 
 
 def _build_component_stores(
@@ -126,12 +142,8 @@ def _build_component_stores(
             dcc.Store(
                 id=ids.render_status_store,
                 storage_type='memory',
-                data=initial_render_status(component.section.key),
+                data=initial_render_status(component),
             ),
         ]
     )
     return tuple(stores)
-
-
-def _ready_name(component_key: str) -> str:
-    return component_key.replace('_', '-')

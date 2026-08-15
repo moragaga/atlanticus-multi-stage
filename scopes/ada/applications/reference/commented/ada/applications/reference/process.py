@@ -1,8 +1,14 @@
-# Espejo pedagógico: las tres variantes demuestran que la cantidad de cards del CENTER depende de cada herramienta, no de la geometría genérica.
+from __future__ import annotations
+# Espejo comentado: conserva la misma lógica productiva y documenta su responsabilidad.
+
+from dataclasses import dataclass
+from typing import Mapping
+
 from dash import html
 
 from ada.contracts.tool_manifest import (
     ProcessBodySection,
+    ToolManifest,
     ToolScope,
     ToolSection,
     ToolSectionKind,
@@ -11,6 +17,7 @@ from ada.contracts.tool_manifest import (
     ToolTarget,
     build_process_manifest,
 )
+from ada.features.dashboard import DashboardMount
 from ada.ui.components.component_card import build_component_card
 from ada.ui.layouts.process import build_process_layout
 
@@ -74,7 +81,51 @@ _LEFT_CENTER_RIGHT_BOTTOM = (
 )
 
 
-def build_reference_process_layout() -> html.Section:
+@dataclass(frozen=True, slots=True)
+class ReferenceProcessVariant:
+    title: str
+    manifest: ToolManifest
+    layout_id: str
+
+
+_VARIANT_SPECS = (
+    (
+        'CENTER + RIGHT · CENTER con múltiples cards',
+        'process_center_right_reference',
+        'reference-process-center-right',
+        _CENTER_RIGHT,
+    ),
+    (
+        'LEFT + CENTER + RIGHT · CENTER con una card',
+        'process_full_reference',
+        'reference-process-full',
+        _LEFT_CENTER_RIGHT,
+    ),
+    (
+        'LEFT + CENTER + RIGHT + BOTTOM · CENTER y BOTTOM con una card',
+        'process_full_bottom_reference',
+        'reference-process-full-bottom',
+        _LEFT_CENTER_RIGHT_BOTTOM,
+    ),
+)
+
+
+def reference_process_variants() -> tuple[ReferenceProcessVariant, ...]:
+    return tuple(
+        ReferenceProcessVariant(
+            title=title,
+            manifest=_build_manifest(tool_key=tool_key, definitions=definitions),
+            layout_id=layout_id,
+        )
+        for title, tool_key, layout_id, definitions in _VARIANT_SPECS
+    )
+
+
+def build_reference_process_layout(
+    *,
+    mounts: Mapping[str, DashboardMount] | None = None,
+) -> html.Section:
+    resolved_mounts = dict(mounts or {})
     return html.Section(
         [
             html.H2('Process Layout'),
@@ -82,23 +133,12 @@ def build_reference_process_layout() -> html.Section:
                 'Tres composiciones contractuales: CENTER+RIGHT = 10/2, '
                 'LEFT+CENTER+RIGHT = 2/8/2 y la misma composición con BOTTOM = 12.'
             ),
-            _build_variant(
-                title='CENTER + RIGHT · CENTER con múltiples cards',
-                tool_key='process_center_right_reference',
-                layout_id='reference-process-center-right',
-                definitions=_CENTER_RIGHT,
-            ),
-            _build_variant(
-                title='LEFT + CENTER + RIGHT · CENTER con una card',
-                tool_key='process_full_reference',
-                layout_id='reference-process-full',
-                definitions=_LEFT_CENTER_RIGHT,
-            ),
-            _build_variant(
-                title='LEFT + CENTER + RIGHT + BOTTOM · CENTER y BOTTOM con una card',
-                tool_key='process_full_bottom_reference',
-                layout_id='reference-process-full-bottom',
-                definitions=_LEFT_CENTER_RIGHT_BOTTOM,
+            *(
+                _build_variant(
+                    variant,
+                    mount=resolved_mounts.get(variant.manifest.tool_key),
+                )
+                for variant in reference_process_variants()
             ),
         ],
         className='reference-ada__process-layout-demo',
@@ -106,31 +146,35 @@ def build_reference_process_layout() -> html.Section:
 
 
 def _build_variant(
+    variant: ReferenceProcessVariant,
     *,
-    title: str,
-    tool_key: str,
-    layout_id: str,
-    definitions: tuple,
+    mount: DashboardMount | None = None,
 ) -> html.Div:
-    manifest = _build_manifest(tool_key=tool_key, definitions=definitions)
     content = {
-        component.key: _build_component_cards(manifest, component.key)
-        for component in manifest.children('body')
+        component.key: _build_component_cards(
+            variant.manifest,
+            component.key,
+            mount=mount,
+        )
+        for component in variant.manifest.children('body')
     }
+    children = [
+        html.H3(variant.title),
+        build_process_layout(
+            variant.manifest,
+            component_content=content,
+            layout_id=variant.layout_id,
+        ),
+    ]
+    if mount is not None:
+        children.append(mount.runtime_host())
     return html.Div(
-        [
-            html.H3(title),
-            build_process_layout(
-                manifest,
-                component_content=content,
-                layout_id=layout_id,
-            ),
-        ],
+        children,
         className='reference-ada__process-layout-variant',
     )
 
 
-def _build_manifest(*, tool_key: str, definitions: tuple):
+def _build_manifest(*, tool_key: str, definitions: tuple) -> ToolManifest:
     components = tuple(
         _component(
             key=key,
@@ -192,21 +236,32 @@ def _subcomponent(
     )
 
 
-def _build_component_cards(manifest, component_key: str) -> html.Div:
+def _build_component_cards(
+    manifest: ToolManifest,
+    component_key: str,
+    *,
+    mount: DashboardMount | None,
+) -> html.Div:
     cards = []
     for section in manifest.children(component_key):
         if section.subcomponent is None:
             continue
+        slot = mount.slot(component_key, section.subcomponent) if mount is not None else None
         cards.append(
             build_component_card(
                 manifest,
                 component=component_key,
                 subcomponent=section.subcomponent,
-                content=html.Div(
-                    'Contenido inyectado',
-                    className='reference-ada__component-card-content',
+                content=(
+                    slot.content
+                    if slot is not None
+                    else html.Div(
+                        'Contenido inyectado',
+                        className='reference-ada__component-card-content',
+                    )
                 ),
                 label=section.display_name,
+                overlay=slot.overlay if slot is not None else None,
                 class_name='flex-fill',
             )
         )

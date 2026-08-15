@@ -1,5 +1,5 @@
-# Espejo pedagógico en español; la lógica ejecutable es equivalente al archivo productivo.
 from __future__ import annotations
+# Espejo comentado: conserva la misma lógica productiva y documenta su responsabilidad.
 
 import math
 import re
@@ -175,7 +175,7 @@ class ComponentBundle:
         object.__setattr__(self, 'time_series', MappingProxyType(windows))
 
 
-ComponentRenderer = Callable[[ComponentBundle], object]
+ComponentRenderer = Callable[[ComponentBundle], Mapping[str, object]]
 
 
 @dataclass(frozen=True, slots=True)
