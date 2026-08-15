@@ -1,6 +1,13 @@
 from .errors import RuntimeDefinitionError
 from .gate import Gate
 from .guard import GuardResult, GuardState, resolve_guard
+from .projections import (
+    ComponentDataSnapshot,
+    ComponentProjectionState,
+    ComponentStateSnapshot,
+    ComponentTimeSeriesSnapshot,
+    TimeSeriesWindowSnapshot,
+)
 from .runtime import AdaRuntime, RefreshResult, RefreshState, RuntimeView
 from .snapshot import (
     Freshness,
@@ -14,6 +21,10 @@ from .snapshot import (
 )
 
 __all__ = [
+    'ComponentDataSnapshot',
+    'ComponentProjectionState',
+    'ComponentStateSnapshot',
+    'ComponentTimeSeriesSnapshot',
     'AdaRuntime',
     'Freshness',
     'Gate',
@@ -28,6 +39,7 @@ __all__ = [
     'RuntimeView',
     'SourceHealth',
     'SourceState',
+    'TimeSeriesWindowSnapshot',
     'ValueState',
     'ValueStatus',
     'resolve_guard',
