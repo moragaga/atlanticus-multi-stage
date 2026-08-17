@@ -20,9 +20,14 @@ def _walk(component):
             yield from _walk(child)
 
 
+def _find_by_id(component, component_id: str):
+    return next(node for node in _walk(component) if _props(node).get('id') == component_id)
+
+
 def test_reference_renders_all_integrated_operations_components_and_cards() -> None:
     section = build_reference_integrated_operations_layout()
-    layout = _props(section)['children'][2]
+    view = _find_by_id(section, 'reference-integrated-operations-view')
+    layout = _find_by_id(view, 'reference-integrated-operations-layout')
     scopes = _props(layout)['children']
     components = [
         component
@@ -35,8 +40,9 @@ def test_reference_renders_all_integrated_operations_components_and_cards() -> N
         item for item in _walk(layout) if _props(item).get('data-ada-component-card') == 'true'
     ]
 
-    assert _props(layout)['id'] == 'reference-integrated-operations-layout'
-    assert _props(layout)['data-ada-io-view'] == 'overview'
+    assert _props(view)['data-ada-io-view-root'] == 'integrated-operations'
+    assert _props(view)['data-ada-io-view'] == 'overview'
+    assert _props(layout)['data-ada-io-layout'] == 'integrated-operations'
     assert component_keys == (
         'general_mina',
         'carguio',
@@ -71,7 +77,7 @@ def test_reference_renders_all_integrated_operations_components_and_cards() -> N
 
 def test_reference_shared_carguio_transporte_card_has_no_component_title() -> None:
     section = build_reference_integrated_operations_layout()
-    layout = _props(section)['children'][2]
+    layout = _find_by_id(section, 'reference-integrated-operations-layout')
     mine = _props(layout)['children'][0]
     shared_wrapper = next(
         node

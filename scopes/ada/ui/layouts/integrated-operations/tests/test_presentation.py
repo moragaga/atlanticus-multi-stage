@@ -10,7 +10,6 @@ from ada.contracts.tool_manifest import (
 )
 from ada.ui.layouts.integrated_operations import (
     IntegratedOperationsLayoutError,
-    IntegratedOperationsView,
     build_integrated_operations_layout,
 )
 
@@ -50,7 +49,7 @@ def _component_keys(layout):
     )
 
 
-def test_overview_preserves_semantic_scope_and_component_identities() -> None:
+def test_layout_preserves_semantic_scope_and_component_identities() -> None:
     layout = build_integrated_operations_layout(
         INTEGRATED_OPERATIONS_MANIFEST,
         component_content=_content(),
@@ -58,11 +57,11 @@ def test_overview_preserves_semantic_scope_and_component_identities() -> None:
         layout_id='io-layout',
     )
     props = _props(layout)
-    mine, plant = props['children']
+    mine, plant = [child for child in props['children'] if 'data-ada-io-scope-key' in _props(child)]
 
     assert props['id'] == 'io-layout'
     assert props['data-ada-io-layout'] == 'integrated-operations'
-    assert props['data-ada-io-view'] == 'overview'
+    assert 'data-ada-io-view' not in props
     assert _props(mine)['data-ada-io-scope-key'] == 'mine'
     assert _props(plant)['data-ada-io-scope-key'] == 'plant'
     assert _component_keys(layout) == _COMPONENT_KEYS
@@ -76,30 +75,6 @@ def test_layout_omits_optional_id_when_not_provided() -> None:
     )
 
     assert 'id' not in _props(layout)
-
-
-def test_zoom_views_keep_the_same_component_tree() -> None:
-    overview = build_integrated_operations_layout(
-        INTEGRATED_OPERATIONS_MANIFEST,
-        component_content=_content(),
-        shared_card_content=_shared_card(),
-    )
-    mine = build_integrated_operations_layout(
-        INTEGRATED_OPERATIONS_MANIFEST,
-        component_content=_content(),
-        shared_card_content=_shared_card(),
-        view=IntegratedOperationsView.MINE,
-    )
-    plant = build_integrated_operations_layout(
-        INTEGRATED_OPERATIONS_MANIFEST,
-        component_content=_content(),
-        shared_card_content=_shared_card(),
-        view=IntegratedOperationsView.PLANT,
-    )
-
-    assert _component_keys(overview) == _component_keys(mine) == _component_keys(plant)
-    assert _props(mine)['data-ada-io-view'] == 'mine'
-    assert _props(plant)['data-ada-io-view'] == 'plant'
 
 
 def test_layout_renders_injected_content_without_rewriting_it() -> None:

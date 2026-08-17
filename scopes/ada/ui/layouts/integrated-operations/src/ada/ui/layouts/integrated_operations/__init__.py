@@ -5,11 +5,13 @@ from .module import (
     create_ada_integrated_operations_layout_module,
 )
 from .presentation import build_integrated_operations_layout
+from .view import build_integrated_operations_view
 
 __all__ = [
     'ADA_INTEGRATED_OPERATIONS_LAYOUT_ASSET_LAYER',
     'IntegratedOperationsLayoutError',
     'IntegratedOperationsView',
     'build_integrated_operations_layout',
+    'build_integrated_operations_view',
     'create_ada_integrated_operations_layout_module',
 ]

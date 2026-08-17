@@ -8,7 +8,6 @@ from ada.contracts.tool_manifest import ToolManifest, ToolScope, ToolSectionKind
 from ada.ui.components.component_container import build_component_container
 
 from .errors import IntegratedOperationsLayoutError
-from .models import IntegratedOperationsView
 
 _MINE_COMPONENT_KEYS = (
     'general_mina',
@@ -34,11 +33,9 @@ def build_integrated_operations_layout(
     *,
     component_content: Mapping[str, object],
     shared_card_content: object,
-    view: IntegratedOperationsView = IntegratedOperationsView.OVERVIEW,
     layout_id: str | None = None,
     class_name: str | None = None,
 ) -> html.Div:
-    _validate_view(view)
     _validate_layout_id(layout_id)
     _validate_manifest(manifest)
     content = dict(component_content)
@@ -55,7 +52,6 @@ def build_integrated_operations_layout(
     root_attributes = {
         'className': classes,
         'data-ada-io-layout': 'integrated-operations',
-        'data-ada-io-view': view.value,
     }
     if layout_id is not None:
         root_attributes['id'] = layout_id
@@ -104,7 +100,9 @@ def _build_mine_scope(
             component_nodes['transporte'],
             html.Div(
                 shared_card_content,
-                className='ada-io-layout__shared-card ada-io-layout__shared-card--carguio-transporte',
+                className=(
+                    'ada-io-layout__shared-card ada-io-layout__shared-card--carguio-transporte'
+                ),
                 **{
                     'data-ada-io-shared-subcomponent-key': shared.key,
                 },
@@ -163,11 +161,6 @@ def _validate_layout_id(layout_id: str | None) -> None:
         raise IntegratedOperationsLayoutError(
             f'Invalid integrated operations layout id: {layout_id!r}'
         )
-
-
-def _validate_view(view: IntegratedOperationsView) -> None:
-    if not isinstance(view, IntegratedOperationsView):
-        raise IntegratedOperationsLayoutError(f'Invalid integrated operations view: {view!r}')
 
 
 def _validate_manifest(manifest: ToolManifest) -> None:

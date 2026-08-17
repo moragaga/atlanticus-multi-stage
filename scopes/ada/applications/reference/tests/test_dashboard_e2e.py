@@ -245,3 +245,37 @@ def test_reference_e2e_keeps_static_component_cards_and_only_injects_inner_slots
     assert len(cards) == 22
     assert len(dashboard_content_slots) == 21
     assert state_wrappers == []
+
+
+def test_reference_io_e2e_mounts_full_tool_view_without_rebuilding_dashboard_units() -> None:
+    from ada.applications.reference.integrated_operations import (
+        build_reference_integrated_operations_layout,
+    )
+
+    catalog = build_reference_dashboard_catalog()
+    mount = catalog.dashboard('integrated_operations').mount()
+    layout = build_reference_integrated_operations_layout(mount=mount)
+    nodes = tuple(_walk(layout))
+    full_view = next(
+        node
+        for node in nodes
+        if node.to_plotly_json()['props'].get('data-ada-io-view-root') == 'integrated-operations'
+    )
+    body = next(
+        node
+        for node in nodes
+        if node.to_plotly_json()['props'].get('data-ada-io-layout') == 'integrated-operations'
+    )
+
+    assert full_view.to_plotly_json()['props']['data-ada-io-view'] == 'overview'
+    assert body.to_plotly_json()['props']['id'] == 'reference-integrated-operations-layout'
+    assert (
+        len(
+            [
+                node
+                for node in nodes
+                if node.to_plotly_json()['props'].get('data-ada-component-card') == 'true'
+            ]
+        )
+        == 22
+    )

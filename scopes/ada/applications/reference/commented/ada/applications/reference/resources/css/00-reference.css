@@ -1,3 +1,4 @@
+/* Espejo comentado de estilos de la aplicación de referencia. */
 html,
 body {
     min-height: 100%;
@@ -296,7 +297,6 @@ body {
     grid-row: 1;
 }
 
-/* Las demos de IO y Process se separan del resto del harness para comparar el esqueleto visual. */
 .reference-ada__io-layout-demo,
 .reference-ada__process-layout-demo {
     display: grid;
@@ -311,7 +311,6 @@ body {
     margin: 0;
 }
 
-/* El placeholder ocupa solo el cuerpo de la card; el nombre vive en el footer cuando corresponde. */
 .reference-ada__component-card-content {
     display: flex;
     min-height: 2.5rem;
@@ -321,4 +320,71 @@ body {
     color: var(--custom-text-color);
     font-size: .62rem;
     text-align: center;
+}
+
+.reference-ada__io-view-header {
+    display: flex;
+    min-height: 3rem;
+    align-items: stretch;
+    overflow: hidden;
+    background: var(--tertiary-background, #E1E1E1);
+    border-bottom: 1px solid var(--primary-border-color, #BDBDBD);
+}
+
+.reference-ada__io-view-title {
+    display: flex;
+    flex: 0 0 11rem;
+    align-items: center;
+    justify-content: center;
+    padding: .45rem .7rem;
+    color: var(--custom-text-color, #4D4D4D);
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .08rem;
+}
+
+.reference-ada__io-view-indicators {
+    display: flex;
+    flex: 1 1 0;
+    min-width: 0;
+    align-items: center;
+}
+
+.reference-ada__io-view-indicators > span {
+    display: flex;
+    min-width: 0;
+    min-height: 100%;
+    flex: 1 1 0;
+    align-items: center;
+    justify-content: center;
+    padding: .35rem .55rem;
+    border-left: 1px solid var(--primary-border-color, #BDBDBD);
+    color: var(--custom-text-color, #4D4D4D);
+    font-size: .58rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.reference-ada__io-alarm-pills {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    align-items: center;
+    justify-content: center;
+    gap: .35rem;
+}
+
+.reference-ada__io-alarm-pill {
+    display: flex;
+    min-height: 1.55rem;
+    align-items: center;
+    padding: .2rem .65rem;
+    background: var(--primary-background, #EBEBEB);
+    border: 1px solid var(--primary-border-color, #BDBDBD);
+    border-left: .2rem solid #A31A1A;
+    border-radius: .4rem;
+    color: var(--custom-text-color, #4D4D4D);
+    font-size: .55rem;
+    font-weight: 700;
+    white-space: nowrap;
 }

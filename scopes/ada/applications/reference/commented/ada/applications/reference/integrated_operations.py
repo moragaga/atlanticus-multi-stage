@@ -1,12 +1,15 @@
+# Espejo comentado: referencia E2E de la vista completa de Operaciones Integradas.
 from __future__ import annotations
-# Espejo comentado: conserva la misma lógica productiva y documenta su responsabilidad.
 
 from dash import html
 
 from ada.contracts.tool_manifest import INTEGRATED_OPERATIONS_MANIFEST
 from ada.features.dashboard import DashboardMount
 from ada.ui.components.component_card import build_component_card
-from ada.ui.layouts.integrated_operations import build_integrated_operations_layout
+from ada.ui.layouts.integrated_operations import (
+    build_integrated_operations_layout,
+    build_integrated_operations_view,
+)
 
 _SHARED_COMPONENT = 'carguio'
 _SHARED_SUBCOMPONENT = 'gestion_carguio_turno'
@@ -26,18 +29,23 @@ def build_reference_integrated_operations_layout(
         for scope_key in ('mine', 'plant')
         for component in manifest.children(scope_key)
     }
-    shared_card = _build_shared_card(manifest)
+    body = build_integrated_operations_layout(
+        manifest,
+        component_content=component_content,
+        shared_card_content=_build_shared_card(manifest),
+        layout_id='reference-integrated-operations-layout',
+    )
     children = [
         html.H2('Integrated Operations Layout'),
         html.P(
-            'ComponentCards reales del contrato IO con crecimiento determinado por su '
-            'contenido y estructura estable para zoom Mina/Planta.'
+            'Vista completa IO con Header, alarmas por scope y body estable para zoom Mina/Planta.'
         ),
-        build_integrated_operations_layout(
-            manifest,
-            component_content=component_content,
-            shared_card_content=shared_card,
-            layout_id='reference-integrated-operations-layout',
+        build_integrated_operations_view(
+            header_content=_build_reference_zoom_header(),
+            mine_alarm_pills=_build_reference_alarm_pills('mine'),
+            plant_alarm_pills=_build_reference_alarm_pills('plant'),
+            body_content=body,
+            view_id='reference-integrated-operations-view',
         ),
     ]
     if mount is not None:
@@ -45,6 +53,46 @@ def build_reference_integrated_operations_layout(
     return html.Section(
         children,
         className='reference-ada__io-layout-demo',
+    )
+
+
+def _build_reference_zoom_header() -> html.Div:
+    return html.Div(
+        [
+            html.Div('OPERACIONES INTEGRADAS', className='reference-ada__io-view-title'),
+            html.Div(
+                [
+                    html.Span('Transportado 220 kt'),
+                    html.Span('ExPit 426 t'),
+                ],
+                className='reference-ada__io-view-indicators',
+                **{'data-scope': 'mine'},
+            ),
+            html.Div(
+                [
+                    html.Span('Molienda 210 kt'),
+                    html.Span('Recuperación Cu 90,5%'),
+                    html.Span('Cu Fino 1.050 t'),
+                ],
+                className='reference-ada__io-view-indicators',
+                **{'data-scope': 'plant'},
+            ),
+        ],
+        className='reference-ada__io-view-header',
+    )
+
+
+def _build_reference_alarm_pills(scope: str) -> html.Div:
+    labels = {
+        'mine': ('MP10 alto', 'Chancado CH-02'),
+        'plant': ('PH10', 'Flotación F11W'),
+    }[scope]
+    return html.Div(
+        [
+            html.Div(label, className='reference-ada__io-alarm-pill')
+            for label in labels
+        ],
+        className='reference-ada__io-alarm-pills',
     )
 
 

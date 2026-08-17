@@ -1,0 +1,225 @@
+/* Espejo comentado: presentación full-screen de la herramienta IO y controles de navegación Mina/Planta. */
+.ada-io-view {
+    --ada-io-view-surface: var(--secondary-background, #949494);
+    --ada-io-view-panel: var(--tertiary-background, #E1E1E1);
+    --ada-io-view-border: var(--primary-border-color, #BDBDBD);
+    --ada-io-view-ink: var(--custom-text-color, #4D4D4D);
+    position: relative;
+    width: 100%;
+    min-width: 0;
+}
+
+.ada-io-view__header,
+.ada-io-view__body,
+.ada-io-view__alarms {
+    min-width: 0;
+}
+
+.ada-io-view__alarms {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: .2rem;
+    padding: .2rem 0;
+}
+
+.ada-io-view__alarm-scope {
+    display: flex;
+    min-width: 0;
+    align-items: stretch;
+    gap: .25rem;
+}
+
+.ada-io-view__body {
+    position: relative;
+    min-height: 0;
+}
+
+.ada-io-view__overview-controls,
+.ada-io-view__zoom-controls {
+    display: none;
+}
+
+@media (min-width: 96rem) {
+    .ada-io-view__alarms {
+        grid-template-columns: minmax(0, 4fr) minmax(0, 5fr);
+    }
+
+    .ada-io-view__overview-controls {
+        position: absolute;
+        top: -.95rem;
+        right: 0;
+        left: 0;
+        z-index: 40;
+        display: block;
+        height: 0;
+        pointer-events: none;
+    }
+
+    .ada-io-view__overview-button {
+        position: absolute;
+        top: 0;
+        display: inline-flex;
+        align-items: center;
+        gap: .2rem;
+        min-height: 1rem;
+        padding: .1rem .45rem;
+        border: 1px solid var(--ada-io-view-border);
+        background: var(--ada-io-view-panel);
+        color: var(--ada-io-view-ink);
+        font-size: .5rem;
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: .08rem;
+        box-shadow: 0 .0625rem .125rem rgb(0 0 0 / 10%);
+        pointer-events: auto;
+    }
+
+    .ada-io-view__overview-button:hover,
+    .ada-io-view__overview-button:focus-visible,
+    .ada-io-view__close:hover,
+    .ada-io-view__close:focus-visible,
+    .ada-io-view__side:hover,
+    .ada-io-view__side:focus-visible {
+        background: var(--primary-background, #EBEBEB);
+        border-color: var(--ada-io-view-ink);
+        outline: none;
+    }
+
+    .ada-io-view__overview-button--mine {
+        left: 0;
+        border-left: 0;
+        border-radius: 0 .4rem .4rem 0;
+    }
+
+    .ada-io-view__overview-button--mine::after,
+    .ada-io-view__overview-button--plant::after {
+        content: '↗';
+    }
+
+    .ada-io-view__overview-button--plant {
+        right: 0;
+        border-right: 0;
+        border-radius: .4rem 0 0 .4rem;
+    }
+
+    .ada-io-view[data-ada-io-view='mine'],
+    .ada-io-view[data-ada-io-view='plant'] {
+        position: fixed;
+        inset: 0;
+        z-index: 900;
+        display: flex;
+        overflow: hidden;
+        flex-direction: column;
+        background: var(--ada-io-view-surface);
+    }
+
+    .ada-io-view[data-ada-io-view='mine'] .ada-io-view__header,
+    .ada-io-view[data-ada-io-view='plant'] .ada-io-view__header {
+        flex: 0 0 auto;
+    }
+
+    .ada-io-view[data-ada-io-view='mine'] .ada-io-view__header [data-scope='plant'],
+    .ada-io-view[data-ada-io-view='plant'] .ada-io-view__header [data-scope='mine'] {
+        display: none !important;
+    }
+
+    .ada-io-view[data-ada-io-view='mine'] .ada-io-view__alarms,
+    .ada-io-view[data-ada-io-view='plant'] .ada-io-view__alarms {
+        flex: 0 0 auto;
+        grid-template-columns: minmax(0, 1fr);
+        padding: .35rem .9rem;
+        background: var(--ada-io-view-surface);
+    }
+
+    .ada-io-view[data-ada-io-view='mine'] .ada-io-view__alarm-scope--plant,
+    .ada-io-view[data-ada-io-view='plant'] .ada-io-view__alarm-scope--mine {
+        display: none;
+    }
+
+    .ada-io-view[data-ada-io-view='mine'] .ada-io-view__body,
+    .ada-io-view[data-ada-io-view='plant'] .ada-io-view__body {
+        flex: 1 1 0;
+        min-height: 0;
+        overflow: auto;
+        padding: .75rem .9rem .9rem;
+        background: var(--ada-io-view-surface);
+    }
+
+    .ada-io-view[data-ada-io-view='mine'] .ada-io-view__overview-controls,
+    .ada-io-view[data-ada-io-view='plant'] .ada-io-view__overview-controls {
+        display: none;
+    }
+
+    .ada-io-view[data-ada-io-view='mine'] .ada-io-view__zoom-controls,
+    .ada-io-view[data-ada-io-view='plant'] .ada-io-view__zoom-controls {
+        display: block;
+    }
+
+    .ada-io-view__close,
+    .ada-io-view__side {
+        position: fixed;
+        z-index: 920;
+        border: 1px solid var(--ada-io-view-border);
+        background: rgb(255 255 255 / 82%);
+        color: var(--ada-io-view-ink);
+        box-shadow: 0 .125rem .35rem rgb(0 0 0 / 12%);
+    }
+
+    .ada-io-view__close {
+        top: .7rem;
+        right: .8rem;
+        display: flex;
+        width: 2rem;
+        height: 2rem;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border-radius: .45rem;
+        font-size: 1.25rem;
+        font-weight: 400;
+        line-height: 1;
+    }
+
+    .ada-io-view__side {
+        top: 50%;
+        display: none;
+        min-height: 4rem;
+        align-items: center;
+        padding: 0 .7rem;
+        transform: translateY(-50%);
+        font-size: .65rem;
+        font-weight: 800;
+        letter-spacing: .08rem;
+    }
+
+    .ada-io-view__side--mine {
+        left: 0;
+        border-left: 0;
+        border-radius: 0 .5rem .5rem 0;
+    }
+
+    .ada-io-view__side--mine::before {
+        content: '‹';
+        margin-right: .25rem;
+        font-size: 1.15rem;
+        line-height: 1;
+    }
+
+    .ada-io-view__side--plant {
+        right: 0;
+        border-right: 0;
+        border-radius: .5rem 0 0 .5rem;
+    }
+
+    .ada-io-view__side--plant::after {
+        content: '›';
+        margin-left: .25rem;
+        font-size: 1.15rem;
+        line-height: 1;
+    }
+
+    .ada-io-view[data-ada-io-view='mine'] .ada-io-view__side--plant,
+    .ada-io-view[data-ada-io-view='plant'] .ada-io-view__side--mine {
+        display: flex;
+    }
+}
