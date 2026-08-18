@@ -40,3 +40,14 @@ def test_dashboard_callback_targets_are_confined_inside_cards() -> None:
 
     assert len(slots) == 8
     assert all(_props(slot).get('id', '').endswith('--content') for slot in slots)
+
+
+def test_process_base_does_not_render_empty_alarm_message_when_no_active_alarms() -> None:
+    tool = build_process_base_tool()
+    string_children = [
+        _props(node).get('children')
+        for node in _walk(tool)
+        if isinstance(_props(node).get('children'), str)
+    ]
+
+    assert 'Sin alarmas activas' not in string_children

@@ -47,10 +47,6 @@ def build_process_base_tool():
             manifest=MANIFEST,
             snapshot=_runtime_snapshot(),
         ),
-        alarm_content=html.Div(
-            'Sin alarmas activas',
-            className='process-base__alarm-empty',
-        ),
         layout_id='process-base-layout',
         class_name='process-base',
     )

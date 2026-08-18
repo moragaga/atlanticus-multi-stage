@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime
 
-from dash import html
-
 from ada.compositions.process import create_process_tool_composition
 from ada.contracts.tool_manifest import ToolScope
 from ada.features.alarms.management_summary import (
@@ -43,10 +41,6 @@ def build_process_base_tool():
         time_status_state=create_time_status_state(
             manifest=MANIFEST,
             snapshot=_runtime_snapshot(),
-        ),
-        alarm_content=html.Div(
-            'Sin alarmas activas',
-            className='process-base__alarm-empty',
         ),
         layout_id='process-base-layout',
         class_name='process-base',

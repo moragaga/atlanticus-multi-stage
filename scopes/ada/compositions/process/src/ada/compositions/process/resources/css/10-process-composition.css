@@ -31,25 +31,28 @@
 .ada-process-tool__alarm-surface {
     position: relative;
     z-index: 2;
-    padding: .25rem var(--ada-process-tool-gap) .15rem;
+    padding: .05rem var(--ada-process-tool-gap) 0;
     overflow: visible;
     background: var(--ada-process-tool-surface);
     color: var(--ada-process-tool-surface-ink);
-    border-bottom: 1px solid var(--primary-border-color, #BDBDBD);
 }
 
 .ada-process-tool__alarm-content {
     width: 100%;
     min-width: 0;
-    margin-bottom: .1rem;
+    margin-bottom: 0;
 }
 
 .ada-process-tool__body {
     width: 100%;
-    padding: .25rem var(--ada-process-tool-gap) var(--ada-process-tool-gap);
+    padding: 0 var(--ada-process-tool-gap) var(--ada-process-tool-gap);
     overflow: hidden;
     background: var(--ada-process-tool-surface);
     color: var(--ada-process-tool-surface-ink);
+}
+
+.ada-process-tool__alarm-surface > .ada-alarm-dashboard-baseline {
+    margin-bottom: -.05rem;
 }
 
 .ada-process-tool__layout {
