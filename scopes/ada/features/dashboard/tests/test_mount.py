@@ -101,6 +101,9 @@ def test_mount_creates_slots_for_existing_cards_without_replacing_component_layo
     assert not hasattr(mount, 'component_content')
     assert len(mount.stores) == 3
     assert _props(mount.slot('center_process', 'main').content)['id'].endswith('--content')
+    assert _props(mount.slot('center_process', 'main').content)['className'] == (
+        'ada-dashboard-content-slot'
+    )
     construction_overlay = _props(mount.slot('right_process', 'main').overlay)['children']
     assert construction_overlay is not None
 

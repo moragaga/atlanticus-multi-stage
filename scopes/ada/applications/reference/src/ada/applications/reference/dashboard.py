@@ -15,6 +15,7 @@ from ada.contracts.tool_manifest import (
     ToolSectionKind,
 )
 from ada.features.dashboard import (
+    ADA_DASHBOARD_ASSET_LAYER,
     ComponentBundle,
     ComponentProjectionDefinition,
     ComponentRendererDefinition,
@@ -99,6 +100,7 @@ def create_reference_dashboard_module(
     reader = SharedSnapshotReader(repository, ttl_seconds=1.0)
     return WebModule(
         name='ada-dashboard-reference',
+        asset_layers=(ADA_DASHBOARD_ASSET_LAYER,),
         register_callbacks=partial(
             _register_callbacks,
             catalog=catalog,

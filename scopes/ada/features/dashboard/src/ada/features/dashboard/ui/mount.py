@@ -83,7 +83,7 @@ def build_dashboard_mount(
             slots[(component.section.key, section.subcomponent)] = DashboardSubcomponentSlot(
                 component_key=component.section.key,
                 subcomponent_key=section.subcomponent,
-                content=html.Div(id=ids.content),
+                content=html.Div(id=ids.content, className='ada-dashboard-content-slot'),
                 overlay=html.Div(overlay, id=ids.overlay),
             )
         if component.callback_required:

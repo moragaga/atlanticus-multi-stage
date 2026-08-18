@@ -33,6 +33,10 @@ include = ["ada.features.dashboard*"]
 
 [tool.setuptools.package-data]
 "ada.features.dashboard" = ["py.typed"]
+"ada.features.dashboard.ui" = [
+    "resources/css/*.css",
+    "resources/css/css.list",
+]
 
 [dependency-groups]
 dev = [

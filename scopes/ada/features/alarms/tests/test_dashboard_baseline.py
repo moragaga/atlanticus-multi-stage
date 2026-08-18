@@ -537,3 +537,45 @@ def test_alarm_js_manifest_declares_every_packaged_file_exactly_once() -> None:
 
     assert sorted(declared) == packaged
     assert len(declared) == len(set(declared))
+
+
+def test_integrated_operations_baseline_can_project_scopes_without_changing_targets() -> None:
+    baseline = build_integrated_operations_alarm_baseline(
+        ('general_mina', 'flotacion'),
+        component_scopes={
+            'general_mina': 'mine',
+            'flotacion': 'plant',
+        },
+    )
+    props = _props(baseline)
+    divider = props['children'][1]
+    nodes = props['children'][2:]
+
+    assert props['data-ada-alarm-scoped'] == 'true'
+    assert 'ada-alarm-dashboard-baseline--scoped' in props['className']
+    assert _props(divider)['className'] == 'ada-alarm-dashboard-baseline__scope-divider'
+    assert tuple(_props(node)['data-ada-alarm-target-key'] for node in nodes) == (
+        'general_mina',
+        'flotacion',
+    )
+    assert tuple(_props(node)['data-ada-alarm-scope'] for node in nodes) == ('mine', 'plant')
+    assert tuple(_props(node)['data-scope'] for node in nodes) == ('mine', 'plant')
+
+
+def test_scoped_baseline_rejects_incomplete_scope_mapping() -> None:
+    with pytest.raises(AlarmDefinitionError, match='scope mapping must match baseline targets'):
+        build_integrated_operations_alarm_baseline(
+            ('general_mina', 'flotacion'),
+            component_scopes={'general_mina': 'mine'},
+        )
+
+
+def test_process_baseline_remains_unscoped_and_keeps_original_structure() -> None:
+    process = build_process_alarm_baseline()
+    props = _props(process)
+
+    assert 'data-ada-alarm-scoped' not in props
+    assert len(props['children']) == 2
+    assert _props(props['children'][0])['className'] == 'ada-alarm-dashboard-baseline__line'
+    assert _props(props['children'][1])['data-ada-alarm-target-key'] == 'center'
+    assert 'data-ada-alarm-scope' not in _props(props['children'][1])

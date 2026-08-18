@@ -7,6 +7,7 @@ classifiers = [
 ]
 dependencies = [
     "ada-application-reference==0.1.0",
+    "ada-composition-process==0.1.0",
 ]
 
 [dependency-groups]
@@ -19,6 +20,7 @@ dev = [
 package = false
 
 [tool.uv.sources]
+ada-composition-process = { workspace = true }
 ada-application-reference = { workspace = true }
 ada-contracts-tool-manifest = { workspace = true }
 ada-runtime-web = { workspace = true }
@@ -47,6 +49,7 @@ atlanticus-web-users-local = { path = "../../web/capabilities/users/local", edit
 members = [
     "contracts/tool-manifest",
     "runtime/web",
+    "compositions/process",
     "ui/framework/core",
     "ui/layouts/integrated-operations",
     "ui/layouts/process",
@@ -92,6 +95,7 @@ combine-as-imports = true
 testpaths = [
     "contracts/tool-manifest/tests",
     "runtime/web/tests",
+    "compositions/process/tests",
     "ui/framework/core/tests",
     "ui/layouts/integrated-operations/tests",
     "ui/layouts/process/tests",

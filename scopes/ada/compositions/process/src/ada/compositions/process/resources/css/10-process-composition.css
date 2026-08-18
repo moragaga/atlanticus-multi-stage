@@ -1,0 +1,89 @@
+.ada-process-tool {
+    --ada-process-tool-surface: var(--background, #858585);
+    --ada-process-tool-surface-ink: var(--primary-background, #EBEBEB);
+    --ada-process-tool-card-surface: var(--primary-background, #EBEBEB);
+    --ada-process-tool-gap: .35rem;
+    --ada-process-tool-bottom-size: clamp(8rem, 24dvh, 14rem);
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+    overflow: hidden;
+    background: var(--ada-process-tool-surface);
+}
+
+.ada-process-tool__time-status,
+.ada-process-tool__alarm-surface,
+.ada-process-tool__body,
+.ada-process-tool__layout,
+.ada-process-tool__component-cards,
+.ada-process-tool__card {
+    min-width: 0;
+    min-height: 0;
+}
+
+.ada-process-tool__time-status {
+    position: relative;
+    z-index: 3;
+}
+
+.ada-process-tool__alarm-surface {
+    position: relative;
+    z-index: 2;
+    padding: .25rem var(--ada-process-tool-gap) .15rem;
+    overflow: visible;
+    background: var(--ada-process-tool-surface);
+    color: var(--ada-process-tool-surface-ink);
+    border-bottom: 1px solid var(--primary-border-color, #BDBDBD);
+}
+
+.ada-process-tool__alarm-content {
+    width: 100%;
+    min-width: 0;
+    margin-bottom: .1rem;
+}
+
+.ada-process-tool__body {
+    width: 100%;
+    padding: .25rem var(--ada-process-tool-gap) var(--ada-process-tool-gap);
+    overflow: hidden;
+    background: var(--ada-process-tool-surface);
+    color: var(--ada-process-tool-surface-ink);
+}
+
+.ada-process-tool__layout {
+    --ada-process-layout-gap: var(--ada-process-tool-gap);
+    height: 100%;
+    grid-template-rows: minmax(0, 1fr) auto;
+    overflow: hidden;
+}
+
+.ada-process-tool__layout > .ada-process-layout__main,
+.ada-process-tool__layout > .ada-process-layout__bottom {
+    min-height: 0;
+    overflow: hidden;
+}
+
+.ada-process-tool__layout > .ada-process-layout__bottom {
+    height: var(--ada-process-tool-bottom-size);
+    max-height: var(--ada-process-tool-bottom-size);
+}
+
+.ada-process-tool__component-cards {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: var(--ada-process-tool-gap);
+    overflow: hidden;
+}
+
+.ada-process-tool__card {
+    max-width: 100%;
+    flex: 1 1 auto;
+    overflow: hidden;
+    --ada-component-card-background: var(--ada-process-tool-card-surface);
+}

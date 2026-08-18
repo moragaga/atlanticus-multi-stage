@@ -108,3 +108,15 @@
     bottom: .1rem;
     transform: translateX(-50%) rotate(45deg);
 }
+
+.ada-alarm-dashboard-baseline__scope-divider {
+    position: absolute;
+    z-index: 0;
+    top: 50%;
+    left: var(--ada-alarm-scope-split, 50%);
+    width: 1px;
+    height: .75rem;
+    transform: translate(-50%, -50%);
+    background: var(--ada-alarm-node-neutral);
+    opacity: .45;
+}

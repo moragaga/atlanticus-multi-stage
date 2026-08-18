@@ -12,6 +12,7 @@ from ada.contracts.tool_manifest import (
     ToolSectionKind,
 )
 from ada.ui.components.component_container import build_component_container
+from ada.ui.framework.core import slot_identity_attributes
 
 from .errors import ProcessLayoutError
 
@@ -99,6 +100,7 @@ def _build_slot(
             'aria-label': component.display_name,
             'data-ada-process-layout-role': role.value,
             'data-ada-process-component-key': component.key,
+            **slot_identity_attributes(role.value),
         },
     )
 

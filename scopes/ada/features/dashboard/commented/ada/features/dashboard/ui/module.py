@@ -1,20 +1,29 @@
-# Espejo pedagógico en español; la lógica ejecutable es equivalente al archivo productivo.
+# Espejo comentado: módulo web de Dashboard con assets y wiring equivalentes al productivo.
 from __future__ import annotations
 
 from functools import partial
 
+from atlanticus.web.assets import AssetLayer
 from atlanticus.web.modules import WebModule
 from atlanticus.web.services import ServiceRegistry
 
+from ada.features.dashboard.core.definition import DashboardDefinition
+from ada.features.dashboard.core.errors import DashboardDefinitionError
 from ada.runtime.web import SharedSnapshotReader
 
 from .callbacks import register_dashboard_callbacks
-from ada.features.dashboard.core.definition import DashboardDefinition
-from ada.features.dashboard.core.errors import DashboardDefinitionError
 from .polling import DashboardPollingErrorHandler, register_dashboard_polling_callbacks
 from .wiring import ComponentRenderErrorHandler
 
+# La capa CSS pertenece al feature para que todo consumidor reciba la misma frontera de contenido.
+ADA_DASHBOARD_ASSET_LAYER = AssetLayer(
+    name='ada_feature_dashboard',
+    load_order=245,
+    package='ada.features.dashboard.ui',
+)
 
+
+# El módulo registra assets y callbacks; polling exige explícitamente un SharedSnapshotReader.
 def create_ada_dashboard_module(
     definition: DashboardDefinition,
     *,
@@ -27,6 +36,7 @@ def create_ada_dashboard_module(
         raise DashboardDefinitionError('Dashboard polling requires SharedSnapshotReader')
     return WebModule(
         name='ada-dashboard',
+        asset_layers=(ADA_DASHBOARD_ASSET_LAYER,),
         register_callbacks=partial(
             _register_callbacks,
             definition=definition,

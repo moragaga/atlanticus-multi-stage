@@ -1,3 +1,4 @@
+# Espejo comentado: harness de alarmas de referencia y helper reutilizable de card.
 from dash import html
 
 from ada.features.alarms.dashboard import (
@@ -31,7 +32,6 @@ _IO_COMPONENTS = (
     ('fluid_transport', 'Transporte Fluidos'),
     ('port', 'Puerto'),
 )
-# Fixture variable 1..N: en producción estos hijos provienen del Tool Manifest.
 _IO_SUBCOMPONENTS = {
     'general_mine': (('general_mine_subcomponent_1', 'Subcomponente 1'),),
     'loading': (
@@ -68,11 +68,9 @@ _IO_SUBCOMPONENTS = {
     ),
 }
 _PROCESS_ALARM_COUNT = 6
-# Tiempo de observación posterior a completar ruta e impactos.
 _TRACE_DWELL_MS = 15_000
 
 
-# Solo quedan visibles los players que ejercitan la resolución real de líneas.
 def build_reference_alarm_interaction() -> html.Section:
     return html.Section(
         [
@@ -93,7 +91,6 @@ def build_reference_alarm_interaction() -> html.Section:
     )
 
 
-# Harness IO sin scheduler: permite validar rutas con uno o varios impactos de body.
 def _build_integrated_operations_player_reference() -> html.Div:
     definitions = {
         'general_mine': _route_definition(
@@ -214,7 +211,7 @@ def _player_io_alarm_slot(
         return html.Div(className='reference-ada__alarm-card-slot')
     return html.Div(
         [
-            _reference_alarm_card(
+            build_reference_alarm_card(
                 definition.card_key,
                 definition.event_id,
                 definition.tone,
@@ -226,7 +223,6 @@ def _player_io_alarm_slot(
     )
 
 
-# Harness Process sin rotación de cards: seis slots fijos para aislar el trace player.
 def _build_process_player_reference() -> html.Div:
     center = AlarmBaselineTarget(AlarmBaselineTargetKind.SLOT, 'center')
     definitions = tuple(
@@ -251,7 +247,7 @@ def _build_process_player_reference() -> html.Div:
             html.Div(
                 html.Div(
                     [
-                        _reference_alarm_card(
+                        build_reference_alarm_card(
                             definition.card_key,
                             definition.event_id,
                             definition.tone,
@@ -305,8 +301,7 @@ def _build_process_body_grid(variant: str, slots: tuple[str, ...]) -> html.Div:
     )
 
 
-# La alarm card conserva siempre su rojo/amarillo; el player no altera su borde ni fondo.
-def _reference_alarm_card(
+def build_reference_alarm_card(
     card_key: str,
     label: str,
     tone: AlarmRouteTone,
@@ -368,12 +363,10 @@ def _component_target_definition(key: str) -> AlarmBaselineTarget:
     return AlarmBaselineTarget(AlarmBaselineTargetKind.COMPONENT, key)
 
 
-# El contorno apunta a una card concreta y nunca al lane del componente.
 def _subcomponent_target_definition(key: str) -> AlarmBaselineTarget:
     return AlarmBaselineTarget(AlarmBaselineTargetKind.SUBCOMPONENT, key)
 
 
-# El lane da posición al punto; las cards son hijas directas y visualmente independientes.
 def _component_lane(key: str, label: str) -> html.Div:
     return html.Div(
         [

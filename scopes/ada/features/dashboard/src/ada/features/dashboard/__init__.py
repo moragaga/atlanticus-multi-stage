@@ -32,6 +32,7 @@ from .runtime import (
     encode_component_time_series_snapshot,
 )
 from .ui import (
+    ADA_DASHBOARD_ASSET_LAYER,
     ComponentRenderResult,
     ComponentRenderState,
     ComponentRenderStatus,
@@ -55,6 +56,7 @@ from .ui import (
 )
 
 __all__ = [
+    'ADA_DASHBOARD_ASSET_LAYER',
     'ComponentBundle',
     'ComponentDataSnapshot',
     'ComponentProjectionDefinition',

@@ -154,6 +154,7 @@ def test_process_layout_wraps_each_role_in_one_component_container() -> None:
     assert _props(layout)['id'] == 'process-layout'
     assert _props(center_slot)['data-ada-process-component-key'] == 'proceso_principal'
     assert _props(center_slot)['data-ada-process-layout-role'] == 'center'
+    assert _props(center_slot)['data-ada-slot-key'] == 'center'
     assert _props(container)['data-ada-component-key'] == 'proceso_principal'
     assert _props(_props(container)['children'][0])['children'] == 'Proceso Principal'
     assert _props(container_content)['children'] is marker

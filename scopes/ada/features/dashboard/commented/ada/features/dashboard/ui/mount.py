@@ -1,5 +1,5 @@
+# Espejo comentado: misma lógica productiva; documenta la frontera visual de Dashboard.
 from __future__ import annotations
-# Espejo comentado: conserva la misma lógica productiva y documenta su responsabilidad.
 
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -8,18 +8,19 @@ from types import MappingProxyType
 from dash import dcc, html
 from dash.development.base_component import Component
 
-from ada.ui.components.state_wrapper import ComponentCover, build_state_overlay
-
 from ada.features.dashboard.core.definition import (
     DashboardComponentDefinition,
     DashboardDefinition,
 )
 from ada.features.dashboard.core.errors import DashboardDefinitionError
+from ada.ui.components.state_wrapper import ComponentCover, build_state_overlay
+
 from .ids import DashboardComponentIds, DashboardPollingIds, DashboardSubcomponentIds
 from .polling import dashboard_snapshot_channels
 from .wiring import initial_render_status
 
 
+# Un slot representa la única frontera donde Dashboard puede inyectar contenido/estado de una card.
 @dataclass(frozen=True, slots=True)
 class DashboardSubcomponentSlot:
     component_key: str
@@ -49,8 +50,7 @@ class DashboardMount:
             return self.subcomponent_slots[(component_key, subcomponent_key)]
         except KeyError as error:
             raise DashboardDefinitionError(
-                'Unknown dashboard subcomponent slot: '
-                f'{component_key!r}/{subcomponent_key!r}'
+                f'Unknown dashboard subcomponent slot: {component_key!r}/{subcomponent_key!r}'
             ) from error
 
     def runtime_host(self) -> html.Div:
@@ -60,6 +60,7 @@ class DashboardMount:
         return self.runtime_host()
 
 
+# El mount materializa slots, stores e intervalos una sola vez desde la definición declarativa.
 def build_dashboard_mount(
     definition: DashboardDefinition,
     *,
@@ -85,7 +86,8 @@ def build_dashboard_mount(
             slots[(component.section.key, section.subcomponent)] = DashboardSubcomponentSlot(
                 component_key=component.section.key,
                 subcomponent_key=section.subcomponent,
-                content=html.Div(id=ids.content),
+                # La clase confina cualquier renderer sin conocer Plotly ni la composición exterior.
+                content=html.Div(id=ids.content, className='ada-dashboard-content-slot'),
                 overlay=html.Div(overlay, id=ids.overlay),
             )
         if component.callback_required:

@@ -24,10 +24,9 @@ def _find_by_id(component, component_id: str):
     return next(node for node in _walk(component) if _props(node).get('id') == component_id)
 
 
-def test_reference_renders_all_integrated_operations_components_and_cards() -> None:
+def test_reference_renders_integrated_operations_body_geometry_and_cards() -> None:
     section = build_reference_integrated_operations_layout()
-    view = _find_by_id(section, 'reference-integrated-operations-view')
-    layout = _find_by_id(view, 'reference-integrated-operations-layout')
+    layout = _find_by_id(section, 'reference-integrated-operations-layout')
     scopes = _props(layout)['children']
     components = [
         component
@@ -40,8 +39,6 @@ def test_reference_renders_all_integrated_operations_components_and_cards() -> N
         item for item in _walk(layout) if _props(item).get('data-ada-component-card') == 'true'
     ]
 
-    assert _props(view)['data-ada-io-view-root'] == 'integrated-operations'
-    assert _props(view)['data-ada-io-view'] == 'overview'
     assert _props(layout)['data-ada-io-layout'] == 'integrated-operations'
     assert component_keys == (
         'general_mina',
@@ -54,7 +51,6 @@ def test_reference_renders_all_integrated_operations_components_and_cards() -> N
         'transporte_fluidos',
         'puerto',
     )
-
     assert all(
         _props(component)['data-ada-component-container'] == 'true' for component in components
     )

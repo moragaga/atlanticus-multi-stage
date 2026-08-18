@@ -1,7 +1,7 @@
-# Espejo comentado: conserva la misma lógica productiva y documenta su responsabilidad.
+# Espejo comentado: exporta también la capa CSS que confina los renderers dinámicos.
 from .callbacks import register_dashboard_callbacks
 from .ids import DashboardComponentIds, DashboardPollingIds, DashboardSubcomponentIds
-from .module import create_ada_dashboard_module
+from .module import ADA_DASHBOARD_ASSET_LAYER, create_ada_dashboard_module
 from .mount import DashboardMount, DashboardSubcomponentSlot, build_dashboard_mount
 from .polling import (
     DashboardChannelUpdate,
@@ -21,6 +21,7 @@ from .wiring import (
 )
 
 __all__ = [
+    'ADA_DASHBOARD_ASSET_LAYER',
     'ComponentRenderResult',
     'ComponentRenderState',
     'ComponentRenderStatus',

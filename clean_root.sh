@@ -53,7 +53,6 @@ find "$ROOT" \
         -o -name '*.egg-info' \
         -o -name 'resultados' \
         -o -name 'volumen' \
-        -o -name 'artifacts' \
         -o -name '.local-assets' \
         -o -name '.local-data' \
         -o -name '.local-volume' \
@@ -96,7 +95,6 @@ find "$ROOT" \
         -o -name '*.egg-info' \
         -o -name 'resultados' \
         -o -name 'volumen' \
-        -o -name 'artifacts' \
         -o -name '.local-assets' \
         -o -name '.local-data' \
         -o -name '.local-volume' \

@@ -73,6 +73,15 @@ def test_reference_composes_runtime_and_transversal_components_in_order() -> Non
     assert modules['reference'].asset_layers[0].package == 'ada.applications.reference'
 
 
+def test_reference_asset_load_orders_are_unique() -> None:
+    definition = build_definition()
+    layers = [layer for module in definition.modules for layer in module.asset_layers]
+    layers.extend(definition.asset_layers)
+    load_orders = tuple(layer.load_order for layer in layers)
+
+    assert len(load_orders) == len(set(load_orders))
+
+
 @pytest.mark.parametrize(
     ('resolution', 'cover', 'message'),
     (

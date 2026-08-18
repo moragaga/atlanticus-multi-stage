@@ -1,5 +1,6 @@
-# Espejo pedagógico de la implementación productiva.
-# Conserva la misma estructura y comportamiento; los comentarios documentan su responsabilidad.
+from __future__ import annotations
+
+from collections.abc import Mapping
 from datetime import date
 
 from ada.applications.reference.runtime import ADA_RUNTIME_SERVICE
@@ -15,11 +16,42 @@ from ada.ui.framework.core import coerce_display_value
 from ada.ui.shell.header import HeaderIndicatorPlacement, HeaderSectionStates, create_header_state
 from atlanticus.web.services import ServiceRegistry
 
+_INDICATOR_DEFINITIONS = (
+    ('transportado', 'Transportado', 'kt', ToolScope.MINE, '220'),
+    ('molienda', 'Molienda', 'kt', ToolScope.PLANT, '210'),
+    ('ley_cobre', 'Ley de Cobre', '%', ToolScope.PLANT, '0,55'),
+    ('recuperacion_cu', 'Recuperación Cu', '%', ToolScope.PLANT, '90,5'),
+    ('cu_fino_producido', 'Cu Fino Producido', 't', ToolScope.PLANT, '1.050'),
+    ('mo_fino_producido', 'Mo Fino Producido', 't', ToolScope.PLANT, '33'),
+    ('expit', 'ExPit', 't', ToolScope.MINE, '426'),
+    (
+        'cu_fino_filtrado_pagable',
+        'Cu Fino Filtr. Pag.',
+        't',
+        ToolScope.PLANT,
+        '1.784',
+    ),
+)
 
+
+# El runtime real y la referencia estática comparten exactamente la misma construcción de HeaderState.
 def build_reference_header_state(services: ServiceRegistry, manifest: ToolManifest):
     runtime = services.require(ADA_RUNTIME_SERVICE, AdaRuntime)
     snapshot = runtime.current().snapshot
     indicators_guard = resolve_guard(snapshot, required_sources=('pi',))
+    return build_reference_header_state_from_values(
+        manifest,
+        values={key: snapshot.value(key) for key, *_ in _INDICATOR_DEFINITIONS},
+        cover=_cover_from_guard(indicators_guard.state),
+    )
+
+
+def build_reference_header_state_from_values(
+    manifest: ToolManifest,
+    *,
+    values: Mapping[str, object],
+    cover: ComponentCover | None = None,
+):
     return create_header_state(
         manifest=manifest,
         brand=resolve_brand(
@@ -27,50 +59,20 @@ def build_reference_header_state(services: ServiceRegistry, manifest: ToolManife
             BrandContext(current_date=date.today()),
         ),
         application_name='ADA',
-        global_indicators=(
-            _indicator(manifest, snapshot, 'transportado', 'Transportado', 'kt', ToolScope.MINE, '220'),
-            _indicator(manifest, snapshot, 'molienda', 'Molienda', 'kt', ToolScope.PLANT, '210'),
-            _indicator(manifest, snapshot, 'ley_cobre', 'Ley de Cobre', '%', ToolScope.PLANT, '0,55'),
+        global_indicators=tuple(
             _indicator(
                 manifest,
-                snapshot,
-                'recuperacion_cu',
-                'Recuperación Cu',
-                '%',
-                ToolScope.PLANT,
-                '90,5',
-            ),
-            _indicator(
-                manifest,
-                snapshot,
-                'cu_fino_producido',
-                'Cu Fino Producido',
-                't',
-                ToolScope.PLANT,
-                '1.050',
-            ),
-            _indicator(
-                manifest,
-                snapshot,
-                'mo_fino_producido',
-                'Mo Fino Producido',
-                't',
-                ToolScope.PLANT,
-                '33',
-            ),
-            _indicator(manifest, snapshot, 'expit', 'ExPit', 't', ToolScope.MINE, '426'),
-            _indicator(
-                manifest,
-                snapshot,
-                'cu_fino_filtrado_pagable',
-                'Cu Fino Filtr. Pag.',
-                't',
-                ToolScope.PLANT,
-                '1.784',
-            ),
+                key=key,
+                label=label,
+                unit=unit,
+                scope=scope,
+                plan=plan,
+                value=values.get(key),
+            )
+            for key, label, unit, scope, plan in _INDICATOR_DEFINITIONS
         ),
         section_states=HeaderSectionStates(
-            global_indicators=_cover_from_guard(indicators_guard.state),
+            global_indicators=cover or ComponentCover.none(),
         ),
     )
 
@@ -87,14 +89,14 @@ def _cover_from_guard(state: GuardState) -> ComponentCover:
 
 def _indicator(
     manifest: ToolManifest,
-    snapshot,
+    *,
     key: str,
     label: str,
     unit: str,
     scope: ToolScope,
     plan: str,
+    value: object,
 ) -> HeaderIndicatorPlacement:
-    # El consumidor declara identidades semánticas; el manifest resuelve la key técnica derivada.
     subcomponent = {
         ToolScope.MINE: 'mine',
         ToolScope.PLANT: 'plant',
@@ -103,7 +105,7 @@ def _indicator(
         component='global_indicators',
         subcomponent=subcomponent,
     ).key
-    value = coerce_display_value(snapshot.value(key))
+    display_value = coerce_display_value(value)
     return HeaderIndicatorPlacement(
         section_key=section_key,
         scope=scope,
@@ -114,12 +116,12 @@ def _indicator(
             definition_key=key,
             measurements=(
                 GlobalIndicatorMeasurementState.temporal(
-                    value,
+                    display_value,
                     temporality='Día',
                     plan_value=plan,
                 ),
                 GlobalIndicatorMeasurementState.temporal(
-                    value,
+                    display_value,
                     temporality='Semana',
                     plan_value=plan,
                 ),

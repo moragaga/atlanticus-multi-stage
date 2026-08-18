@@ -1,0 +1,59 @@
+/* Estilos exclusivos del artifact de certificación; no forman parte de la composition reutilizable. */
+html,
+body,
+#react-entry-point,
+#_dash-app-content {
+    width: 100%;
+    min-width: 0;
+    min-height: 100%;
+}
+
+body {
+    margin: 0;
+    overflow: hidden;
+}
+
+/* La composition recibe una altura finita y gobierna todo el viewport del artifact. */
+.process-base {
+    height: 100dvh;
+}
+
+.process-base__alarm-empty {
+    display: flex;
+    min-height: 2rem;
+    align-items: center;
+    justify-content: center;
+    color: inherit;
+    font-size: .65rem;
+}
+
+/* Cada renderer ocupa solamente el contenido disponible dentro de su ComponentCard. */
+.process-base__card-content {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    flex-direction: column;
+    gap: .2rem;
+    overflow: hidden;
+}
+
+.process-base__value {
+    flex: 0 0 auto;
+    padding: .2rem .35rem 0;
+    font-size: .85rem;
+    font-weight: 700;
+}
+
+/* El gráfico se adapta a la card; nunca define la altura exterior del Process. */
+.process-base__graph {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    max-width: 100%;
+    max-height: 100%;
+    flex: 1 1 auto;
+    overflow: hidden;
+}

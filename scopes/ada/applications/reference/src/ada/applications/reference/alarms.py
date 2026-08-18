@@ -11,7 +11,11 @@ from ada.features.alarms.notifications import build_alarm_status
 from ada.ui.components.state_wrapper import ComponentCover
 
 
-def build_reference_alarm_management_summary(manifest: ToolManifest):
+def build_reference_alarm_management_summary(
+    manifest: ToolManifest,
+    *,
+    cover: ComponentCover | None = None,
+):
     state = create_alarm_management_summary_state(
         manifest=manifest,
         segments=(
@@ -31,7 +35,10 @@ def build_reference_alarm_management_summary(manifest: ToolManifest):
             ),
         ),
     )
-    return build_alarm_management_summary(state, cover=ComponentCover.stale())
+    return build_alarm_management_summary(
+        state,
+        cover=cover if cover is not None else ComponentCover.stale(),
+    )
 
 
 def _alarm_management_section_key(manifest: ToolManifest, scope: ToolScope) -> str:
@@ -45,5 +52,8 @@ def _alarm_management_section_key(manifest: ToolManifest, scope: ToolScope) -> s
     ).key
 
 
-def build_reference_alarm_status():
-    return build_alarm_status(None, cover=ComponentCover.construction())
+def build_reference_alarm_status(*, cover: ComponentCover | None = None):
+    return build_alarm_status(
+        None,
+        cover=cover if cover is not None else ComponentCover.construction(),
+    )

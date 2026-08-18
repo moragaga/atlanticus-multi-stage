@@ -1,4 +1,4 @@
-/* Espejo comentado: geometría del body IO; el zoom ya no vive en este nivel. */
+/* El layout IO conserva únicamente la geometría responsiva del body; no contiene reglas de zoom full-tool. */
 .ada-io-layout {
     --ada-io-layout-gap: .2rem;
     position: relative;
@@ -84,16 +84,10 @@
 
 @media (min-width: 96rem) {
     .ada-io-layout {
-        grid-template-columns: minmax(0, 4fr) minmax(0, 5fr);
+        grid-template-columns: var(
+            --ada-io-scope-columns,
+            minmax(0, 4fr) minmax(0, 5fr)
+        );
     }
 
-    .ada-io-view[data-ada-io-view='mine'] .ada-io-layout,
-    .ada-io-view[data-ada-io-view='plant'] .ada-io-layout {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .ada-io-view[data-ada-io-view='mine'] .ada-io-layout__scope--plant,
-    .ada-io-view[data-ada-io-view='plant'] .ada-io-layout__scope--mine {
-        display: none;
-    }
 }

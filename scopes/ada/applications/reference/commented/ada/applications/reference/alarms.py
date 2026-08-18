@@ -1,9 +1,6 @@
-# Espejo pedagógico de la implementación productiva.
-# Conserva la misma estructura y comportamiento; los comentarios documentan su responsabilidad.
 from __future__ import annotations
 
 from ada.contracts.tool_manifest import ToolManifest, ToolScope
-from ada.ui.components.state_wrapper import ComponentCover
 from ada.features.alarms.management_summary import (
     AlarmManagementSummarySegmentState,
     AlarmManagementSummaryTone,
@@ -11,10 +8,14 @@ from ada.features.alarms.management_summary import (
     create_alarm_management_summary_state,
 )
 from ada.features.alarms.notifications import build_alarm_status
+from ada.ui.components.state_wrapper import ComponentCover
 
 
-# La application composition arma el mock actual de gestión sin devolver ownership al Header.
-def build_reference_alarm_management_summary(manifest: ToolManifest):
+def build_reference_alarm_management_summary(
+    manifest: ToolManifest,
+    *,
+    cover: ComponentCover | None = None,
+):
     state = create_alarm_management_summary_state(
         manifest=manifest,
         segments=(
@@ -34,10 +35,13 @@ def build_reference_alarm_management_summary(manifest: ToolManifest):
             ),
         ),
     )
-    return build_alarm_management_summary(state, cover=ComponentCover.stale())
+    # El cover configurable permite que la referencia full-tool muestre la capacidad real sin enmascararla.
+    return build_alarm_management_summary(
+        state,
+        cover=cover if cover is not None else ComponentCover.stale(),
+    )
 
 
-# Resuelve la key derivada sin reproducir fuera del contrato su algoritmo de composición.
 def _alarm_management_section_key(manifest: ToolManifest, scope: ToolScope) -> str:
     subcomponent = {
         ToolScope.MINE: 'mine',
@@ -49,6 +53,8 @@ def _alarm_management_section_key(manifest: ToolManifest, scope: ToolScope) -> s
     ).key
 
 
-# Alarm Status conserva el estado En construcción de la referencia actual.
-def build_reference_alarm_status():
-    return build_alarm_status(None, cover=ComponentCover.construction())
+def build_reference_alarm_status(*, cover: ComponentCover | None = None):
+    return build_alarm_status(
+        None,
+        cover=cover if cover is not None else ComponentCover.construction(),
+    )

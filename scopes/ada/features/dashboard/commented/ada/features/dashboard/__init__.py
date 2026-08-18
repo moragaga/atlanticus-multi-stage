@@ -1,4 +1,4 @@
-# Espejo comentado: conserva la misma lógica productiva y documenta su responsabilidad.
+# Espejo comentado: la API pública expone la frontera visual junto al contrato Dashboard.
 from .core import (
     ComponentBundle,
     ComponentDataSnapshot,
@@ -33,6 +33,7 @@ from .runtime import (
     encode_component_time_series_snapshot,
 )
 from .ui import (
+    ADA_DASHBOARD_ASSET_LAYER,
     ComponentRenderResult,
     ComponentRenderState,
     ComponentRenderStatus,
@@ -56,6 +57,7 @@ from .ui import (
 )
 
 __all__ = [
+    'ADA_DASHBOARD_ASSET_LAYER',
     'ComponentBundle',
     'ComponentDataSnapshot',
     'ComponentProjectionDefinition',

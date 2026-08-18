@@ -1,4 +1,4 @@
-/* Espejo comentado de estilos de la aplicación de referencia. */
+/* Estilos QA de reference; ya no contienen la composición ni el zoom full-tool de IO. */
 html,
 body {
     min-height: 100%;
@@ -322,69 +322,4 @@ body {
     text-align: center;
 }
 
-.reference-ada__io-view-header {
-    display: flex;
-    min-height: 3rem;
-    align-items: stretch;
-    overflow: hidden;
-    background: var(--tertiary-background, #E1E1E1);
-    border-bottom: 1px solid var(--primary-border-color, #BDBDBD);
-}
 
-.reference-ada__io-view-title {
-    display: flex;
-    flex: 0 0 11rem;
-    align-items: center;
-    justify-content: center;
-    padding: .45rem .7rem;
-    color: var(--custom-text-color, #4D4D4D);
-    font-size: .7rem;
-    font-weight: 800;
-    letter-spacing: .08rem;
-}
-
-.reference-ada__io-view-indicators {
-    display: flex;
-    flex: 1 1 0;
-    min-width: 0;
-    align-items: center;
-}
-
-.reference-ada__io-view-indicators > span {
-    display: flex;
-    min-width: 0;
-    min-height: 100%;
-    flex: 1 1 0;
-    align-items: center;
-    justify-content: center;
-    padding: .35rem .55rem;
-    border-left: 1px solid var(--primary-border-color, #BDBDBD);
-    color: var(--custom-text-color, #4D4D4D);
-    font-size: .58rem;
-    font-weight: 700;
-    text-align: center;
-}
-
-.reference-ada__io-alarm-pills {
-    display: flex;
-    width: 100%;
-    min-width: 0;
-    align-items: center;
-    justify-content: center;
-    gap: .35rem;
-}
-
-.reference-ada__io-alarm-pill {
-    display: flex;
-    min-height: 1.55rem;
-    align-items: center;
-    padding: .2rem .65rem;
-    background: var(--primary-background, #EBEBEB);
-    border: 1px solid var(--primary-border-color, #BDBDBD);
-    border-left: .2rem solid #A31A1A;
-    border-radius: .4rem;
-    color: var(--custom-text-color, #4D4D4D);
-    font-size: .55rem;
-    font-weight: 700;
-    white-space: nowrap;
-}

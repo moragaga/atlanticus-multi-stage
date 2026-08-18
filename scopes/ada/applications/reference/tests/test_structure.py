@@ -21,3 +21,19 @@ def test_feature_ownership_is_not_exposed_under_ui() -> None:
         except ModuleNotFoundError:
             spec = None
         assert spec is None
+
+
+def test_process_composition_is_exposed_outside_ui_and_features() -> None:
+    assert find_spec('ada.compositions.process') is not None
+
+
+def test_integrated_operations_layout_no_longer_owns_full_tool_view() -> None:
+    for name in (
+        'ada.ui.layouts.integrated_operations.view',
+        'ada.ui.layouts.integrated_operations.models',
+    ):
+        try:
+            spec = find_spec(name)
+        except ModuleNotFoundError:
+            spec = None
+        assert spec is None

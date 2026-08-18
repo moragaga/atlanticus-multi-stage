@@ -236,18 +236,19 @@ def test_reference_e2e_keeps_static_component_cards_and_only_injects_inner_slots
         )
         and node.to_plotly_json()['props']['id'].endswith('--content')
     ]
-    state_wrappers = [
+    card_state_wrappers = [
         node
-        for node in nodes
+        for card in cards
+        for node in _walk(card)
         if 'ada-state-wrapper' in str(node.to_plotly_json()['props'].get('className', ''))
     ]
 
     assert len(cards) == 22
     assert len(dashboard_content_slots) == 21
-    assert state_wrappers == []
+    assert card_state_wrappers == []
 
 
-def test_reference_io_e2e_mounts_full_tool_view_without_rebuilding_dashboard_units() -> None:
+def test_reference_io_e2e_keeps_reference_ownership_at_body_geometry() -> None:
     from ada.applications.reference.integrated_operations import (
         build_reference_integrated_operations_layout,
     )
@@ -256,19 +257,18 @@ def test_reference_io_e2e_mounts_full_tool_view_without_rebuilding_dashboard_uni
     mount = catalog.dashboard('integrated_operations').mount()
     layout = build_reference_integrated_operations_layout(mount=mount)
     nodes = tuple(_walk(layout))
-    full_view = next(
-        node
-        for node in nodes
-        if node.to_plotly_json()['props'].get('data-ada-io-view-root') == 'integrated-operations'
-    )
     body = next(
         node
         for node in nodes
         if node.to_plotly_json()['props'].get('data-ada-io-layout') == 'integrated-operations'
     )
 
-    assert full_view.to_plotly_json()['props']['data-ada-io-view'] == 'overview'
     assert body.to_plotly_json()['props']['id'] == 'reference-integrated-operations-layout'
+    assert not any(
+        'data-ada-io-view' in node.to_plotly_json()['props']
+        or 'data-ada-io-view-root' in node.to_plotly_json()['props']
+        for node in nodes
+    )
     assert (
         len(
             [

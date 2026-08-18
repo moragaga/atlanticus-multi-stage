@@ -210,7 +210,7 @@ def _player_io_alarm_slot(
         return html.Div(className='reference-ada__alarm-card-slot')
     return html.Div(
         [
-            _reference_alarm_card(
+            build_reference_alarm_card(
                 definition.card_key,
                 definition.event_id,
                 definition.tone,
@@ -246,7 +246,7 @@ def _build_process_player_reference() -> html.Div:
             html.Div(
                 html.Div(
                     [
-                        _reference_alarm_card(
+                        build_reference_alarm_card(
                             definition.card_key,
                             definition.event_id,
                             definition.tone,
@@ -300,7 +300,7 @@ def _build_process_body_grid(variant: str, slots: tuple[str, ...]) -> html.Div:
     )
 
 
-def _reference_alarm_card(
+def build_reference_alarm_card(
     card_key: str,
     label: str,
     tone: AlarmRouteTone,

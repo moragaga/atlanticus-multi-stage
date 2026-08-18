@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from functools import partial
 
+from atlanticus.web.assets import AssetLayer
 from atlanticus.web.modules import WebModule
 from atlanticus.web.services import ServiceRegistry
 
@@ -12,6 +13,12 @@ from ada.runtime.web import SharedSnapshotReader
 from .callbacks import register_dashboard_callbacks
 from .polling import DashboardPollingErrorHandler, register_dashboard_polling_callbacks
 from .wiring import ComponentRenderErrorHandler
+
+ADA_DASHBOARD_ASSET_LAYER = AssetLayer(
+    name='ada_feature_dashboard',
+    load_order=245,
+    package='ada.features.dashboard.ui',
+)
 
 
 def create_ada_dashboard_module(
@@ -26,6 +33,7 @@ def create_ada_dashboard_module(
         raise DashboardDefinitionError('Dashboard polling requires SharedSnapshotReader')
     return WebModule(
         name='ada-dashboard',
+        asset_layers=(ADA_DASHBOARD_ASSET_LAYER,),
         register_callbacks=partial(
             _register_callbacks,
             definition=definition,

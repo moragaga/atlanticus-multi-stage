@@ -1,0 +1,2 @@
+class ProcessCompositionError(ValueError):
+    pass
