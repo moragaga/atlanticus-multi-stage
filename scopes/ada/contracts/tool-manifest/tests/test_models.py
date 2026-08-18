@@ -36,16 +36,20 @@ def test_source_requires_positive_integer_stale_threshold() -> None:
         ToolSource(ToolSourceKey.PI, stale_after_seconds=True)
 
 
-def test_manifest_requires_pi_and_unique_sources() -> None:
+def test_manifest_requires_at_least_one_unique_source() -> None:
     section = _region('body')
 
-    with pytest.raises(ToolManifestError, match='requires the pi source'):
-        ToolManifest(
-            'tool',
-            'Tool',
-            (ToolSource(ToolSourceKey.DISPATCH, stale_after_seconds=600),),
-            (section,),
-        )
+    dispatch_only = ToolManifest(
+        'tool',
+        'Tool',
+        (ToolSource(ToolSourceKey.DISPATCH, stale_after_seconds=600),),
+        (section,),
+    )
+    assert dispatch_only.has_source(ToolSourceKey.DISPATCH)
+    assert not dispatch_only.has_source(ToolSourceKey.PI)
+
+    with pytest.raises(ToolManifestError, match='requires at least one source'):
+        ToolManifest('tool', 'Tool', (), (section,))
 
     with pytest.raises(ToolManifestError, match='duplicate source keys'):
         ToolManifest('tool', 'Tool', (_PI, _PI), (section,))

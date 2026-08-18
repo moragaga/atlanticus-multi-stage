@@ -91,13 +91,13 @@ def test_integrated_operations_subcomponent_keys_are_derived_internally() -> Non
     assert selectiva.key == 'flotacion_selectiva'
 
 
-def test_global_indicators_and_time_status_are_configurable_alarm_units() -> None:
+def test_global_indicators_and_time_status_are_kpi_only_targets() -> None:
     manifest = INTEGRATED_OPERATIONS_MANIFEST
 
     assert manifest.require_target('global_indicators', ToolTarget.KPI).scope is ToolScope.GLOBAL
-    assert manifest.require_target('global_indicators', ToolTarget.ALARM).scope is ToolScope.GLOBAL
+    assert not manifest.section('global_indicators').accepts(ToolTarget.ALARM)
     assert manifest.require_target('time_status', ToolTarget.KPI).scope is ToolScope.GLOBAL
-    assert manifest.require_target('time_status', ToolTarget.ALARM).scope is ToolScope.GLOBAL
+    assert not manifest.section('time_status').accepts(ToolTarget.ALARM)
 
     indicator_groups = manifest.children('global_indicators')
     assert [(section.key, section.scope) for section in indicator_groups] == [
@@ -148,7 +148,8 @@ def test_alarm_configuration_accepts_all_components_and_real_subcomponents() -> 
 
     assert expected_components <= keys
     assert expected_subcomponents <= keys
-    assert {'global_indicators', 'time_status'} <= keys
+    assert 'global_indicators' not in keys
+    assert 'time_status' not in keys
     assert 'global_indicators_mine' not in keys
     assert 'global_indicators_plant' not in keys
     assert 'alarm_management_mine' not in keys

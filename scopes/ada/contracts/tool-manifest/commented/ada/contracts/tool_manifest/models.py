@@ -1,4 +1,7 @@
-# Espejo pedagógico: el manifest mantiene una jerarquía principal y permite vínculos adicionales solo para resolver casos compartidos sin duplicar entidades.
+# Espejo pedagógico: este archivo conserva exactamente la lógica del código productivo.
+# Contrato runtime ToolManifest de ADA. Describe la estructura consumible por las aplicaciones y conserva derivadas fuera de la configuración humana.
+# Los comentarios explican la intención arquitectónica; no agregan ramas, estado ni comportamiento.
+
 from __future__ import annotations
 
 import re
@@ -31,6 +34,25 @@ class ToolSource:
             raise ToolManifestError('Source stale_after_seconds must be an integer')
         if self.stale_after_seconds <= 0:
             raise ToolManifestError('Source stale_after_seconds must be greater than zero')
+
+    def to_document(self) -> dict[str, object]:
+        return {
+            'key': self.key.value,
+            'stale_after_seconds': self.stale_after_seconds,
+        }
+
+    @classmethod
+    def from_document(cls, document: dict[str, object]) -> 'ToolSource':
+        try:
+            freshness = document['stale_after_seconds']
+            if isinstance(freshness, bool) or not isinstance(freshness, int):
+                raise TypeError
+            return cls(
+                key=ToolSourceKey(str(document['key'])),
+                stale_after_seconds=freshness,
+            )
+        except (KeyError, TypeError, ValueError) as error:
+            raise ToolManifestError('Tool source document is invalid') from error
 
 
 @dataclass(frozen=True, slots=True, init=False)
@@ -103,6 +125,52 @@ class ToolSection:
     def accepts(self, target: ToolTarget) -> bool:
         return target in self.targets
 
+    def to_document(self) -> dict[str, object]:
+        return {
+            'key': self.key,
+            'display_name': self.display_name,
+            'kind': self.kind.value,
+            'scope': self.scope.value,
+            'parent_key': self.parent_key,
+            'targets': sorted(target.value for target in self.targets),
+            'component': self.component,
+            'subcomponent': self.subcomponent,
+            'linked_component_keys': list(self.linked_component_keys),
+            'layout_role': self.layout_role.value if self.layout_role is not None else None,
+        }
+
+    @classmethod
+    def from_document(cls, document: dict[str, object]) -> 'ToolSection':
+        try:
+            kind = ToolSectionKind(str(document['kind']))
+            component = _optional_string(document.get('component'))
+            subcomponent = _optional_string(document.get('subcomponent'))
+            key = None if kind is ToolSectionKind.SUBCOMPONENT else str(document['key'])
+            parent_key = (
+                None
+                if kind is ToolSectionKind.SUBCOMPONENT
+                else _optional_string(document.get('parent_key'))
+            )
+            raw_targets = document.get('targets', [])
+            raw_links = document.get('linked_component_keys', [])
+            if not isinstance(raw_targets, list) or not isinstance(raw_links, list):
+                raise TypeError
+            layout_role = _optional_string(document.get('layout_role'))
+            return cls(
+                key=key,
+                display_name=str(document['display_name']),
+                kind=kind,
+                scope=ToolScope(str(document['scope'])),
+                parent_key=parent_key,
+                targets=tuple(ToolTarget(str(value)) for value in raw_targets),
+                component=component,
+                subcomponent=subcomponent,
+                linked_component_keys=tuple(str(value) for value in raw_links),
+                layout_role=ProcessBodySection(layout_role) if layout_role is not None else None,
+            )
+        except (KeyError, TypeError, ValueError) as error:
+            raise ToolManifestError('Tool section document is invalid') from error
+
 
 @dataclass(frozen=True, slots=True)
 class ToolManifest:
@@ -145,10 +213,7 @@ class ToolManifest:
                 continue
             if section.key == direct_key:
                 return section
-            if (
-                section.subcomponent == subcomponent
-                and component in section.linked_component_keys
-            ):
+            if section.subcomponent == subcomponent and component in section.linked_component_keys:
                 return section
         raise ToolManifestLookupError(
             f'Unknown subcomponent for component {component!r}: {subcomponent!r}'
@@ -180,6 +245,40 @@ class ToolManifest:
                 f'Section {section_key!r} does not accept target {target.value!r}'
             )
         return section
+
+    def to_document(self) -> dict[str, object]:
+        return {
+            'document_type': 'ada_tool_manifest',
+            'schema_version': 1,
+            'tool_key': self.tool_key,
+            'display_name': self.display_name,
+            'sources': [source.to_document() for source in self.sources],
+            'sections': [section.to_document() for section in self.sections],
+        }
+
+    @classmethod
+    def from_document(cls, document: dict[str, object]) -> 'ToolManifest':
+        if document.get('document_type') != 'ada_tool_manifest':
+            raise ToolManifestError('Tool manifest document type is invalid')
+        if document.get('schema_version') != 1:
+            raise ToolManifestError('Tool manifest schema version is invalid')
+        try:
+            sources = document['sources']
+            sections = document['sections']
+            if not isinstance(sources, list) or not all(isinstance(item, dict) for item in sources):
+                raise TypeError
+            if not isinstance(sections, list) or not all(
+                isinstance(item, dict) for item in sections
+            ):
+                raise TypeError
+            return cls(
+                tool_key=str(document['tool_key']),
+                display_name=str(document['display_name']),
+                sources=tuple(ToolSource.from_document(dict(item)) for item in sources),
+                sections=tuple(ToolSection.from_document(dict(item)) for item in sections),
+            )
+        except (KeyError, TypeError, ValueError) as error:
+            raise ToolManifestError('Tool manifest document is invalid') from error
 
     def linked_components(self, section_key: str) -> tuple[ToolSection, ...]:
         section = self.section(section_key)
@@ -236,6 +335,24 @@ class ToolManifestRegistry:
         target: ToolTarget,
     ) -> tuple[ToolSection, ...]:
         return self.require(tool_key).sections_for_target(target)
+
+    def to_document(self) -> dict[str, object]:
+        return {
+            'document_type': 'ada_tool_manifest_registry',
+            'schema_version': 1,
+            'manifests': [manifest.to_document() for manifest in self.manifests],
+        }
+
+    @classmethod
+    def from_document(cls, document: dict[str, object]) -> 'ToolManifestRegistry':
+        if document.get('document_type') != 'ada_tool_manifest_registry':
+            raise ToolManifestError('Tool manifest registry document type is invalid')
+        if document.get('schema_version') != 1:
+            raise ToolManifestError('Tool manifest registry schema version is invalid')
+        manifests = document.get('manifests')
+        if not isinstance(manifests, list) or not all(isinstance(item, dict) for item in manifests):
+            raise ToolManifestError('Tool manifest registry document is invalid')
+        return cls(tuple(ToolManifest.from_document(dict(item)) for item in manifests))
 
 
 def _resolve_section_identity(
@@ -318,8 +435,6 @@ def _validate_sources(sources: tuple[ToolSource, ...]) -> None:
     keys = [source.key for source in sources]
     if len(keys) != len(set(keys)):
         raise ToolManifestError('Tool manifest contains duplicate source keys')
-    if ToolSourceKey.PI not in keys:
-        raise ToolManifestError('Tool manifest requires the pi source')
 
 
 def _validate_sections(sections: tuple[ToolSection, ...]) -> None:
@@ -365,9 +480,7 @@ def _validate_component_links(
                     f'Section {section.key!r} references unknown linked component {linked_key!r}'
                 )
             if linked.kind is not ToolSectionKind.COMPONENT:
-                raise ToolManifestError(
-                    f'Section {section.key!r} can only link to a component'
-                )
+                raise ToolManifestError(f'Section {section.key!r} can only link to a component')
             if linked.scope is not section.scope:
                 raise ToolManifestError(
                     f'Linked component {linked_key!r} scope must match section {section.key!r}'
@@ -430,3 +543,10 @@ def _validate_key(value: str, *, field_name: str) -> None:
 def _validate_display_name(value: str, *, field_name: str) -> None:
     if not value.strip():
         raise ToolManifestError(f'{field_name} cannot be empty')
+
+
+def _optional_string(value: object) -> str | None:
+    if value is None:
+        return None
+    normalized = str(value).strip()
+    return normalized or None

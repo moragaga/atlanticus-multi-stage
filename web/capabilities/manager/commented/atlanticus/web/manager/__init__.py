@@ -1,0 +1,74 @@
+# Espejo pedagógico: conserva la misma lógica del archivo productivo.
+# Los comentarios documentan la responsabilidad sin cambiar el comportamiento.
+# Expone únicamente la API pública del capability Manager.
+from atlanticus.web.manager.authorization import (
+    DefaultManagerAuthorizationPolicy,
+    ManagerAuthorizationPolicy,
+)
+from atlanticus.web.manager.coordinator import ManagerProjectionCoordinator
+from atlanticus.web.manager.errors import (
+    ManagerAuthorizationError,
+    ManagerDefinitionError,
+    ManagerError,
+    ManagerProjectionError,
+)
+from atlanticus.web.manager.models import (
+    ManagerApplicationDefinition,
+    ManagerBrand,
+    ManagerBrandMark,
+    ManagerModule,
+    ManagerModuleAccess,
+    ManagerModuleGroup,
+    ManagerPrincipal,
+    ManagerPrincipalProvider,
+)
+from atlanticus.web.manager.projection import (
+    ConfigurationLifecycleWorkflow,
+    DraftValidationResult,
+    ManagerDraft,
+    ProjectionAuditRecord,
+    ProjectionExecutionResult,
+    ProjectionIssue,
+    ProjectionState,
+    ProjectionStatus,
+    ProjectionSummaryItem,
+    RevisionHistoryEntry,
+    RevisionHistoryWorkflow,
+    SourcePublicationResult,
+    build_draft_revision,
+    resolve_projection_state,
+)
+from atlanticus.web.manager.registry import ManagerModuleRegistry
+
+__all__ = [
+    'ConfigurationLifecycleWorkflow',
+    'DefaultManagerAuthorizationPolicy',
+    'DraftValidationResult',
+    'ManagerApplicationDefinition',
+    'ManagerAuthorizationError',
+    'ManagerAuthorizationPolicy',
+    'ManagerBrand',
+    'ManagerBrandMark',
+    'ManagerDefinitionError',
+    'ManagerDraft',
+    'ManagerError',
+    'ManagerModule',
+    'ManagerModuleAccess',
+    'ManagerModuleGroup',
+    'ManagerModuleRegistry',
+    'ManagerPrincipal',
+    'ManagerPrincipalProvider',
+    'ManagerProjectionCoordinator',
+    'ManagerProjectionError',
+    'ProjectionAuditRecord',
+    'ProjectionExecutionResult',
+    'ProjectionIssue',
+    'ProjectionState',
+    'ProjectionStatus',
+    'ProjectionSummaryItem',
+    'RevisionHistoryEntry',
+    'RevisionHistoryWorkflow',
+    'SourcePublicationResult',
+    'build_draft_revision',
+    'resolve_projection_state',
+]

@@ -1,4 +1,7 @@
-# Espejo pedagógico: Operaciones Integradas declara nueve componentes reales; Gestión Carguío Turno es una sola card compartida entre Carguío y Transporte.
+# Espejo pedagógico: este archivo conserva exactamente la lógica del código productivo.
+# Contrato runtime ToolManifest de ADA. Describe la estructura consumible por las aplicaciones y conserva derivadas fuera de la configuración humana.
+# Los comentarios explican la intención arquitectónica; no agregan ramas, estado ni comportamiento.
+
 from ..enums import ToolScope, ToolSectionKind, ToolSourceKey, ToolTarget
 from ..models import ToolManifest, ToolSection, ToolSource
 
@@ -46,7 +49,7 @@ INTEGRATED_OPERATIONS_MANIFEST = ToolManifest(
             kind=ToolSectionKind.COMPONENT,
             scope=ToolScope.GLOBAL,
             parent_key='header',
-            targets=_KPI_ALARM,
+            targets=_KPI,
         ),
         ToolSection(
             component='global_indicators',
@@ -97,7 +100,7 @@ INTEGRATED_OPERATIONS_MANIFEST = ToolManifest(
             display_name='Estado Temporal',
             kind=ToolSectionKind.COMPONENT,
             scope=ToolScope.GLOBAL,
-            targets=_KPI_ALARM,
+            targets=_KPI,
         ),
         ToolSection(
             key='body',

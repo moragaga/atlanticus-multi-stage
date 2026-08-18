@@ -7,6 +7,7 @@ classifiers = [
 ]
 dependencies = [
     "ada-application-reference==0.1.0",
+    "ada-application-configuration-manager==0.1.0",
     "ada-composition-process==0.1.0",
     "ada-composition-integrated-operations==0.1.0",
 ]
@@ -24,6 +25,8 @@ package = false
 ada-composition-integrated-operations = { workspace = true }
 ada-composition-process = { workspace = true }
 ada-application-reference = { workspace = true }
+ada-application-configuration-manager = { workspace = true }
+ada-configuration-tools = { workspace = true }
 ada-contracts-tool-manifest = { workspace = true }
 ada-runtime-web = { workspace = true }
 ada-feature-alarms = { workspace = true }
@@ -40,6 +43,7 @@ ada-ui-shell-header = { workspace = true }
 ada-ui-shell-navigation = { workspace = true }
 ada-ui-shell-time-status = { workspace = true }
 atlanticus-web = { path = "../../web/framework/core", editable = true }
+atlanticus-web-manager = { path = "../../web/capabilities/manager", editable = true }
 atlanticus-web-observability = { path = "../../web/framework/observability", editable = true }
 atlanticus-web-navigation = { path = "../../web/capabilities/navigation", editable = true }
 atlanticus-web-identity = { path = "../../web/capabilities/identity/core", editable = true }
@@ -50,6 +54,7 @@ atlanticus-web-users-local = { path = "../../web/capabilities/users/local", edit
 [tool.uv.workspace]
 members = [
     "contracts/tool-manifest",
+    "configuration/tools",
     "runtime/web",
     "compositions/process",
     "compositions/integrated-operations",
@@ -67,6 +72,7 @@ members = [
     "ui/shell/navigation",
     "ui/shell/time-status",
     "applications/reference",
+    "applications/configuration-manager",
 ]
 
 [tool.ruff]
@@ -97,6 +103,7 @@ combine-as-imports = true
 [tool.pytest.ini_options]
 testpaths = [
     "contracts/tool-manifest/tests",
+    "configuration/tools/tests",
     "runtime/web/tests",
     "compositions/process/tests",
     "compositions/integrated-operations/tests",
@@ -114,5 +121,6 @@ testpaths = [
     "ui/shell/navigation/tests",
     "ui/shell/time-status/tests",
     "applications/reference/tests",
+    "applications/configuration-manager/tests",
 ]
 addopts = "-q --import-mode=importlib"

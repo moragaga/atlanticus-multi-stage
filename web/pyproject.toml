@@ -12,6 +12,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "atlanticus-web-users-cosmos==0.1.0",
+    "atlanticus-web-manager==0.1.0",
     "pytest==9.1.1",
     "ruff==0.15.22",
 ]
@@ -30,12 +31,14 @@ atlanticus-web-users = { workspace = true }
 atlanticus-web-users-local = { workspace = true }
 atlanticus-web-users-cosmos = { workspace = true }
 atlanticus-web-navigation = { workspace = true }
+atlanticus-web-manager = { workspace = true }
 
 [tool.uv.workspace]
 members = [
     "framework/core",
     "framework/observability",
     "capabilities/navigation",
+    "capabilities/manager",
     "capabilities/identity/core",
     "capabilities/identity/local",
     "capabilities/identity/app-service",
@@ -73,6 +76,7 @@ testpaths = [
     "framework/core/tests",
     "framework/observability/tests",
     "capabilities/navigation/tests",
+    "capabilities/manager/tests",
     "capabilities/identity/core/tests",
     "capabilities/identity/local/tests",
     "capabilities/identity/app-service/tests",

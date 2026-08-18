@@ -1,0 +1,73 @@
+from pathlib import Path
+
+
+def test_manager_css_recovers_atlanticus_identity_and_true_offcanvas_layout() -> None:
+    root = Path(__file__).parents[1] / 'src/atlanticus/web/manager/resources/css'
+    tokens = (root / '00_tokens.css').read_text(encoding='utf-8')
+    layout = (root / '10_manager.css').read_text(encoding='utf-8')
+
+    assert '#0D1B2A' in tokens
+    assert '#C9A24B' in tokens
+    assert '#F5F1E6' in tokens
+    assert "'Inter'" in tokens
+    assert "'Cinzel'" in tokens
+    assert 'transform: translateX(-105%)' in layout
+    assert '.atlanticus-manager__sidebar--open' in layout
+    assert 'width: min(100%, 118rem)' in layout
+
+
+def test_manager_lifecycle_exposes_draft_validate_publish_and_project() -> None:
+    root = Path(__file__).parents[1]
+    layout = (root / 'src/atlanticus/web/manager/web/layout.py').read_text(encoding='utf-8')
+
+    assert "storage_type='local'" in layout
+    assert "workflow_action_id(module.key, 'save-draft')" in layout
+    assert "workflow_action_id(module.key, 'validate')" in layout
+    assert "workflow_action_id(module.key, 'publish')" in layout
+    assert "workflow_action_id(module.key, 'project')" in layout
+    assert "f'Guardar en {module.source_name}'" in layout
+    assert "f'Proyectar en {module.projection_name}'" in layout
+
+
+def test_source_audit_is_specific_and_history_loads_as_browser_draft() -> None:
+    root = Path(__file__).parents[1]
+    layout = (root / 'src/atlanticus/web/manager/web/layout.py').read_text(encoding='utf-8')
+
+    assert "'Última publicación'" in layout
+    assert "'Última proyección'" in layout
+    assert "'Última validación'" not in layout
+    assert "'Cargar como borrador'" in layout
+    assert 'history_load_id(' in layout
+    assert 'history_restore_id(' not in layout
+
+
+def test_header_keeps_atlanticus_identity_without_duplicate_user_identity() -> None:
+    root = Path(__file__).parents[1]
+    layout = (root / 'src/atlanticus/web/manager/web/layout.py').read_text(encoding='utf-8')
+    css = (root / 'src/atlanticus/web/manager/resources/css/10_manager.css').read_text(
+        encoding='utf-8'
+    )
+
+    assert "for role in ('framework', 'organization')" in layout
+    assert 'principal.display_name' not in layout
+    assert '.atlanticus-manager__brand-supporting' in css
+    assert 'font-family: var(--atlanticus-manager-font-brand)' in css
+
+
+def test_traceability_is_grouped_as_a_four_stage_pipeline() -> None:
+    root = Path(__file__).parents[1]
+    layout = (root / 'src/atlanticus/web/manager/web/layout.py').read_text(encoding='utf-8')
+    css = (root / 'src/atlanticus/web/manager/resources/css/10_manager.css').read_text(
+        encoding='utf-8'
+    )
+
+    assert "title='Borrador del navegador'" in layout
+    assert "title='Validación'" in layout
+    assert "title='Fuente de verdad'" in layout
+    assert "title='Proyección runtime'" in layout
+    assert "'Flujo de publicación'" in layout
+    assert "html.Span('Revisión')" in layout
+    assert "html.Span('Publicado por')" in layout
+    assert '.atlanticus-manager__workflow-stage-grid' in css
+    assert '.atlanticus-manager__workflow-action-grid' in css
+    assert '.atlanticus-manager__history-row--header' in css

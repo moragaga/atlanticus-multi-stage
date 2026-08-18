@@ -1,0 +1,949 @@
+from __future__ import annotations
+
+from collections.abc import Mapping
+from datetime import datetime
+
+from dash import dcc, html, page_container
+
+from atlanticus.web.manager.authorization import ManagerAuthorizationPolicy
+from atlanticus.web.manager.coordinator import ManagerProjectionCoordinator
+from atlanticus.web.manager.errors import ManagerError
+from atlanticus.web.manager.models import (
+    ManagerApplicationDefinition,
+    ManagerBrand,
+    ManagerBrandMark,
+    ManagerModule,
+    ManagerPrincipal,
+)
+from atlanticus.web.manager.projection import (
+    ProjectionIssue,
+    ProjectionState,
+    ProjectionStatus,
+    ManagerDraft,
+    RevisionHistoryEntry,
+    resolve_projection_state,
+)
+from atlanticus.web.manager.registry import ManagerModuleRegistry
+from atlanticus.web.manager.web.ids import (
+    CONTENT_ID,
+    LOCATION_ID,
+    PAGE_CONTAINER_ID,
+    REFRESH_BUTTON_ID,
+    SIDEBAR_BACKDROP_ID,
+    SIDEBAR_CLOSE_ID,
+    SIDEBAR_ID,
+    SIDEBAR_MODULES_ID,
+    SIDEBAR_TOGGLE_ID,
+    STATUS_STORE_ID,
+    SUMMARY_ID,
+    history_load_id,
+    module_section_button_id,
+    module_section_panel_id,
+    module_section_store_id,
+    module_status_id,
+    workflow_action_id,
+    workflow_draft_id,
+    workflow_draft_status_id,
+    workflow_history_id,
+    workflow_projection_signal_id,
+    workflow_refresh_signal_id,
+    workflow_result_id,
+    workflow_revision_id,
+    workflow_status_id,
+    workflow_validation_id,
+)
+from atlanticus.web.services import ServiceRegistry
+
+_STATE_LABELS = {
+    ProjectionState.NO_SOURCE: 'Sin fuente',
+    ProjectionState.SYNCHRONIZED: 'Actualizada',
+    ProjectionState.READY: 'Lista',
+    ProjectionState.UNAVAILABLE: 'No disponible',
+}
+
+
+def build_manager_shell(
+    *,
+    definition: ManagerApplicationDefinition,
+    registry: ManagerModuleRegistry,
+    services: ServiceRegistry,
+    principal: ManagerPrincipal,
+    authorization: ManagerAuthorizationPolicy,
+) -> object:
+    visible_modules = registry.visible_modules(principal, authorization)
+    return html.Div(
+        [
+            dcc.Location(id=LOCATION_ID, refresh=False),
+            dcc.Store(id=STATUS_STORE_ID, storage_type='memory'),
+            *[
+                dcc.Store(id=module.source_signal_id, storage_type='memory')
+                for module in visible_modules
+                if module.source_signal_id is not None
+            ],
+            *[
+                dcc.Store(
+                    id=workflow_refresh_signal_id(module.key),
+                    data=0,
+                    storage_type='memory',
+                )
+                for module in visible_modules
+            ],
+            *[
+                dcc.Store(
+                    id=workflow_projection_signal_id(module.key),
+                    storage_type='memory',
+                )
+                for module in visible_modules
+            ],
+            *[
+                dcc.Store(
+                    id=workflow_draft_id(module.key),
+                    storage_type='local',
+                )
+                for module in visible_modules
+            ],
+            *[
+                dcc.Store(
+                    id=workflow_validation_id(module.key),
+                    storage_type='memory',
+                )
+                for module in visible_modules
+            ],
+            html.Header(
+                [
+                    _build_header_identity(
+                        definition.brand,
+                        title=definition.metadata.display_name,
+                        subtitle=definition.subtitle,
+                    ),
+                    html.Div(
+                        [
+                            html.Button(
+                                'Recargar',
+                                id=REFRESH_BUTTON_ID,
+                                className=(
+                                    'atlanticus-manager__button '
+                                    'atlanticus-manager__button--header'
+                                ),
+                            ),
+                            definition.header_actions(services)
+                            if definition.header_actions is not None
+                            else None,
+                        ],
+                        className='atlanticus-manager__header-actions',
+                    ),
+                ],
+                className='atlanticus-manager__header',
+            ),
+            html.Section(id=SUMMARY_ID, className='atlanticus-manager__summary'),
+            html.Button(
+                '⚙',
+                id=SIDEBAR_TOGGLE_ID,
+                className='atlanticus-manager__sidebar-trigger',
+                title='Abrir configuraciones',
+                **{'aria-label': 'Abrir configuraciones'},
+            ),
+            html.Main(id=CONTENT_ID, className='atlanticus-manager__content'),
+            html.Aside(
+                [
+                    html.Header(
+                        [
+                            html.Div(
+                                [
+                                    html.Strong('Configuraciones'),
+                                    html.Span('Selecciona el módulo que quieres administrar.'),
+                                ]
+                            ),
+                            html.Button(
+                                '×',
+                                id=SIDEBAR_CLOSE_ID,
+                                className='atlanticus-manager__icon-button',
+                                title='Cerrar configuraciones',
+                            ),
+                        ],
+                        className='atlanticus-manager__sidebar-header',
+                    ),
+                    html.Div(
+                        id=SIDEBAR_MODULES_ID,
+                        children=build_sidebar_modules(
+                            modules=visible_modules,
+                            groups=registry.groups,
+                            current_path=definition.current_path,
+                            states={},
+                        ),
+                        className='atlanticus-manager__sidebar-modules',
+                    ),
+                ],
+                id=SIDEBAR_ID,
+                className='atlanticus-manager__sidebar',
+            ),
+            html.Button(
+                id=SIDEBAR_BACKDROP_ID,
+                className='atlanticus-manager__sidebar-backdrop',
+                **{'aria-label': 'Cerrar configuraciones'},
+            ),
+            definition.shell_overlays(services)
+            if definition.shell_overlays is not None
+            else None,
+            html.Div(page_container, id=PAGE_CONTAINER_ID, hidden=True),
+        ],
+        className='atlanticus-manager',
+    )
+
+
+def build_summary(states: Mapping[str, ProjectionState]) -> object:
+    values = tuple(states.values())
+    total = len(values)
+    synchronized = sum(value is ProjectionState.SYNCHRONIZED for value in values)
+    ready = sum(value is ProjectionState.READY for value in values)
+    errors = sum(
+        value is ProjectionState.UNAVAILABLE
+        for value in values
+    )
+    pending = total - synchronized - ready - errors
+    return html.Div(
+        [
+            _summary_item('Total', str(total), 'Módulos disponibles'),
+            _summary_item(
+                'Actualizadas',
+                str(synchronized),
+                'Fuente y proyección sincronizadas',
+            ),
+            _summary_item(
+                'Pendientes',
+                str(pending),
+                'Configuración sin fuente publicada',
+            ),
+            _summary_item('Listas', str(ready), 'Fuente publicada pendiente de proyección'),
+            _summary_item(
+                'Con errores',
+                str(errors),
+                'Validación rechazada o estado no disponible',
+            ),
+        ],
+        className='atlanticus-manager__summary-items',
+    )
+
+
+def build_sidebar_modules(
+    *,
+    modules: tuple[ManagerModule, ...],
+    groups: tuple[object, ...],
+    current_path: str,
+    states: Mapping[str, ProjectionState],
+) -> tuple[object, ...]:
+    result: list[object] = []
+    for group in groups:
+        group_modules = tuple(module for module in modules if module.group_key == group.key)
+        if not group_modules:
+            continue
+        result.append(html.Div(group.title, className='atlanticus-manager__sidebar-group'))
+        for module in group_modules:
+            state = states.get(module.key, ProjectionState.UNAVAILABLE)
+            class_name = 'atlanticus-manager__sidebar-link'
+            if module.route == current_path:
+                class_name += ' atlanticus-manager__sidebar-link--active'
+            result.append(
+                dcc.Link(
+                    [
+                        html.Div(
+                            [
+                                html.Strong(module.title),
+                                html.Span(module.description),
+                            ]
+                        ),
+                        html.Span(
+                            _STATE_LABELS[state],
+                            className=(
+                                'atlanticus-manager__state '
+                                f'atlanticus-manager__state--{state.value}'
+                            ),
+                        ),
+                    ],
+                    href=module.route,
+                    className=class_name,
+                )
+            )
+    return tuple(result)
+
+
+def build_module_content(
+    *,
+    module: ManagerModule,
+    services: ServiceRegistry,
+    coordinator: ManagerProjectionCoordinator,
+    principal: ManagerPrincipal,
+) -> object:
+    try:
+        status = coordinator.get_status(module.key, principal)
+        history = coordinator.list_history(module.key, principal, limit=20)
+        can_load_history = coordinator.can_load_history(module.key, principal)
+    except ManagerError as error:
+        status = None
+        history = ()
+        can_load_history = False
+        status_error = str(error)
+    except Exception:
+        status = None
+        history = ()
+        can_load_history = False
+        status_error = 'Configuration status could not be loaded'
+    else:
+        status_error = None
+
+    content = module.layout(services)
+    preamble = module.preamble(services) if module.preamble is not None else None
+    default_section = module.default_section
+    return html.Section(
+        [
+            html.Header(
+                [
+                    html.Div(
+                        [
+                            html.P('Configuración', className='atlanticus-manager__eyebrow'),
+                            html.H2(module.title),
+                            html.P(module.description),
+                        ],
+                        className='atlanticus-manager__module-heading',
+                    ),
+                    _build_module_status(module.key, status),
+                ],
+                className='atlanticus-manager__module-header',
+            ),
+            preamble,
+            dcc.Store(
+                id=module_section_store_id(module.key),
+                data=default_section,
+                storage_type='memory',
+            ),
+            html.Nav(
+                [
+                    html.Button(
+                        module.content_section_title,
+                        id=module_section_button_id(module.key, 'content'),
+                        n_clicks=0,
+                        className=_section_button_class(default_section == 'content'),
+                    ),
+                    html.Button(
+                        module.workflow_section_title,
+                        id=module_section_button_id(module.key, 'workflow'),
+                        n_clicks=0,
+                        className=_section_button_class(default_section == 'workflow'),
+                    ),
+                ],
+                className='atlanticus-manager__module-tabs',
+            ),
+            html.Div(
+                content,
+                id=module_section_panel_id(module.key, 'content'),
+                className=_section_panel_class(default_section == 'content'),
+            ),
+            html.Div(
+                build_workflow_panel(
+                    module=module,
+                    status=status,
+                    history=history,
+                    can_load_history=can_load_history,
+                    error=status_error,
+                ),
+                id=module_section_panel_id(module.key, 'workflow'),
+                className=_section_panel_class(default_section == 'workflow'),
+            ),
+        ],
+        className='atlanticus-manager__module',
+    )
+
+
+def build_workflow_panel(
+    *,
+    module: ManagerModule,
+    status: ProjectionStatus | None,
+    history: tuple[RevisionHistoryEntry, ...],
+    can_load_history: bool,
+    error: str | None,
+) -> object:
+    return html.Div(
+        [
+            dcc.Store(
+                id=workflow_revision_id(module.key),
+                data=_workflow_revision_state(status),
+            ),
+            html.Div(
+                id=workflow_draft_status_id(module.key),
+                className='atlanticus-manager__workflow-status',
+            ),
+            html.Div(
+                build_workflow_status_content(
+                    module=module,
+                    status=status,
+                    error=error,
+                ),
+                id=workflow_status_id(module.key),
+                className='atlanticus-manager__workflow-status',
+            ),
+            _build_workflow_actions(module, status),
+            html.Div(id=workflow_result_id(module.key)),
+            html.Div(
+                build_workflow_history_content(
+                    module=module,
+                    status=status,
+                    history=history,
+                    can_load_history=can_load_history,
+                    error=error,
+                ),
+                id=workflow_history_id(module.key),
+            ),
+        ],
+        className='atlanticus-manager__workflow',
+    )
+
+
+def build_workflow_status_content(
+    *,
+    module: ManagerModule,
+    status: ProjectionStatus | None,
+    error: str | None,
+) -> object:
+    if error is not None:
+        return html.Div(
+            error,
+            className='atlanticus-manager__message atlanticus-manager__message--error',
+        )
+    if status is None:
+        return html.Div(
+            'Configuration status is unavailable',
+            className='atlanticus-manager__message atlanticus-manager__message--error',
+        )
+    state = resolve_projection_state(status)
+    return html.Section(
+        [
+            _workflow_group_header(
+                'Estado publicado',
+                'Lo que ya existe en la fuente de verdad y en la proyección runtime.',
+                state=state,
+            ),
+            html.Div(
+                [
+                    _workflow_stage_card(
+                        step='3',
+                        title='Fuente de verdad',
+                        subtitle=module.source_name,
+                        items=(
+                            ('Revisión actual', _short_revision(status.source_revision)),
+                            ('Última publicación', _audit_value(status.source_audit)),
+                        ),
+                    ),
+                    _workflow_stage_card(
+                        step='4',
+                        title='Proyección runtime',
+                        subtitle=module.projection_name,
+                        items=(
+                            (
+                                'Revisión activa',
+                                _short_revision(status.active_source_revision),
+                            ),
+                            ('Última proyección', _audit_value(status.projection_audit)),
+                        ),
+                    ),
+                ],
+                className='atlanticus-manager__workflow-stage-grid',
+            ),
+        ],
+        className='atlanticus-manager__workflow-group',
+    )
+
+
+def build_workflow_draft_content(
+    *,
+    draft: ManagerDraft | None,
+    validation: dict[str, object] | None,
+    principal: ManagerPrincipal,
+    source_revision: str | None = None,
+) -> object:
+    if draft is None:
+        return html.Section(
+            [
+                _workflow_group_header(
+                    'Trabajo local',
+                    'Todavía no hay un borrador guardado en este navegador.',
+                ),
+                html.Div(
+                    'Guarda un borrador para poder validarlo antes de publicarlo.',
+                    className='atlanticus-manager__workflow-empty',
+                ),
+            ],
+            className='atlanticus-manager__workflow-group',
+        )
+    if draft.owner_subject_id != principal.subject_id:
+        return html.Div(
+            'El borrador local pertenece a otro usuario.',
+            className='atlanticus-manager__message atlanticus-manager__message--error',
+        )
+    valid = _draft_validation_is_current(draft, validation)
+    validation_label = 'Validado' if valid else 'Pendiente'
+    draft_state = 'Publicado' if draft.revision == source_revision else 'No publicado'
+    validated_by = '—'
+    validated_at = '—'
+    if validation and validation.get('draft_revision') == draft.revision:
+        if validation.get('valid') is False:
+            validation_label = 'Con errores'
+        validated_by = str(validation.get('validated_by') or '—')
+        validated_at = _format_optional_datetime(validation.get('validated_at'))
+    return html.Section(
+        [
+            _workflow_group_header(
+                'Trabajo local',
+                'Este estado vive en el navegador y todavía no modifica la fuente de verdad.',
+            ),
+            html.Div(
+                [
+                    _workflow_stage_card(
+                        step='1',
+                        title='Borrador del navegador',
+                        subtitle=draft_state,
+                        items=(
+                            ('Revisión', _short_revision(draft.revision)),
+                            ('Guardado', _format_datetime(draft.saved_at)),
+                            ('Base fuente', _short_revision(draft.base_source_revision)),
+                        ),
+                    ),
+                    _workflow_stage_card(
+                        step='2',
+                        title='Validación',
+                        subtitle=validation_label,
+                        items=(
+                            ('Validado por', validated_by),
+                            ('Fecha', validated_at),
+                        ),
+                    ),
+                ],
+                className='atlanticus-manager__workflow-stage-grid',
+            ),
+            _build_validation_issues(_validation_issues(validation)),
+        ],
+        className='atlanticus-manager__workflow-group',
+    )
+
+
+def build_workflow_history_content(
+    *,
+    module: ManagerModule,
+    status: ProjectionStatus | None,
+    history: tuple[RevisionHistoryEntry, ...],
+    can_load_history: bool,
+    error: str | None,
+) -> object:
+    if error is not None or status is None:
+        return None
+    return _build_history(
+        history,
+        module_key=module.key,
+        can_load_history=can_load_history,
+    )
+
+
+def _workflow_revision_state(status: ProjectionStatus | None) -> dict[str, object] | None:
+    if status is None:
+        return None
+    return {
+        'source_revision': status.source_revision,
+        'active_source_revision': status.active_source_revision,
+    }
+
+
+def _can_project(status: ProjectionStatus | None) -> bool:
+    if status is None or status.source_revision is None:
+        return False
+    return status.active_source_revision != status.source_revision
+
+
+def _build_header_identity(
+    brand: ManagerBrand | None,
+    *,
+    title: str,
+    subtitle: str,
+) -> object:
+    product = _brand_mark(brand, 'product')
+    supporting = tuple(
+        mark
+        for role in ('framework', 'organization')
+        if (mark := _brand_mark(brand, role)) is not None
+    )
+    return html.Div(
+        [
+            _build_brand_mark(product)
+            if product is not None
+            else html.Div('A', className='atlanticus-manager__brand-fallback'),
+            html.Div(
+                [html.H1(title), html.P(subtitle)],
+                className='atlanticus-manager__title',
+            ),
+            html.Div(
+                [_build_brand_mark(mark) for mark in supporting],
+                className='atlanticus-manager__brand-supporting',
+            )
+            if supporting
+            else None,
+        ],
+        className='atlanticus-manager__header-identity',
+    )
+
+
+def _brand_mark(brand: ManagerBrand | None, role: str) -> ManagerBrandMark | None:
+    if brand is None:
+        return None
+    return next((mark for mark in brand.marks if mark.role == role), None)
+
+
+def _build_brand_mark(mark: ManagerBrandMark) -> object:
+    return html.Div(
+        [
+            html.Img(src=mark.logo_src, alt=mark.logo_alt),
+            html.Div(
+                [
+                    html.Small(mark.eyebrow) if mark.eyebrow else None,
+                    html.Span(mark.label) if mark.label else None,
+                ]
+            ),
+        ],
+        className=f'atlanticus-manager__brand-mark atlanticus-manager__brand-mark--{mark.role}',
+    )
+
+
+def _build_module_status(module_key: str, status: ProjectionStatus | None) -> object:
+    state = resolve_projection_state(status) if status is not None else ProjectionState.UNAVAILABLE
+    return html.Span(
+        _STATE_LABELS[state],
+        id=module_status_id(module_key),
+        className=f'atlanticus-manager__state atlanticus-manager__state--{state.value}',
+    )
+
+
+def _summary_item(label: str, value: str, detail: str) -> object:
+    return html.Article(
+        [
+            html.Span(label, className='atlanticus-manager__summary-label'),
+            html.Strong(value, className='atlanticus-manager__summary-value'),
+            html.Small(detail, className='atlanticus-manager__summary-detail'),
+        ],
+        className='atlanticus-manager__summary-item',
+    )
+
+
+def _build_workflow_actions(
+    module: ManagerModule,
+    status: ProjectionStatus | None,
+) -> object:
+    return html.Section(
+        [
+            _workflow_group_header(
+                'Flujo de publicación',
+                'Avanza en orden: guardar, validar, publicar y finalmente proyectar.',
+            ),
+            html.Div(
+                [
+                    _workflow_action_step(
+                        '1',
+                        'Guardar borrador',
+                        'Conserva el trabajo únicamente en este navegador.',
+                        html.Button(
+                            'Guardar borrador',
+                            id=workflow_action_id(module.key, 'save-draft'),
+                            n_clicks=0,
+                            className=(
+                                'atlanticus-manager__button '
+                                'atlanticus-manager__button--secondary'
+                            ),
+                        ),
+                    ),
+                    _workflow_action_step(
+                        '2',
+                        'Validar',
+                        'Comprueba el borrador sin escribir en la fuente de verdad.',
+                        html.Button(
+                            'Validar borrador',
+                            id=workflow_action_id(module.key, 'validate'),
+                            n_clicks=0,
+                            className=(
+                                'atlanticus-manager__button '
+                                'atlanticus-manager__button--secondary'
+                            ),
+                            disabled=True,
+                        ),
+                    ),
+                    _workflow_action_step(
+                        '3',
+                        'Publicar',
+                        f'Guarda la revisión validada en {module.source_name}.',
+                        html.Button(
+                            f'Guardar en {module.source_name}',
+                            id=workflow_action_id(module.key, 'publish'),
+                            n_clicks=0,
+                            className=(
+                                'atlanticus-manager__button '
+                                'atlanticus-manager__button--secondary'
+                            ),
+                            disabled=True,
+                        ),
+                    ),
+                    _workflow_action_step(
+                        '4',
+                        'Proyectar',
+                        f'Actualiza el runtime disponible en {module.projection_name}.',
+                        html.Button(
+                            f'Proyectar en {module.projection_name}',
+                            id=workflow_action_id(module.key, 'project'),
+                            n_clicks=0,
+                            className=(
+                                'atlanticus-manager__button '
+                                'atlanticus-manager__button--primary'
+                            ),
+                            disabled=not _can_project(status),
+                        ),
+                    ),
+                ],
+                className='atlanticus-manager__workflow-action-grid',
+            ),
+        ],
+        className='atlanticus-manager__workflow-group',
+    )
+
+
+def _workflow_action_step(
+    step: str,
+    title: str,
+    description: str,
+    action: object,
+) -> object:
+    return html.Article(
+        [
+            html.Div(
+                [
+                    html.Span(step, className='atlanticus-manager__workflow-step-number'),
+                    html.Div(
+                        [
+                            html.Strong(title),
+                            html.P(description),
+                        ]
+                    ),
+                ],
+                className='atlanticus-manager__workflow-step-heading',
+            ),
+            action,
+        ],
+        className='atlanticus-manager__workflow-action-step',
+    )
+
+
+def _workflow_group_header(
+    title: str,
+    description: str,
+    *,
+    state: ProjectionState | None = None,
+) -> object:
+    return html.Header(
+        [
+            html.Div([html.H3(title), html.P(description)]),
+            html.Span(
+                _STATE_LABELS[state],
+                className=(
+                    'atlanticus-manager__state '
+                    f'atlanticus-manager__state--{state.value}'
+                ),
+            )
+            if state is not None
+            else None,
+        ],
+        className='atlanticus-manager__workflow-group-header',
+    )
+
+
+def _workflow_stage_card(
+    *,
+    step: str,
+    title: str,
+    subtitle: str,
+    items: tuple[tuple[str, str], ...],
+) -> object:
+    return html.Article(
+        [
+            html.Header(
+                [
+                    html.Span(step, className='atlanticus-manager__workflow-step-number'),
+                    html.Div([html.H4(title), html.P(subtitle)]),
+                ],
+                className='atlanticus-manager__workflow-stage-header',
+            ),
+            html.Div(
+                [
+                    html.Div(
+                        [html.Span(label), html.Strong(value)],
+                        className='atlanticus-manager__workflow-stage-item',
+                    )
+                    for label, value in items
+                ],
+                className='atlanticus-manager__workflow-stage-items',
+            ),
+        ],
+        className='atlanticus-manager__workflow-stage-card',
+    )
+
+
+def _audit_value(audit) -> str:
+    if audit is None:
+        return 'Sin registro'
+    return f'{audit.actor} · {_format_datetime(audit.occurred_at)}'
+
+
+def _build_history(
+    history: tuple[RevisionHistoryEntry, ...],
+    *,
+    module_key: str,
+    can_load_history: bool,
+) -> object:
+    rows = []
+    for index, entry in enumerate(history):
+        labels = []
+        if entry.current:
+            labels.append('Fuente actual')
+        if entry.active:
+            labels.append('Proyección activa')
+        status = ' · '.join(labels) if labels else 'Histórica'
+        action = None
+        if can_load_history:
+            action = html.Button(
+                'Cargar como borrador',
+                id=history_load_id(
+                    module_key,
+                    entry.revision,
+                    f'{index}-{entry.saved_at.isoformat()}',
+                ),
+                n_clicks=0,
+                className=(
+                    'atlanticus-manager__button '
+                    'atlanticus-manager__button--secondary '
+                    'atlanticus-manager__history-restore'
+                ),
+            )
+        rows.append(
+            html.Div(
+                [
+                    html.Code(_short_revision(entry.revision)),
+                    html.Span(entry.saved_by),
+                    html.Time(_format_datetime(entry.saved_at)),
+                    html.Span(status, className='atlanticus-manager__history-status'),
+                    action,
+                ],
+                className='atlanticus-manager__history-row',
+            )
+        )
+    header = html.Div(
+        [
+            html.Span('Revisión'),
+            html.Span('Publicado por'),
+            html.Span('Fecha'),
+            html.Span('Estado'),
+            html.Span('Acción'),
+        ],
+        className='atlanticus-manager__history-row atlanticus-manager__history-row--header',
+    )
+    return html.Section(
+        [
+            html.H3('Historial publicado'),
+            html.P(
+                'Solo aparecen revisiones publicadas en la fuente de verdad. '
+                'Una revisión histórica se recupera primero como borrador local.'
+            ),
+            header if rows else None,
+            html.Div(rows) if rows else html.Div('Sin revisiones históricas.'),
+        ],
+        className='atlanticus-manager__history',
+    )
+
+
+def _draft_validation_is_current(
+    draft: ManagerDraft,
+    validation: dict[str, object] | None,
+) -> bool:
+    return bool(
+        validation
+        and validation.get('draft_revision') == draft.revision
+        and validation.get('valid') is True
+    )
+
+
+def _validation_issues(
+    validation: dict[str, object] | None,
+) -> tuple[ProjectionIssue, ...]:
+    if not validation:
+        return ()
+    raw = validation.get('issues')
+    if not isinstance(raw, list):
+        return ()
+    result = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        try:
+            result.append(
+                ProjectionIssue(
+                    code=str(item['code']),
+                    message=str(item['message']),
+                    level=str(item.get('level', 'error')),
+                    path=str(item['path']) if item.get('path') is not None else None,
+                )
+            )
+        except (KeyError, ValueError):
+            continue
+    return tuple(result)
+
+
+def _build_validation_issues(issues: tuple[ProjectionIssue, ...]) -> object:
+    if not issues:
+        return None
+    return html.Ul(
+        [
+            html.Li(
+                f'{issue.path}: {issue.message}' if issue.path else issue.message,
+                className=f'atlanticus-manager__issue atlanticus-manager__issue--{issue.level}',
+            )
+            for issue in issues
+        ],
+        className='atlanticus-manager__issues',
+    )
+
+
+def _build_summary_items(items: tuple[ProjectionSummaryItem, ...]) -> object:
+    if not items:
+        return None
+    return html.Div(
+        [html.Span(f'{item.label}: {item.value}') for item in items],
+        className='atlanticus-manager__result-summary',
+    )
+
+
+def _short_revision(value: str | None) -> str:
+    return value[:12] if value else '—'
+
+
+def _format_datetime(value: datetime) -> str:
+    return value.astimezone().strftime('%Y-%m-%d %H:%M:%S')
+
+
+def _format_optional_datetime(value: object) -> str:
+    if value is None:
+        return '—'
+    try:
+        return _format_datetime(datetime.fromisoformat(str(value)))
+    except ValueError:
+        return '—'
+
+
+def _section_button_class(active: bool) -> str:
+    base = 'atlanticus-manager__tab'
+    return f'{base} {base}--active' if active else base
+
+
+def _section_panel_class(active: bool) -> str:
+    base = 'atlanticus-manager__section-panel'
+    return f'{base} {base}--active' if active else base

@@ -1,0 +1,493 @@
+/* Mantiene la identidad Atlanticus y convierte la estructura en listas visuales con formularios modales controlados. */
+.ada-tools-admin {
+    display: grid;
+    gap: .9rem;
+}
+
+.ada-tools-admin__runtime-context,
+.ada-tools-admin__toolbar,
+.ada-tools-admin__section {
+    min-width: 0;
+    padding: 1rem;
+    background: var(--atlanticus-manager-surface);
+    border: 1px solid var(--atlanticus-manager-border);
+    border-radius: .85rem;
+    box-shadow: 0 4px 16px rgba(25, 30, 38, .035);
+}
+
+.ada-tools-admin__runtime-context {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .55rem .75rem;
+    padding-block: .72rem;
+    background: var(--atlanticus-manager-surface-muted);
+}
+
+.ada-tools-admin__runtime-source {
+    display: flex;
+    align-items: baseline;
+    gap: .42rem;
+    padding: .38rem .62rem;
+    color: var(--atlanticus-manager-color-primary-dark);
+    background: var(--atlanticus-manager-color-primary-soft);
+    border: 1px solid rgba(201, 162, 75, .3);
+    border-radius: 999px;
+    font-size: .7rem;
+}
+
+.ada-tools-admin__runtime-source span,
+.ada-tools-admin__runtime-help {
+    color: var(--atlanticus-manager-text-muted);
+}
+
+.ada-tools-admin__import {
+    display: flex;
+    align-items: center;
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    gap: .6rem;
+}
+
+.ada-tools-admin__runtime-help {
+    max-width: 32rem;
+    font-size: .68rem;
+    line-height: 1.35;
+}
+
+.ada-tools-admin__section-heading-row,
+.ada-tools-admin__save-actions {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.ada-tools-admin__toolbar {
+    display: grid;
+    gap: .38rem;
+}
+
+.ada-tools-admin__toolbar-row {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.ada-tools-admin__selector {
+    flex: 1 1 34rem;
+    max-width: 48rem;
+}
+
+.ada-tools-admin__selector,
+.ada-tools-admin__field,
+.ada-tools-admin__field--reference {
+    display: grid;
+    gap: .35rem;
+}
+
+.ada-tools-admin__selector label,
+.ada-tools-admin__field > span,
+.ada-tools-admin__field--reference > span {
+    color: var(--atlanticus-manager-text-muted);
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+}
+
+.ada-tools-admin__field-help {
+    color: var(--atlanticus-manager-text-soft);
+    font-size: .64rem;
+    font-weight: 500;
+    line-height: 1.35;
+}
+
+.ada-tools-admin__runtime-preview summary {
+    color: var(--atlanticus-manager-color-primary-dark);
+    font-size: .78rem;
+    font-weight: 750;
+}
+
+.ada-tools-admin__general-grid,
+.ada-tools-admin__source-grid,
+.ada-tools-admin__reference-grid {
+    display: grid;
+    gap: .7rem;
+    margin-top: .7rem;
+}
+
+.ada-tools-admin__general-grid {
+    grid-template-columns: repeat(5, minmax(10rem, 1fr));
+}
+
+.ada-tools-admin__source-grid {
+    grid-template-columns: repeat(2, minmax(12rem, 1fr));
+    max-width: 62rem;
+}
+
+.ada-tools-admin__reference-grid {
+    grid-template-columns: repeat(4, minmax(10rem, 1fr));
+}
+
+.ada-tools-admin__field input {
+    min-height: var(--atlanticus-admin-control-height);
+    padding: .48rem .62rem;
+    color: var(--atlanticus-manager-text);
+    background: #FFFFFF;
+    border: 1px solid var(--atlanticus-manager-border);
+    border-radius: var(--atlanticus-admin-control-radius);
+    font: inherit;
+}
+
+.ada-tools-admin__field input:focus {
+    border-color: var(--atlanticus-manager-color-primary);
+    box-shadow: var(--atlanticus-admin-focus-ring);
+    outline: none;
+}
+
+.ada-tools-admin__field--reference code {
+    min-height: var(--atlanticus-admin-control-height);
+    padding: .58rem .65rem;
+    color: var(--atlanticus-manager-color-primary-ink);
+    background: var(--atlanticus-manager-color-primary-soft);
+    border: 1px solid rgba(201, 162, 75, .22);
+    border-radius: var(--atlanticus-admin-control-radius);
+}
+
+.ada-tools-admin__section h3,
+.ada-tools-admin__section p,
+.ada-tools-admin__section-heading-copy h3,
+.ada-tools-admin__section-heading-copy p {
+    margin: 0;
+}
+
+.ada-tools-admin__section h3,
+.ada-tools-admin__section-heading-copy h3 {
+    color: var(--atlanticus-manager-color-primary-ink);
+    font-size: .9rem;
+    font-weight: 780;
+}
+
+.ada-tools-admin__section-heading-copy {
+    display: grid;
+    gap: .2rem;
+    min-width: 0;
+}
+
+.ada-tools-admin__section-heading-copy p {
+    color: var(--atlanticus-manager-text-muted);
+    font-size: .72rem;
+    line-height: 1.4;
+}
+
+.ada-tools-admin__source-selector {
+    margin-top: .72rem;
+}
+
+.ada-tools-admin__source-selector label {
+    margin-inline-end: 1rem;
+    color: var(--atlanticus-manager-color-primary-ink);
+    font-size: .8rem;
+    font-weight: 700;
+}
+
+.ada-tools-admin__source-field--hidden,
+.ada-tools-admin__modal-field--hidden {
+    display: none;
+}
+
+.ada-tools-admin__structure {
+    display: grid;
+    gap: .9rem;
+}
+
+.ada-tools-admin__structure-list {
+    display: grid;
+    gap: .55rem;
+    margin-top: .8rem;
+}
+
+.ada-tools-admin__structure-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-width: 0;
+    padding: .72rem .8rem;
+    background: var(--atlanticus-manager-surface-muted);
+    border: 1px solid var(--atlanticus-manager-border);
+    border-radius: .72rem;
+}
+
+.ada-tools-admin__structure-copy {
+    display: grid;
+    gap: .14rem;
+    min-width: 0;
+}
+
+.ada-tools-admin__structure-copy strong {
+    color: var(--atlanticus-manager-color-primary-ink);
+    font-size: .82rem;
+}
+
+.ada-tools-admin__structure-copy code {
+    overflow: hidden;
+    color: var(--atlanticus-manager-text-muted);
+    font-size: .68rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ada-tools-admin__structure-copy span {
+    color: var(--atlanticus-manager-text-soft);
+    font-size: .68rem;
+}
+
+.ada-tools-admin__structure-actions {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: .35rem;
+}
+
+.ada-tools-admin__structure-icon,
+.ada-tools-admin__structure-action {
+    min-height: 2rem;
+    padding: .35rem .55rem;
+    color: var(--atlanticus-manager-color-primary-dark);
+    background: #FFFFFF;
+    border: 1px solid var(--atlanticus-manager-border);
+    border-radius: .5rem;
+    font: inherit;
+    font-size: .68rem;
+    font-weight: 700;
+}
+
+.ada-tools-admin__structure-icon {
+    width: 2rem;
+    padding-inline: 0;
+}
+
+.ada-tools-admin__structure-icon:disabled {
+    cursor: not-allowed;
+    opacity: .35;
+}
+
+.ada-tools-admin__structure-action:hover,
+.ada-tools-admin__structure-icon:hover:not(:disabled) {
+    background: var(--atlanticus-manager-color-primary-soft);
+    border-color: var(--atlanticus-manager-color-primary);
+}
+
+.ada-tools-admin__structure-action--danger {
+    color: var(--atlanticus-manager-danger);
+}
+
+.ada-tools-admin__empty {
+    padding: .9rem;
+    color: var(--atlanticus-manager-text-muted);
+    background: var(--atlanticus-manager-surface-muted);
+    border: 1px dashed var(--atlanticus-manager-border);
+    border-radius: .7rem;
+    font-size: .72rem;
+}
+
+.ada-tools-admin__section--footer {
+    display: grid;
+    gap: .9rem;
+    border-top: .22rem solid var(--atlanticus-manager-color-primary);
+}
+
+.ada-tools-admin__reference-grid > div {
+    display: grid;
+    gap: .22rem;
+    padding: .62rem;
+    background: var(--atlanticus-manager-surface-muted);
+    border: 1px solid var(--atlanticus-manager-border);
+    border-radius: .68rem;
+}
+
+.ada-tools-admin__reference-grid span {
+    color: var(--atlanticus-manager-text-muted);
+    font-size: .66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.ada-tools-admin__reference-grid code {
+    color: var(--atlanticus-manager-color-primary-ink);
+}
+
+.ada-tools-admin__message {
+    padding: .65rem .75rem;
+    border-radius: .65rem;
+    font-size: .74rem;
+}
+
+.ada-tools-admin__message--success {
+    color: var(--atlanticus-manager-success);
+    font-size: .74rem;
+}
+
+.ada-tools-admin__message--error {
+    color: var(--atlanticus-manager-danger);
+}
+
+.ada-tools-admin__runtime-preview {
+    margin-top: .9rem;
+}
+
+.ada-tools-admin__reference-help {
+    margin: .45rem 0 .65rem !important;
+    color: var(--atlanticus-manager-text-muted);
+    font-size: .72rem;
+}
+
+.ada-tools-admin__reference-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--atlanticus-manager-border);
+    border-radius: .7rem;
+}
+
+.ada-tools-admin__reference-table-wrap table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .74rem;
+}
+
+.ada-tools-admin__reference-table-wrap th {
+    color: var(--atlanticus-manager-color-primary-ink);
+    background: var(--atlanticus-manager-color-primary-soft);
+    font-weight: 750;
+}
+
+.ada-tools-admin__reference-table-wrap th,
+.ada-tools-admin__reference-table-wrap td {
+    padding: .52rem .62rem;
+    border-bottom: 1px solid var(--atlanticus-manager-border);
+    text-align: left;
+    white-space: nowrap;
+}
+
+.ada-tools-admin__reference-table-wrap tr:last-child td {
+    border-bottom: 0;
+}
+
+.ada-tools-admin__modal {
+    position: fixed;
+    z-index: 1300;
+    inset: 0;
+    display: none;
+    place-items: center;
+    padding: 1rem;
+}
+
+.ada-tools-admin__modal--open {
+    display: grid;
+}
+
+.ada-tools-admin__modal-backdrop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    background: rgba(7, 21, 34, .56);
+    border: 0;
+}
+
+.ada-tools-admin__modal-dialog {
+    position: relative;
+    z-index: 1;
+    width: min(38rem, 100%);
+    max-height: min(46rem, calc(100vh - 2rem));
+    overflow-y: auto;
+    background: var(--atlanticus-manager-surface);
+    border: 1px solid var(--atlanticus-manager-border);
+    border-top: .24rem solid var(--atlanticus-manager-color-primary);
+    border-radius: .9rem;
+    box-shadow: var(--atlanticus-manager-shadow);
+}
+
+.ada-tools-admin__modal-header,
+.ada-tools-admin__modal-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .85rem 1rem;
+}
+
+.ada-tools-admin__modal-header {
+    border-bottom: 1px solid var(--atlanticus-manager-border);
+}
+
+.ada-tools-admin__modal-header h3,
+.ada-tools-admin__modal-header p {
+    margin: 0;
+}
+
+.ada-tools-admin__modal-header h3 {
+    color: var(--atlanticus-manager-color-primary-ink);
+    font-size: 1rem;
+}
+
+.ada-tools-admin__modal-eyebrow {
+    margin-bottom: .18rem !important;
+    color: var(--atlanticus-manager-color-primary-strong);
+    font-size: .62rem;
+    font-weight: 750;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.ada-tools-admin__modal-body {
+    display: grid;
+    gap: .9rem;
+    padding: 1rem;
+}
+
+.ada-tools-admin__modal-actions {
+    justify-content: flex-end;
+    border-top: 1px solid var(--atlanticus-manager-border);
+}
+
+@media (max-width: 74rem) {
+    .ada-tools-admin__general-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ada-tools-admin__reference-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 48rem) {
+    .ada-tools-admin__runtime-context,
+    .ada-tools-admin__toolbar-row,
+    .ada-tools-admin__section-heading-row,
+    .ada-tools-admin__save-actions,
+    .ada-tools-admin__import,
+    .ada-tools-admin__structure-card {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .ada-tools-admin__selector {
+        width: 100%;
+        max-width: none;
+    }
+
+    .ada-tools-admin__general-grid,
+    .ada-tools-admin__source-grid,
+    .ada-tools-admin__reference-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ada-tools-admin__structure-actions {
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+}
+

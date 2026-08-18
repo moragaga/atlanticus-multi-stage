@@ -199,18 +199,18 @@ def test_process_manifest_accepts_left_center_right_and_single_bottom_card() -> 
 
     alarm_keys = {section.key for section in manifest.sections_for_target(ToolTarget.ALARM)}
     assert {
-        'global_indicators',
-        'time_status',
         'planta_molibdeno',
         'planta_molibdeno_rougher',
         'planta_molibdeno_cleaner',
     } <= alarm_keys
+    assert 'global_indicators' not in alarm_keys
+    assert 'time_status' not in alarm_keys
     assert 'aguas_arriba_flotacion_colectiva' not in alarm_keys
     assert 'aguas_abajo_stc' not in alarm_keys
     assert 'graficas_tendencia_graficas' not in alarm_keys
 
 
-def test_process_global_indicators_and_time_status_are_indivisible_alarm_targets() -> None:
+def test_process_global_indicators_and_time_status_are_kpi_only_targets() -> None:
     center = _component(
         key='proceso',
         display_name='Proceso',
@@ -234,8 +234,10 @@ def test_process_global_indicators_and_time_status_are_indivisible_alarm_targets
 
     assert manifest.children('global_indicators') == ()
     assert manifest.children('time_status') == ()
-    assert manifest.require_target('global_indicators', ToolTarget.ALARM)
-    assert manifest.require_target('time_status', ToolTarget.ALARM)
+    assert manifest.require_target('global_indicators', ToolTarget.KPI)
+    assert manifest.require_target('time_status', ToolTarget.KPI)
+    assert not manifest.section('global_indicators').accepts(ToolTarget.ALARM)
+    assert not manifest.section('time_status').accepts(ToolTarget.ALARM)
 
 
 def test_process_manifest_rejects_global_operational_scope() -> None:

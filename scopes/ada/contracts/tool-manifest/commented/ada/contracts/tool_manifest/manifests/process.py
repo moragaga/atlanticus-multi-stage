@@ -1,3 +1,7 @@
+# Espejo pedagógico: este archivo conserva exactamente la lógica del código productivo.
+# Contrato runtime ToolManifest de ADA. Describe la estructura consumible por las aplicaciones y conserva derivadas fuera de la configuración humana.
+# Los comentarios explican la intención arquitectónica; no agregan ramas, estado ni comportamiento.
+
 from collections.abc import Iterable
 
 from ..enums import ProcessBodySection, ToolScope, ToolSectionKind, ToolTarget
@@ -28,11 +32,9 @@ def build_process_manifest(
     operational_scope: ToolScope,
     body_sections: Iterable[ToolSection],
 ) -> ToolManifest:
-    # Process solo puede operar sobre el scope minero o planta, nunca GLOBAL.
     if operational_scope not in _PROCESS_SCOPES:
         raise ToolManifestError('Process operational_scope must be mine or plant')
 
-    # La herramienta declara sus componentes funcionales y las cards que cuelgan de ellos.
     resolved_sections = tuple(body_sections)
     if not resolved_sections:
         raise ToolManifestError('Process manifest requires at least one body section')
@@ -42,7 +44,6 @@ def build_process_manifest(
         operational_scope=operational_scope,
     )
 
-    # Las secciones transversales son comunes; body contiene directamente los componentes Process.
     manifest = ToolManifest(
         tool_key=tool_key,
         display_name=display_name,
@@ -60,7 +61,7 @@ def build_process_manifest(
                 kind=ToolSectionKind.COMPONENT,
                 scope=operational_scope,
                 parent_key='header',
-                targets=_KPI_ALARM,
+                targets=_KPI,
             ),
             ToolSection(
                 key='alarm_management',
@@ -81,7 +82,7 @@ def build_process_manifest(
                 display_name='Estado Temporal',
                 kind=ToolSectionKind.COMPONENT,
                 scope=ToolScope.GLOBAL,
-                targets=_KPI_ALARM,
+                targets=_KPI,
             ),
             ToolSection(
                 key='body',
@@ -101,11 +102,9 @@ def _validate_process_section_declarations(
     sections: tuple[ToolSection, ...],
     operational_scope: ToolScope,
 ) -> None:
-    # Todo el body Process pertenece al mismo scope operacional de la herramienta.
     if any(section.scope is not operational_scope for section in sections):
         raise ToolManifestError('Process body section scope must match operational_scope')
 
-    # LEFT/CENTER/RIGHT/BOTTOM son roles del componente, no regiones persistidas adicionales.
     components = tuple(section for section in sections if section.parent_key == 'body')
     if not components:
         raise ToolManifestError('Process manifest requires at least one body component')
@@ -120,7 +119,6 @@ def _validate_process_section_declarations(
     if ProcessBodySection.CENTER not in roles:
         raise ToolManifestError('Process manifest requires the center layout role')
 
-    # KPI se configura por componente; CENTER además es target directo de alarmas.
     for component in components:
         expected_targets = (
             _KPI_ALARM if component.layout_role is ProcessBodySection.CENTER else _KPI
@@ -135,7 +133,6 @@ def _validate_process_manifest_body(manifest: ToolManifest) -> None:
     components = manifest.children('body')
     component_keys = {component.key for component in components}
 
-    # Cada componente expone una o más ComponentCards; BOTTOM es deliberadamente una sola card.
     for component in components:
         children = manifest.children(component.key)
         if not children:
@@ -149,7 +146,6 @@ def _validate_process_manifest_body(manifest: ToolManifest) -> None:
         if component.layout_role is ProcessBodySection.BOTTOM and len(children) != 1:
             raise ToolManifestError('Process bottom component requires exactly one subcomponent')
 
-    # Solo las cards del componente CENTER son divisibles para alarmas.
     for section in manifest.sections:
         if section.key in _FIXED_SECTION_KEYS or section.key in component_keys:
             continue

@@ -45,7 +45,7 @@ INTEGRATED_OPERATIONS_MANIFEST = ToolManifest(
             kind=ToolSectionKind.COMPONENT,
             scope=ToolScope.GLOBAL,
             parent_key='header',
-            targets=_KPI_ALARM,
+            targets=_KPI,
         ),
         ToolSection(
             component='global_indicators',
@@ -96,7 +96,7 @@ INTEGRATED_OPERATIONS_MANIFEST = ToolManifest(
             display_name='Estado Temporal',
             kind=ToolSectionKind.COMPONENT,
             scope=ToolScope.GLOBAL,
-            targets=_KPI_ALARM,
+            targets=_KPI,
         ),
         ToolSection(
             key='body',

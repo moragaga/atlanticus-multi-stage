@@ -57,7 +57,7 @@ def build_process_manifest(
                 kind=ToolSectionKind.COMPONENT,
                 scope=operational_scope,
                 parent_key='header',
-                targets=_KPI_ALARM,
+                targets=_KPI,
             ),
             ToolSection(
                 key='alarm_management',
@@ -78,7 +78,7 @@ def build_process_manifest(
                 display_name='Estado Temporal',
                 kind=ToolSectionKind.COMPONENT,
                 scope=ToolScope.GLOBAL,
-                targets=_KPI_ALARM,
+                targets=_KPI,
             ),
             ToolSection(
                 key='body',
