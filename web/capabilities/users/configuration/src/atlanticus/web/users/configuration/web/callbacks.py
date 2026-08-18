@@ -20,33 +20,33 @@ from atlanticus.web.users.configuration.web.ids import (
     ADD_PROFILE_ID,
     ADD_USER_ID,
     ADMINISTRATOR_BACKGROUND_COLOR_ID,
-    ADMINISTRATOR_TEXT_COLOR_ID,
     ADMINISTRATOR_PREVIEW_ID,
+    ADMINISTRATOR_TEXT_COLOR_ID,
     CATALOG_STORE_ID,
     DISCOVERED_LIST_ID,
     DISCOVERED_PANEL_ID,
     DISCOVERED_REFRESH_ID,
     DISCOVERED_TAB_ID,
     GUEST_BACKGROUND_COLOR_ID,
-    GUEST_TEXT_COLOR_ID,
     GUEST_PREVIEW_ID,
+    GUEST_TEXT_COLOR_ID,
     IMPORT_RESULT_ID,
     IMPORT_UPLOAD_ID,
     MOUNT_STORE_ID,
-    PROFILE_CANCEL_ID,
     PROFILE_BACKGROUND_COLOR_ID,
-    PROFILE_TEXT_COLOR_ID,
-    PROFILE_PREVIEW_ID,
+    PROFILE_CANCEL_ID,
     PROFILE_EDITOR_STORE_ID,
     PROFILE_KEY_ID,
     PROFILE_MODAL_ID,
     PROFILE_MODAL_TITLE_ID,
     PROFILE_NAME_ID,
     PROFILE_PANEL_ID,
+    PROFILE_PREVIEW_ID,
     PROFILE_RESULT_ID,
     PROFILE_SAVE_ID,
-    PROFILES_LIST_ID,
     PROFILE_TAB_ID,
+    PROFILE_TEXT_COLOR_ID,
+    PROFILES_LIST_ID,
     SAVE_BUTTON_ID,
     SAVE_RESULT_ID,
     SECTION_STORE_ID,
@@ -57,11 +57,11 @@ from atlanticus.web.users.configuration.web.ids import (
     USER_MODAL_ID,
     USER_MODAL_TITLE_ID,
     USER_NAME_ID,
-    USERS_PANEL_ID,
     USER_PROFILE_ID,
     USER_RESULT_ID,
     USER_SAVE_ID,
     USERS_LIST_ID,
+    USERS_PANEL_ID,
     USERS_TAB_ID,
     color_picker_button_id,
     color_picker_swatch_id,
@@ -76,6 +76,7 @@ from atlanticus.web.users.profiles import (
     DEFAULT_ADMINISTRATOR_TEXT_COLOR,
     DEFAULT_GUEST_BACKGROUND_COLOR,
     DEFAULT_GUEST_TEXT_COLOR,
+    ProfileDefinition,
 )
 
 _MODAL_CLOSED = 'atlanticus-users-admin__modal'
@@ -192,15 +193,12 @@ def register_users_admin_callbacks(app: object, context: UsersAdminWebContext) -
         try:
             updated = UsersConfigurationCatalog(
                 administrator_background_color=(
-                    administrator_background_color
-                    or catalog.administrator_background_color
+                    administrator_background_color or catalog.administrator_background_color
                 ),
                 administrator_text_color=(
                     administrator_text_color or catalog.administrator_text_color
                 ),
-                guest_background_color=(
-                    guest_background_color or catalog.guest_background_color
-                ),
+                guest_background_color=(guest_background_color or catalog.guest_background_color),
                 guest_text_color=guest_text_color or catalog.guest_text_color,
                 profiles=catalog.profiles,
                 users=catalog.users,
@@ -650,12 +648,12 @@ def register_users_admin_callbacks(app: object, context: UsersAdminWebContext) -
         return draft, None
 
 
-
 def _current_source_revision(context: UsersAdminWebContext) -> str | None:
     try:
         return context.services.projection_workflow.get_status().source_revision
     except Exception:
         return None
+
 
 def _catalog(data: dict[str, object] | None) -> UsersConfigurationCatalog:
     if not isinstance(data, dict):
@@ -756,6 +754,7 @@ def _save_profile(
         users=catalog.users,
     )
 
+
 def _save_user(
     catalog: UsersConfigurationCatalog,
     editor_data: dict[str, object] | None,
@@ -812,6 +811,7 @@ def _save_user(
         profiles=catalog.profiles,
         users=users,
     )
+
 
 def _assignable_profile_options(catalog: UsersConfigurationCatalog) -> list[dict[str, str]]:
     return [
@@ -985,13 +985,13 @@ def _discovered_cards(
     )
 
 
-def _profile_badge(profile: object) -> object:
+def _profile_badge(profile: ProfileDefinition) -> object:
     return html.Span(
-        getattr(profile, 'label'),
+        profile.label,
         className='atlanticus-users-admin__profile-badge',
         style={
-            'backgroundColor': getattr(profile, 'background_color'),
-            'color': getattr(profile, 'text_color'),
+            'backgroundColor': profile.background_color,
+            'color': profile.text_color,
         },
     )
 
@@ -1111,6 +1111,7 @@ def _profile_modal_response(
         _error(error) if error else None,
         catalog if catalog is not None else no_update,
     )
+
 
 def _user_modal_response(
     *,

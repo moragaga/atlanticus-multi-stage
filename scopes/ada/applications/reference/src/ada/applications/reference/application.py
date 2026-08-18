@@ -27,6 +27,10 @@ from ada.ui.shell.header import create_ada_header_module
 from ada.ui.shell.navigation import create_ada_navigation_module
 from ada.ui.shell.time_status import create_ada_time_status_module
 from atlanticus.web.application import create_web_application
+from atlanticus.web.compositions.users_navigation import (
+    create_users_navigation_module,
+    validate_users_navigation_profiles,
+)
 from atlanticus.web.identity.local import create_local_identity_provider
 from atlanticus.web.identity.module import create_identity_module
 from atlanticus.web.index import IndexPageDefinition
@@ -56,13 +60,16 @@ def build_definition(
         runtime=users_runtime,
         profiles=profiles,
     )
+    navigation = build_reference_navigation()
+    validate_users_navigation_profiles(navigation, profiles)
     modules = [
         create_users_module(users_runtime, profiles),
         create_identity_module(
             create_local_identity_provider(),
             access_resolver=users_resolver,
         ),
-        create_navigation_module(build_reference_navigation(), profiles=profiles),
+        create_navigation_module(navigation),
+        create_users_navigation_module(),
     ]
     if resolution.ready:
         modules.extend(

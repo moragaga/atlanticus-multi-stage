@@ -1,5 +1,5 @@
-# Espejo pedagógico del módulo productivo.
-# Los comentarios explican responsabilidades sin alterar estructura ni comportamiento.
+# Espejo pedagógico: Users clasifica perfiles por semántica de acceso genérica.
+# restricted_access_profiles no menciona Navigation y puede ser consumido por cualquier política externa.
 from __future__ import annotations
 
 from atlanticus.web.users.cosmos.errors import UsersCosmosGatewayError
@@ -9,7 +9,6 @@ from atlanticus.web.users.errors import UsersDefinitionError, UsersSourceUnavail
 from atlanticus.web.users.profiles import ProfileCatalog, ProfileDefinition
 
 
-# Define UsersCosmosProfileCache como frontera explícita del módulo y valida su contrato.
 class UsersCosmosProfileCache:
     def __init__(self, gateway: UsersCosmosGateway) -> None:
         self._gateway = gateway
@@ -59,7 +58,6 @@ class UsersCosmosProfileCache:
         self._source_revision = source_revision
 
 
-# Define CosmosProfileCatalog como frontera explícita del módulo y valida su contrato.
 class CosmosProfileCatalog(ProfileCatalog):
     def __init__(self, cache: UsersCosmosProfileCache) -> None:
         super().__init__()
@@ -74,5 +72,5 @@ class CosmosProfileCatalog(ProfileCatalog):
     def assignable(self) -> tuple[ProfileDefinition, ...]:
         return self._cache.current().assignable()
 
-    def navigation_selectable(self) -> tuple[ProfileDefinition, ...]:
-        return self._cache.current().navigation_selectable()
+    def restricted_access_profiles(self) -> tuple[ProfileDefinition, ...]:
+        return self._cache.current().restricted_access_profiles()

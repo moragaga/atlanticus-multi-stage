@@ -12,6 +12,7 @@ classifiers = [
 dependencies = [
     "atlanticus-web==0.1.0",
     "atlanticus-web-navigation==0.1.0",
+    "atlanticus-web-composition-users-navigation==0.1.0",
     "atlanticus-web-identity-local==0.1.0",
     "atlanticus-web-identity-app-service==0.1.0",
     "atlanticus-web-users-local==0.1.0",
@@ -21,6 +22,7 @@ dependencies = [
 [tool.uv.sources]
 atlanticus-web = { workspace = true }
 atlanticus-web-navigation = { workspace = true }
+atlanticus-web-composition-users-navigation = { workspace = true }
 atlanticus-web-identity-local = { workspace = true }
 atlanticus-web-identity-app-service = { workspace = true }
 atlanticus-web-users-local = { workspace = true }

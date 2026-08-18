@@ -16,9 +16,9 @@ from atlanticus.web.users.cosmos.keys import (
 )
 from atlanticus.web.users.cosmos.models import (
     ProfileCatalogDocument,
-    USERS_COSMOS_SCHEMA_VERSION,
     UserDocument,
     UserLookupDocument,
+    USERS_COSMOS_SCHEMA_VERSION,
 )
 
 

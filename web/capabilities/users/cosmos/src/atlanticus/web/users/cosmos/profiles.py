@@ -70,5 +70,5 @@ class CosmosProfileCatalog(ProfileCatalog):
     def assignable(self) -> tuple[ProfileDefinition, ...]:
         return self._cache.current().assignable()
 
-    def navigation_selectable(self) -> tuple[ProfileDefinition, ...]:
-        return self._cache.current().navigation_selectable()
+    def restricted_access_profiles(self) -> tuple[ProfileDefinition, ...]:
+        return self._cache.current().restricted_access_profiles()

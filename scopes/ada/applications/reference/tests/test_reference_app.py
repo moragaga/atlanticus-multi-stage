@@ -28,6 +28,7 @@ def test_reference_composes_runtime_and_transversal_components_in_order() -> Non
         'users',
         'identity',
         'navigation',
+        'users-navigation',
         'ada-runtime',
         'ada-ui',
         'ada-navigation',
@@ -44,6 +45,7 @@ def test_reference_composes_runtime_and_transversal_components_in_order() -> Non
         'reference',
     )
     assert modules['navigation'].asset_layers == ()
+    assert modules['users-navigation'].asset_layers == ()
     assert modules['ada-runtime'].asset_layers == ()
     assert modules['ada-ui'].asset_layers == (ADA_UI_ASSET_LAYER,)
     assert modules['ada-navigation'].asset_layers == (ADA_NAVIGATION_ASSET_LAYER,)
@@ -109,6 +111,7 @@ def test_reference_degrades_to_ready_configuration_wrapper(resolution, cover, me
         'users',
         'identity',
         'navigation',
+        'users-navigation',
         'ada-ui',
         'ada-state-wrapper',
         'reference',

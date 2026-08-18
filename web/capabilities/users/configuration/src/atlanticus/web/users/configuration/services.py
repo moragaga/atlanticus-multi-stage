@@ -94,9 +94,7 @@ class UsersAdministrationService:
         current = self._source.fetch_bundle()
         current_revision = current.revision if current is not None else None
         if current_revision != expected_source_revision:
-            raise UsersConfigurationSourceError(
-                'Users source revision changed before publication'
-            )
+            raise UsersConfigurationSourceError('Users source revision changed before publication')
         bundle = UsersConfigurationBundle.create(
             catalog=catalog,
             saved_by=validation.audit.actor,

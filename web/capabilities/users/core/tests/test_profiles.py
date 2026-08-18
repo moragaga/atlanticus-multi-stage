@@ -35,10 +35,7 @@ def test_system_profiles_have_fixed_contracts_and_configurable_visuals() -> None
         default.require(ADMINISTRATOR_PROFILE_KEY).background_color
         == DEFAULT_ADMINISTRATOR_BACKGROUND_COLOR
     )
-    assert (
-        default.require(ADMINISTRATOR_PROFILE_KEY).text_color
-        == DEFAULT_ADMINISTRATOR_TEXT_COLOR
-    )
+    assert default.require(ADMINISTRATOR_PROFILE_KEY).text_color == DEFAULT_ADMINISTRATOR_TEXT_COLOR
     assert default.require(GUEST_PROFILE_KEY).background_color == DEFAULT_GUEST_BACKGROUND_COLOR
     assert default.require(GUEST_PROFILE_KEY).text_color == DEFAULT_GUEST_TEXT_COLOR
     assert changed.require(ADMINISTRATOR_PROFILE_KEY).label == 'Administrador'
@@ -76,7 +73,7 @@ def test_only_administrator_and_custom_profiles_are_assignable() -> None:
         'administrator',
         'operator',
     )
-    assert tuple(profile.key for profile in catalog.navigation_selectable()) == (
+    assert tuple(profile.key for profile in catalog.restricted_access_profiles()) == (
         'guest',
         'operator',
     )
@@ -90,7 +87,7 @@ def test_profile_access_policy_keeps_system_full_access_implicit() -> None:
     assert profile_has_access('operator', ('viewer',)) is False
 
 
-def test_guest_visuals_are_configurable_and_guest_is_navigation_selectable() -> None:
+def test_guest_visuals_are_configurable_and_guest_requires_explicit_access() -> None:
     catalog = ProfileCatalog(
         guest_background_color='#123456',
         guest_text_color='#FEDCBA',
@@ -98,4 +95,17 @@ def test_guest_visuals_are_configurable_and_guest_is_navigation_selectable() -> 
 
     assert catalog.require('guest').background_color == '#123456'
     assert catalog.require('guest').text_color == '#FEDCBA'
-    assert [profile.key for profile in catalog.navigation_selectable()] == ['guest']
+    assert [profile.key for profile in catalog.restricted_access_profiles()] == ['guest']
+
+
+def test_users_core_has_no_navigation_dependency() -> None:
+    from pathlib import Path
+
+    root = Path(__file__).parents[1]
+    pyproject = (root / 'pyproject.toml').read_text(encoding='utf-8')
+    sources = '\n'.join(
+        path.read_text(encoding='utf-8') for path in sorted((root / 'src').rglob('*.py'))
+    )
+
+    assert 'atlanticus-web-navigation' not in pyproject
+    assert 'atlanticus.web.navigation' not in sources

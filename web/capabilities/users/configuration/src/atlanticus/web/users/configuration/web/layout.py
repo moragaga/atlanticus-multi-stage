@@ -7,34 +7,34 @@ from atlanticus.web.users.configuration.web.ids import (
     ADD_PROFILE_ID,
     ADD_USER_ID,
     ADMINISTRATOR_BACKGROUND_COLOR_ID,
-    ADMINISTRATOR_TEXT_COLOR_ID,
     ADMINISTRATOR_PREVIEW_ID,
+    ADMINISTRATOR_TEXT_COLOR_ID,
     CATALOG_STORE_ID,
     DISCOVERED_LIST_ID,
     DISCOVERED_PANEL_ID,
     DISCOVERED_REFRESH_ID,
     DISCOVERED_TAB_ID,
     GUEST_BACKGROUND_COLOR_ID,
-    GUEST_TEXT_COLOR_ID,
     GUEST_PREVIEW_ID,
+    GUEST_TEXT_COLOR_ID,
     IMPORT_RESULT_ID,
     IMPORT_UPLOAD_ID,
     MOUNT_STORE_ID,
-    PROFILE_CANCEL_ID,
     PROFILE_BACKGROUND_COLOR_ID,
-    PROFILE_TEXT_COLOR_ID,
-    PROFILE_PREVIEW_ID,
+    PROFILE_CANCEL_ID,
     PROFILE_EDITOR_STORE_ID,
     PROFILE_KEY_ID,
     PROFILE_MODAL_ID,
     PROFILE_MODAL_TITLE_ID,
     PROFILE_NAME_ID,
     PROFILE_PANEL_ID,
+    PROFILE_PREVIEW_ID,
     PROFILE_RESULT_ID,
     PROFILE_SAVE_ID,
+    PROFILE_TAB_ID,
+    PROFILE_TEXT_COLOR_ID,
     PROFILES_LIST_ID,
     PROJECTION_NAME_ID,
-    PROFILE_TAB_ID,
     SAVE_BUTTON_ID,
     SAVE_RESULT_ID,
     SECTION_STORE_ID,
@@ -46,11 +46,11 @@ from atlanticus.web.users.configuration.web.ids import (
     USER_MODAL_ID,
     USER_MODAL_TITLE_ID,
     USER_NAME_ID,
-    USERS_PANEL_ID,
     USER_PROFILE_ID,
     USER_RESULT_ID,
     USER_SAVE_ID,
     USERS_LIST_ID,
+    USERS_PANEL_ID,
     USERS_TAB_ID,
     color_picker_button_id,
     color_picker_swatch_id,
@@ -91,8 +91,7 @@ def build_users_admin_configuration(context: UsersAdminWebContext) -> object:
             html.Div(
                 error,
                 className=(
-                    'atlanticus-users-admin__message '
-                    'atlanticus-users-admin__message--error'
+                    'atlanticus-users-admin__message atlanticus-users-admin__message--error'
                 ),
             )
             if error
@@ -155,8 +154,7 @@ def _runtime_context(context: UsersAdminWebContext) -> object:
                         children=html.Button(
                             'Cargar configuración de Users',
                             className=(
-                                'atlanticus-manager__button '
-                                'atlanticus-manager__button--secondary'
+                                'atlanticus-manager__button atlanticus-manager__button--secondary'
                             ),
                         ),
                         multiple=False,
@@ -184,9 +182,7 @@ def _editor_navigation() -> object:
                 'Perfiles',
                 id=PROFILE_TAB_ID,
                 n_clicks=0,
-                className=(
-                    'atlanticus-users-admin__tab atlanticus-users-admin__tab--active'
-                ),
+                className=('atlanticus-users-admin__tab atlanticus-users-admin__tab--active'),
             ),
             html.Button(
                 'Usuarios',
@@ -296,8 +292,7 @@ def _users_panel(catalog: UsersConfigurationCatalog) -> object:
                         id=ADD_USER_ID,
                         n_clicks=0,
                         className=(
-                            'atlanticus-manager__button '
-                            'atlanticus-manager__button--secondary'
+                            'atlanticus-manager__button atlanticus-manager__button--secondary'
                         ),
                     ),
                 ],
@@ -326,8 +321,7 @@ def _discovered_panel() -> object:
                         id=DISCOVERED_REFRESH_ID,
                         n_clicks=0,
                         className=(
-                            'atlanticus-manager__button '
-                            'atlanticus-manager__button--secondary'
+                            'atlanticus-manager__button atlanticus-manager__button--secondary'
                         ),
                     ),
                 ],
@@ -361,8 +355,7 @@ def _save_section() -> object:
                         id=SAVE_BUTTON_ID,
                         n_clicks=0,
                         className=(
-                            'atlanticus-manager__button '
-                            'atlanticus-manager__button--primary'
+                            'atlanticus-manager__button atlanticus-manager__button--primary'
                         ),
                     ),
                 ],
@@ -370,9 +363,7 @@ def _save_section() -> object:
             ),
             html.Div(id=SAVE_RESULT_ID),
         ],
-        className=(
-            'atlanticus-users-admin__section atlanticus-users-admin__section--footer'
-        ),
+        className=('atlanticus-users-admin__section atlanticus-users-admin__section--footer'),
     )
 
 
@@ -704,9 +695,7 @@ def _modal_actions(*, cancel_id: str, save_id: str, save_label: str) -> object:
                 'Cancelar',
                 id=cancel_id,
                 n_clicks=0,
-                className=(
-                    'atlanticus-manager__button atlanticus-manager__button--secondary'
-                ),
+                className=('atlanticus-manager__button atlanticus-manager__button--secondary'),
             ),
             html.Button(
                 save_label,

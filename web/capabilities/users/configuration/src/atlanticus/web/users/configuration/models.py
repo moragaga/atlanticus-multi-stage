@@ -166,8 +166,7 @@ class UserConfiguration:
         user_id: str | None = None,
     ) -> UserConfiguration:
         return cls(
-            user_id=user_id
-            or build_user_key(issuer=issuer, subject_id=subject_id, email=email),
+            user_id=user_id or build_user_key(issuer=issuer, subject_id=subject_id, email=email),
             display_name=display_name,
             email=email,
             profile_key=profile_key,
@@ -325,9 +324,7 @@ class UsersConfigurationCatalog:
             if not isinstance(users, list) or not all(isinstance(item, dict) for item in users):
                 raise TypeError
             return cls(
-                administrator_background_color=str(
-                    document['administrator_background_color']
-                ),
+                administrator_background_color=str(document['administrator_background_color']),
                 administrator_text_color=str(document['administrator_text_color']),
                 guest_background_color=str(document['guest_background_color']),
                 guest_text_color=str(document['guest_text_color']),

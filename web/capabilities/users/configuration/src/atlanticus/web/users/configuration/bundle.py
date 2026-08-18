@@ -332,8 +332,7 @@ class UsersConfigurationSourceDocument:
             return cls(
                 current_revision=str(document['current_revision']),
                 versions=tuple(
-                    UsersConfigurationVersion.from_document(dict(item))
-                    for item in raw_versions
+                    UsersConfigurationVersion.from_document(dict(item)) for item in raw_versions
                 ),
                 publications=tuple(
                     UsersConfigurationPublication.from_document(dict(item))

@@ -1,5 +1,5 @@
-# Espejo pedagógico del módulo productivo.
-# Los comentarios explican responsabilidades sin alterar estructura ni comportamiento.
+# Espejo pedagógico: Navigation define sus propios contratos de acceso y presentación.
+# Ningún modelo de este archivo conoce Users; allowed_profiles son claves manuales del dominio Navigation.
 from __future__ import annotations
 
 import re
@@ -7,22 +7,11 @@ from dataclasses import dataclass
 from urllib.parse import urlparse
 
 from atlanticus.web.errors import WebDefinitionError
-from atlanticus.web.users.profiles import (
-    ADMINISTRATOR_PROFILE_KEY,
-    LOCAL_PROFILE_KEY,
-)
 
 _KEY_PATTERN = re.compile(r'^[a-z0-9][a-z0-9._-]*$')
 _HEX_COLOR = re.compile(r'^#[0-9A-Fa-f]{6}$')
-_SYSTEM_PROFILE_KEYS = frozenset(
-    {
-        LOCAL_PROFILE_KEY,
-        ADMINISTRATOR_PROFILE_KEY,
-    }
-)
 
 
-# Define NavigationUser como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class NavigationUser:
     display_name: str
@@ -87,7 +76,16 @@ class NavigationUser:
         object.__setattr__(self, 'avatar_text', avatar_text)
 
 
-# Define NavigationLinkDefinition como frontera explícita del módulo y valida su contrato.
+@dataclass(frozen=True, slots=True)
+class NavigationPrincipal:
+    access_key: str
+    user: NavigationUser
+    unrestricted: bool = False
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, 'access_key', _normalize_profile_key(self.access_key))
+
+
 @dataclass(frozen=True, slots=True)
 class NavigationLinkDefinition:
     key: str
@@ -138,7 +136,6 @@ class NavigationLinkDefinition:
         )
 
 
-# Define NavigationGroupDefinition como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class NavigationGroupDefinition:
     key: str
@@ -179,7 +176,6 @@ class NavigationGroupDefinition:
         )
 
 
-# Define NavigationDefinition como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class NavigationDefinition:
     links: tuple[NavigationLinkDefinition, ...] = ()
@@ -194,8 +190,17 @@ class NavigationDefinition:
         if len(link_keys) != len(set(link_keys)):
             raise WebDefinitionError('Navigation definition contains duplicated link keys')
 
+    def configured_profiles(self) -> tuple[str, ...]:
+        profiles: list[str] = []
+        seen: set[str] = set()
+        for key in _iter_allowed_profiles(self):
+            if key in seen:
+                continue
+            seen.add(key)
+            profiles.append(key)
+        return tuple(profiles)
 
-# Define NavigationLink como frontera explícita del módulo y valida su contrato.
+
 @dataclass(frozen=True, slots=True)
 class NavigationLink:
     key: str
@@ -220,7 +225,6 @@ class NavigationLink:
         return not self.href.startswith('/')
 
 
-# Define NavigationGroup como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class NavigationGroup:
     key: str
@@ -244,7 +248,6 @@ class NavigationGroup:
             raise WebDefinitionError(f'Navigation group contains duplicated link keys: {self.key}')
 
 
-# Define NavigationMenu como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class NavigationMenu:
     user: NavigationUser
@@ -261,16 +264,22 @@ class NavigationMenu:
             raise WebDefinitionError('Navigation menu contains duplicated link keys')
 
 
-# Encapsula la operación normalize allowed profiles para mantener esta responsabilidad aislada.
+def _iter_allowed_profiles(definition: NavigationDefinition):
+    for link in definition.links:
+        if link.allowed_profiles is not None:
+            yield from link.allowed_profiles
+    for group in definition.groups:
+        yield from group.allowed_profiles
+        for link in group.links:
+            if link.allowed_profiles is not None:
+                yield from link.allowed_profiles
+
+
 def _normalize_allowed_profiles(values: tuple[str, ...]) -> tuple[str, ...]:
     normalized: list[str] = []
     seen: set[str] = set()
     for value in values:
         key = _normalize_profile_key(value)
-        if key in _SYSTEM_PROFILE_KEYS:
-            raise WebDefinitionError(
-                f'System profile {key!r} cannot be configured in navigation access'
-            )
         if key in seen:
             continue
         seen.add(key)
@@ -278,7 +287,6 @@ def _normalize_allowed_profiles(values: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(normalized)
 
 
-# Encapsula la operación normalize profile key para mantener esta responsabilidad aislada.
 def _normalize_profile_key(value: str) -> str:
     normalized = value.strip().casefold()
     if not normalized:
@@ -288,13 +296,11 @@ def _normalize_profile_key(value: str) -> str:
     return normalized
 
 
-# Encapsula la operación validate key para mantener esta responsabilidad aislada.
 def _validate_key(value: str, *, label: str) -> None:
     if not _KEY_PATTERN.fullmatch(value):
         raise WebDefinitionError(f'{label} has an invalid format')
 
 
-# Encapsula la operación validate href para mantener esta responsabilidad aislada.
 def _validate_href(value: str) -> None:
     if value.startswith('/') and not value.startswith('//'):
         return

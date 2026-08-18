@@ -38,7 +38,7 @@ def test_catalog_configures_system_colors_and_custom_profiles() -> None:
     assert profiles.require('guest').text_color == '#000000'
     assert profiles.require('operator').background_color == '#778899'
     assert profiles.require('operator').text_color == '#101010'
-    assert [item.key for item in profiles.navigation_selectable()] == ['guest', 'operator']
+    assert [item.key for item in profiles.restricted_access_profiles()] == ['guest', 'operator']
 
 
 def test_system_profile_cannot_be_redefined() -> None:

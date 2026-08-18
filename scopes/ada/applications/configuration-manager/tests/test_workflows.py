@@ -24,11 +24,7 @@ from atlanticus.web.users.profiles import (
 
 def _catalog() -> ToolConfigurationCatalog:
     return ToolConfigurationCatalog(
-        (
-            integrated_operations_configuration_from_manifest(
-                INTEGRATED_OPERATIONS_MANIFEST
-            ),
-        )
+        (integrated_operations_configuration_from_manifest(INTEGRATED_OPERATIONS_MANIFEST),)
     )
 
 
@@ -78,9 +74,7 @@ def test_loading_historical_revision_does_not_mutate_source(tmp_path) -> None:
     adapter = ToolManagerWorkflowAdapter(dependencies.tools)
     first = adapter.publish_draft(_catalog().to_document(), None)
     current_tool = _catalog().tools[0]
-    changed = ToolConfigurationCatalog(
-        (replace(current_tool, display_name='Cambio temporal'),)
-    )
+    changed = ToolConfigurationCatalog((replace(current_tool, display_name='Cambio temporal'),))
     second = adapter.publish_draft(changed.to_document(), first.source_revision)
 
     loaded = adapter.load_revision(first.source_revision)

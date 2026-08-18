@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 ROOT = Path(__file__).parents[1]
 WEB = ROOT / 'src/atlanticus/web/users/configuration/web'
 CSS = ROOT / 'src/atlanticus/web/users/configuration/resources/css/00_users_admin.css'
@@ -22,7 +21,7 @@ def test_users_admin_dynamic_actions_require_real_clicks() -> None:
     assert '_pattern_click_is_real(trigger, edit_clicks, edit_ids)' in callbacks
     assert '_pattern_click_is_real(trigger, discovered_clicks, discovered_ids)' in callbacks
     assert '_pattern_click_is_real(trigger, clicks, delete_ids)' in callbacks
-    assert "n_clicks=0" in layout_source()
+    assert 'n_clicks=0' in layout_source()
 
 
 def test_users_admin_browser_draft_does_not_publish_source() -> None:
@@ -84,10 +83,7 @@ def test_users_admin_browser_draft_matches_manager_contract() -> None:
 def test_users_admin_profile_text_color_wins_inside_avatar() -> None:
     css = CSS.read_text(encoding='utf-8')
 
-    assert (
-        '.atlanticus-users-admin__profile-copy .atlanticus-users-admin__profile-avatar'
-        in css
-    )
+    assert '.atlanticus-users-admin__profile-copy .atlanticus-users-admin__profile-avatar' in css
     assert 'color: var(--atlanticus-users-profile-text-color);' in css
 
 

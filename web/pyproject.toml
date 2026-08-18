@@ -35,6 +35,7 @@ atlanticus-web-users-cosmos = { workspace = true }
 atlanticus-web-users-configuration = { workspace = true }
 atlanticus-web-users-activity = { workspace = true }
 atlanticus-web-navigation = { workspace = true }
+atlanticus-web-composition-users-navigation = { workspace = true }
 atlanticus-web-manager = { workspace = true }
 
 [tool.uv.workspace]
@@ -42,6 +43,7 @@ members = [
     "framework/core",
     "framework/observability",
     "capabilities/navigation",
+    "compositions/users-navigation",
     "capabilities/manager",
     "capabilities/identity/core",
     "capabilities/identity/local",
@@ -82,6 +84,7 @@ testpaths = [
     "framework/core/tests",
     "framework/observability/tests",
     "capabilities/navigation/tests",
+    "compositions/users-navigation/tests",
     "capabilities/manager/tests",
     "capabilities/identity/core/tests",
     "capabilities/identity/local/tests",

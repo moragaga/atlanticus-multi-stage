@@ -48,13 +48,13 @@ SAVE_BUTTON_ID = 'atlanticus-users-admin-save'
 SAVE_RESULT_ID = 'atlanticus-users-admin-save-result'
 
 
-
 def color_picker_button_id(picker_id: str) -> str:
     return f'{picker_id}-picker'
 
 
 def color_picker_swatch_id(picker_id: str) -> str:
     return f'{picker_id}-swatch'
+
 
 def profile_edit_id(key: str | object) -> dict[str, object]:
     return {'type': 'atlanticus-users-admin-profile-edit', 'key': key}

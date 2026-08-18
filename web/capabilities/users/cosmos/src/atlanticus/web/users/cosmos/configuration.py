@@ -13,8 +13,8 @@ from atlanticus.web.users.cosmos.keys import (
     identity_lookup_key,
 )
 from atlanticus.web.users.cosmos.models import (
-    ProfileCatalogDocument,
     USERS_COSMOS_SCHEMA_VERSION,
+    ProfileCatalogDocument,
     UserDocument,
     UserLookupDocument,
 )

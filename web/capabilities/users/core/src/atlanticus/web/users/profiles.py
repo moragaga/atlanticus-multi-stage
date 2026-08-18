@@ -82,9 +82,7 @@ class ProfileCatalog:
         custom_keys: list[str] = []
         for profile in custom_profiles:
             if profile.key in _SYSTEM_PROFILE_KEYS:
-                raise UsersDefinitionError(
-                    f'System profile {profile.key!r} cannot be redefined'
-                )
+                raise UsersDefinitionError(f'System profile {profile.key!r} cannot be redefined')
             if profile.key in profiles:
                 raise UsersDefinitionError(f'Duplicate profile key {profile.key!r}')
             profiles[profile.key] = profile
@@ -128,7 +126,7 @@ class ProfileCatalog:
             *(self._profiles[key] for key in self._custom_keys),
         )
 
-    def navigation_selectable(self) -> tuple[ProfileDefinition, ...]:
+    def restricted_access_profiles(self) -> tuple[ProfileDefinition, ...]:
         return (
             self._profiles[GUEST_PROFILE_KEY],
             *(self._profiles[key] for key in self._custom_keys),
@@ -146,9 +144,7 @@ def profile_has_access(profile_key: str, allowed_profiles: tuple[str, ...]) -> b
     normalized_profile = normalize_profile_key(profile_key)
     if has_full_access(normalized_profile):
         return True
-    return normalized_profile in {
-        normalize_profile_key(value) for value in allowed_profiles
-    }
+    return normalized_profile in {normalize_profile_key(value) for value in allowed_profiles}
 
 
 def normalize_profile_key(value: str) -> str:

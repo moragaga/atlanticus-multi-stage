@@ -74,9 +74,7 @@ class UsersSnapshot:
                 pending=bool(user_value['pending']),
                 avatar_text=str(user_value['avatar_text']),
                 profile=profile,
-                avatar_background_color=_optional_string(
-                    user_value.get('avatar_background_color')
-                ),
+                avatar_background_color=_optional_string(user_value.get('avatar_background_color')),
                 avatar_text_color=_optional_string(user_value.get('avatar_text_color')),
                 is_local=bool(user_value.get('is_local', False)),
             )

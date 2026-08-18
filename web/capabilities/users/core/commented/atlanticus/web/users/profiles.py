@@ -1,5 +1,5 @@
-# Espejo pedagógico del módulo productivo.
-# Los comentarios explican responsabilidades sin alterar estructura ni comportamiento.
+# Espejo pedagógico: Users clasifica perfiles por semántica de acceso genérica.
+# restricted_access_profiles no menciona Navigation y puede ser consumido por cualquier política externa.
 from __future__ import annotations
 
 import re
@@ -30,7 +30,6 @@ _SYSTEM_PROFILE_KEYS = frozenset(
 _HEX_COLOR = re.compile(r'^#[0-9A-Fa-f]{6}$')
 
 
-# Define ProfileDefinition como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class ProfileDefinition:
     key: str
@@ -51,7 +50,6 @@ class ProfileDefinition:
         object.__setattr__(self, 'text_color', text_color)
 
 
-# Define ProfileCatalog como frontera explícita del módulo y valida su contrato.
 class ProfileCatalog:
     def __init__(
         self,
@@ -132,14 +130,13 @@ class ProfileCatalog:
             *(self._profiles[key] for key in self._custom_keys),
         )
 
-    def navigation_selectable(self) -> tuple[ProfileDefinition, ...]:
+    def restricted_access_profiles(self) -> tuple[ProfileDefinition, ...]:
         return (
             self._profiles[GUEST_PROFILE_KEY],
             *(self._profiles[key] for key in self._custom_keys),
         )
 
 
-# Encapsula la operación has full access para mantener esta responsabilidad aislada.
 def has_full_access(profile_key: str) -> bool:
     return normalize_profile_key(profile_key) in {
         LOCAL_PROFILE_KEY,
@@ -147,7 +144,6 @@ def has_full_access(profile_key: str) -> bool:
     }
 
 
-# Encapsula la operación profile has access para mantener esta responsabilidad aislada.
 def profile_has_access(profile_key: str, allowed_profiles: tuple[str, ...]) -> bool:
     normalized_profile = normalize_profile_key(profile_key)
     if has_full_access(normalized_profile):
@@ -157,7 +153,6 @@ def profile_has_access(profile_key: str, allowed_profiles: tuple[str, ...]) -> b
     }
 
 
-# Encapsula la operación normalize profile key para mantener esta responsabilidad aislada.
 def normalize_profile_key(value: str) -> str:
     normalized = value.strip().casefold()
     if not normalized:
@@ -167,7 +162,6 @@ def normalize_profile_key(value: str) -> str:
     return normalized
 
 
-# Encapsula la operación normalize profile color para mantener esta responsabilidad aislada.
 def normalize_profile_color(value: str) -> str:
     normalized = value.strip().upper()
     if not _HEX_COLOR.fullmatch(normalized):

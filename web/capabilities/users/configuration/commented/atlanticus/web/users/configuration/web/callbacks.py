@@ -22,33 +22,35 @@ from atlanticus.web.users.configuration.web.ids import (
     ADD_PROFILE_ID,
     ADD_USER_ID,
     ADMINISTRATOR_BACKGROUND_COLOR_ID,
-    ADMINISTRATOR_TEXT_COLOR_ID,
     ADMINISTRATOR_PREVIEW_ID,
+    ADMINISTRATOR_TEXT_COLOR_ID,
     CATALOG_STORE_ID,
+    color_picker_button_id,
+    color_picker_swatch_id,
     DISCOVERED_LIST_ID,
     DISCOVERED_PANEL_ID,
     DISCOVERED_REFRESH_ID,
     DISCOVERED_TAB_ID,
     GUEST_BACKGROUND_COLOR_ID,
-    GUEST_TEXT_COLOR_ID,
     GUEST_PREVIEW_ID,
+    GUEST_TEXT_COLOR_ID,
     IMPORT_RESULT_ID,
     IMPORT_UPLOAD_ID,
     MOUNT_STORE_ID,
-    PROFILE_CANCEL_ID,
     PROFILE_BACKGROUND_COLOR_ID,
-    PROFILE_TEXT_COLOR_ID,
-    PROFILE_PREVIEW_ID,
+    PROFILE_CANCEL_ID,
     PROFILE_EDITOR_STORE_ID,
     PROFILE_KEY_ID,
     PROFILE_MODAL_ID,
     PROFILE_MODAL_TITLE_ID,
     PROFILE_NAME_ID,
     PROFILE_PANEL_ID,
+    PROFILE_PREVIEW_ID,
     PROFILE_RESULT_ID,
     PROFILE_SAVE_ID,
-    PROFILES_LIST_ID,
     PROFILE_TAB_ID,
+    PROFILE_TEXT_COLOR_ID,
+    PROFILES_LIST_ID,
     SAVE_BUTTON_ID,
     SAVE_RESULT_ID,
     SECTION_STORE_ID,
@@ -59,14 +61,12 @@ from atlanticus.web.users.configuration.web.ids import (
     USER_MODAL_ID,
     USER_MODAL_TITLE_ID,
     USER_NAME_ID,
-    USERS_PANEL_ID,
     USER_PROFILE_ID,
     USER_RESULT_ID,
     USER_SAVE_ID,
     USERS_LIST_ID,
+    USERS_PANEL_ID,
     USERS_TAB_ID,
-    color_picker_button_id,
-    color_picker_swatch_id,
     discovered_add_id,
     profile_delete_id,
     profile_edit_id,
@@ -78,6 +78,7 @@ from atlanticus.web.users.profiles import (
     DEFAULT_ADMINISTRATOR_TEXT_COLOR,
     DEFAULT_GUEST_BACKGROUND_COLOR,
     DEFAULT_GUEST_TEXT_COLOR,
+    ProfileDefinition,
 )
 
 _MODAL_CLOSED = 'atlanticus-users-admin__modal'
@@ -1000,13 +1001,13 @@ def _discovered_cards(
 
 
 # Encapsula la operación profile badge para mantener esta responsabilidad aislada.
-def _profile_badge(profile: object) -> object:
+def _profile_badge(profile: ProfileDefinition) -> object:
     return html.Span(
-        getattr(profile, 'label'),
+        profile.label,
         className='atlanticus-users-admin__profile-badge',
         style={
-            'backgroundColor': getattr(profile, 'background_color'),
-            'color': getattr(profile, 'text_color'),
+            'backgroundColor': profile.background_color,
+            'color': profile.text_color,
         },
     )
 

@@ -3,6 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from atlanticus.web.application import create_web_application
+from atlanticus.web.compositions.users_navigation import (
+    create_users_navigation_module,
+    validate_users_navigation_profiles,
+)
 from atlanticus.web.identity.module import create_identity_module
 from atlanticus.web.index import IndexPageDefinition
 from atlanticus.web.models import ApplicationMetadata, WebApplicationDefinition
@@ -26,6 +30,8 @@ def build_definition() -> WebApplicationDefinition:
         runtime=users_runtime,
         profiles=profiles,
     )
+    navigation = build_reference_navigation()
+    validate_users_navigation_profiles(navigation, profiles)
     return WebApplicationDefinition(
         import_name='atlanticus_web_reference',
         metadata=ApplicationMetadata(
@@ -41,7 +47,8 @@ def build_definition() -> WebApplicationDefinition:
                 build_reference_identity_provider(),
                 access_resolver=users_resolver,
             ),
-            create_navigation_module(build_reference_navigation(), profiles=profiles),
+            create_navigation_module(navigation),
+            create_users_navigation_module(),
             create_reference_module(),
         ),
         index=IndexPageDefinition(
