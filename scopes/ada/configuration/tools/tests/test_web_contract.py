@@ -2,10 +2,9 @@ from pathlib import Path
 
 
 def _callbacks() -> str:
-    return (
-        Path(__file__).parents[1]
-        / 'src/ada/configuration/tools/web/callbacks.py'
-    ).read_text(encoding='utf-8')
+    return (Path(__file__).parents[1] / 'src/ada/configuration/tools/web/callbacks.py').read_text(
+        encoding='utf-8'
+    )
 
 
 def test_tool_editor_uses_controlled_structure_forms_and_reference_only_ids() -> None:

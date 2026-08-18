@@ -94,9 +94,7 @@ class FileToolProjectionRepository:
         try:
             return ToolConfigurationProjection.from_document(_read_json(path))
         except Exception as error:
-            raise ToolConfigurationProjectionError(
-                'Local tool projection is invalid'
-            ) from error
+            raise ToolConfigurationProjectionError('Local tool projection is invalid') from error
 
     def save(self, projection: ToolConfigurationProjection) -> ToolConfigurationProjection:
         try:

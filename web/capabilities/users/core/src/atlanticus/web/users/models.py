@@ -20,7 +20,8 @@ class EffectiveUser:
     pending: bool
     avatar_text: str
     profile: ProfileDefinition
-    avatar_color: str | None = None
+    avatar_background_color: str | None = None
+    avatar_text_color: str | None = None
     is_local: bool = False
 
     def __post_init__(self) -> None:
@@ -32,8 +33,14 @@ class EffectiveUser:
         if self.email is not None:
             email = self.email.strip().casefold()
             object.__setattr__(self, 'email', email or None)
-        color = self.avatar_color or self.profile.color
-        object.__setattr__(self, 'avatar_color', normalize_profile_color(color))
+        background = self.avatar_background_color or self.profile.background_color
+        text = self.avatar_text_color or self.profile.text_color
+        object.__setattr__(
+            self,
+            'avatar_background_color',
+            normalize_profile_color(background),
+        )
+        object.__setattr__(self, 'avatar_text_color', normalize_profile_color(text))
 
     @property
     def has_full_access(self) -> bool:
@@ -49,7 +56,8 @@ class ResolvedUserRecord:
     enabled: bool
     profile_key: str
     pending: bool = False
-    avatar_color: str | None = None
+    avatar_background_color: str | None = None
+    avatar_text_color: str | None = None
     is_local: bool = False
 
     def __post_init__(self) -> None:
@@ -57,11 +65,17 @@ class ResolvedUserRecord:
         if not profile_key:
             raise UsersDefinitionError('Resolved user profile key must not be empty')
         object.__setattr__(self, 'profile_key', profile_key)
-        if self.avatar_color is not None:
+        if self.avatar_background_color is not None:
             object.__setattr__(
                 self,
-                'avatar_color',
-                normalize_profile_color(self.avatar_color),
+                'avatar_background_color',
+                normalize_profile_color(self.avatar_background_color),
+            )
+        if self.avatar_text_color is not None:
+            object.__setattr__(
+                self,
+                'avatar_text_color',
+                normalize_profile_color(self.avatar_text_color),
             )
 
     def to_effective_user(self, *, profile: ProfileDefinition) -> EffectiveUser:
@@ -76,7 +90,8 @@ class ResolvedUserRecord:
             pending=self.pending,
             avatar_text=build_avatar_text(self.display_name),
             profile=profile,
-            avatar_color=self.avatar_color,
+            avatar_background_color=self.avatar_background_color,
+            avatar_text_color=self.avatar_text_color,
             is_local=self.is_local,
         )
 

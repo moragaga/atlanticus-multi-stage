@@ -7,7 +7,6 @@ from urllib.parse import urlparse
 from atlanticus.web.errors import WebDefinitionError
 from atlanticus.web.users.profiles import (
     ADMINISTRATOR_PROFILE_KEY,
-    GUEST_PROFILE_KEY,
     LOCAL_PROFILE_KEY,
 )
 
@@ -17,7 +16,6 @@ _SYSTEM_PROFILE_KEYS = frozenset(
     {
         LOCAL_PROFILE_KEY,
         ADMINISTRATOR_PROFILE_KEY,
-        GUEST_PROFILE_KEY,
     }
 )
 
@@ -27,8 +25,11 @@ class NavigationUser:
     display_name: str
     profile_key: str
     profile_label: str
-    profile_color: str
+    profile_background_color: str
+    profile_text_color: str
     avatar_text: str
+    avatar_background_color: str | None = None
+    avatar_text_color: str | None = None
     email: str | None = None
     avatar_src: str | None = None
 
@@ -36,14 +37,33 @@ class NavigationUser:
         display_name = self.display_name.strip()
         profile_key = _normalize_profile_key(self.profile_key)
         profile_label = self.profile_label.strip()
-        profile_color = self.profile_color.strip().upper()
+        profile_background_color = self.profile_background_color.strip().upper()
+        profile_text_color = self.profile_text_color.strip().upper()
+        avatar_background_color = (
+            self.avatar_background_color or profile_background_color
+        ).strip().upper()
+        avatar_text_color = (self.avatar_text_color or profile_text_color).strip().upper()
         avatar_text = self.avatar_text.strip()
         if not display_name:
             raise WebDefinitionError('Navigation user display name must not be empty')
         if not profile_label:
             raise WebDefinitionError('Navigation user profile label must not be empty')
-        if not _HEX_COLOR.fullmatch(profile_color):
-            raise WebDefinitionError('Navigation user profile color must use #RRGGBB format')
+        if not _HEX_COLOR.fullmatch(profile_background_color):
+            raise WebDefinitionError(
+                'Navigation user profile background color must use #RRGGBB format'
+            )
+        if not _HEX_COLOR.fullmatch(profile_text_color):
+            raise WebDefinitionError(
+                'Navigation user profile text color must use #RRGGBB format'
+            )
+        if not _HEX_COLOR.fullmatch(avatar_background_color):
+            raise WebDefinitionError(
+                'Navigation user avatar background color must use #RRGGBB format'
+            )
+        if not _HEX_COLOR.fullmatch(avatar_text_color):
+            raise WebDefinitionError(
+                'Navigation user avatar text color must use #RRGGBB format'
+            )
         if not avatar_text or len(avatar_text) > 4:
             raise WebDefinitionError(
                 'Navigation user avatar text must contain between 1 and 4 characters'
@@ -57,7 +77,10 @@ class NavigationUser:
         object.__setattr__(self, 'display_name', display_name)
         object.__setattr__(self, 'profile_key', profile_key)
         object.__setattr__(self, 'profile_label', profile_label)
-        object.__setattr__(self, 'profile_color', profile_color)
+        object.__setattr__(self, 'profile_background_color', profile_background_color)
+        object.__setattr__(self, 'profile_text_color', profile_text_color)
+        object.__setattr__(self, 'avatar_background_color', avatar_background_color)
+        object.__setattr__(self, 'avatar_text_color', avatar_text_color)
         object.__setattr__(self, 'avatar_text', avatar_text)
 
 

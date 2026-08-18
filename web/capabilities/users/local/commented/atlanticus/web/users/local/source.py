@@ -1,18 +1,21 @@
+# Espejo pedagógico del módulo productivo.
+# Los comentarios explican responsabilidades sin alterar estructura ni comportamiento.
 from __future__ import annotations
-
-# Espejo pedagógico: Provee las personas locales de prueba. John y Jane conservan colores fijos independientes de su perfil de permisos.
 
 from atlanticus.web.identity.models import AuthenticatedIdentity
 from atlanticus.web.users.models import ResolvedUserRecord
 from atlanticus.web.users.profiles import (
     ADMINISTRATOR_PROFILE_KEY,
-    LOCAL_JANE_COLOR,
-    LOCAL_JOHN_COLOR,
+    LOCAL_JANE_BACKGROUND_COLOR,
+    LOCAL_JANE_TEXT_COLOR,
+    LOCAL_JOHN_BACKGROUND_COLOR,
+    LOCAL_JOHN_TEXT_COLOR,
     LOCAL_PROFILE_KEY,
 )
 from atlanticus.web.users.source import UsersSource
 
 
+# Define LocalUsersSource como frontera explícita del módulo y valida su contrato.
 class LocalUsersSource(UsersSource):
     def __init__(self) -> None:
         self._users = {
@@ -23,7 +26,8 @@ class LocalUsersSource(UsersSource):
                 email='john.doe@local.atlanticus',
                 enabled=True,
                 profile_key=LOCAL_PROFILE_KEY,
-                avatar_color=LOCAL_JOHN_COLOR,
+                avatar_background_color=LOCAL_JOHN_BACKGROUND_COLOR,
+                avatar_text_color=LOCAL_JOHN_TEXT_COLOR,
                 is_local=True,
             ),
             'local:jane-doe': ResolvedUserRecord(
@@ -33,7 +37,8 @@ class LocalUsersSource(UsersSource):
                 email='jane.doe@local.atlanticus',
                 enabled=True,
                 profile_key=ADMINISTRATOR_PROFILE_KEY,
-                avatar_color=LOCAL_JANE_COLOR,
+                avatar_background_color=LOCAL_JANE_BACKGROUND_COLOR,
+                avatar_text_color=LOCAL_JANE_TEXT_COLOR,
                 is_local=True,
             ),
         }
@@ -42,5 +47,6 @@ class LocalUsersSource(UsersSource):
         return self._users.get(identity.subject_id)
 
 
+# Encapsula la operación create local users source para mantener esta responsabilidad aislada.
 def create_local_users_source() -> LocalUsersSource:
     return LocalUsersSource()

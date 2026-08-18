@@ -1,6 +1,6 @@
+# Espejo pedagógico del módulo productivo.
+# Los comentarios explican responsabilidades sin alterar estructura ni comportamiento.
 from __future__ import annotations
-
-# Espejo pedagógico: Resuelve el menú efectivo desde el usuario y usa el color visual ya resuelto por Users, sin reinterpretar perfiles.
 
 from atlanticus.web.errors import WebDefinitionError
 from atlanticus.web.identity.access import ACCESS_RUNTIME_SERVICE_KEY, AccessRuntime
@@ -21,6 +21,7 @@ from atlanticus.web.users.runtime import USERS_RUNTIME_SERVICE_KEY, UsersRuntime
 NAVIGATION_DEFINITION_SERVICE_KEY = 'atlanticus.web.navigation.definition'
 
 
+# Encapsula la operación resolve navigation para mantener esta responsabilidad aislada.
 def resolve_navigation(
     definition: NavigationDefinition,
     *,
@@ -49,6 +50,7 @@ def resolve_navigation(
     )
 
 
+# Encapsula la operación resolve navigation from services para mantener esta responsabilidad aislada.
 def resolve_navigation_from_services(services: ServiceRegistry) -> NavigationMenu:
     access = services.require(ACCESS_RUNTIME_SERVICE_KEY, AccessRuntime).current()
     user = services.require(USERS_RUNTIME_SERVICE_KEY, UsersRuntime).current(access)
@@ -57,6 +59,7 @@ def resolve_navigation_from_services(services: ServiceRegistry) -> NavigationMen
     return resolve_navigation(definition, user=user, profiles=profiles)
 
 
+# Encapsula la operación validate navigation definition para mantener esta responsabilidad aislada.
 def validate_navigation_definition(
     definition: NavigationDefinition,
     profiles: ProfileCatalog,
@@ -64,6 +67,7 @@ def validate_navigation_definition(
     _validate_profiles(definition, profiles)
 
 
+# Encapsula la operación validate profiles para mantener esta responsabilidad aislada.
 def _validate_profiles(definition: NavigationDefinition, profiles: ProfileCatalog) -> None:
     selectable = {profile.key for profile in profiles.navigation_selectable()}
     for key in _iter_allowed_profiles(definition):
@@ -71,6 +75,7 @@ def _validate_profiles(definition: NavigationDefinition, profiles: ProfileCatalo
             raise WebDefinitionError(f'Navigation profile {key!r} is not available for selection')
 
 
+# Encapsula la operación iter allowed profiles para mantener esta responsabilidad aislada.
 def _iter_allowed_profiles(definition: NavigationDefinition):
     for link in definition.links:
         if link.allowed_profiles is not None:
@@ -82,24 +87,31 @@ def _iter_allowed_profiles(definition: NavigationDefinition):
                 yield from link.allowed_profiles
 
 
+# Encapsula la operación can open para mantener esta responsabilidad aislada.
 def _can_open(allowed_profiles: tuple[str, ...], user: EffectiveUser) -> bool:
     return profile_has_access(user.profile.key, allowed_profiles)
 
 
+# Encapsula la operación navigation user para mantener esta responsabilidad aislada.
 def _navigation_user(user: EffectiveUser) -> NavigationUser:
     return NavigationUser(
         display_name=user.display_name,
         email=user.email,
         profile_key=user.profile.key,
         profile_label=user.profile.label,
-        profile_color=user.avatar_color,
+        profile_background_color=user.profile.background_color,
+        profile_text_color=user.profile.text_color,
         avatar_text=user.avatar_text,
+        avatar_background_color=user.avatar_background_color,
+        avatar_text_color=user.avatar_text_color,
     )
 
 
+# Encapsula la operación link sort key para mantener esta responsabilidad aislada.
 def _link_sort_key(link: NavigationLinkDefinition) -> tuple[int, str, str]:
     return (link.order, link.label, link.key)
 
 
+# Encapsula la operación group sort key para mantener esta responsabilidad aislada.
 def _group_sort_key(group: NavigationGroupDefinition) -> tuple[int, str, str]:
     return (group.order, group.label, group.key)

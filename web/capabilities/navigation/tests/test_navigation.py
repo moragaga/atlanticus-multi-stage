@@ -26,12 +26,12 @@ from atlanticus.web.users.profiles import ProfileCatalog, ProfileDefinition
 from atlanticus.web.users.runtime import USERS_RUNTIME_SERVICE_KEY, UsersRuntime
 
 
-def _profiles(*, administrator_color: str = '#673AB7') -> ProfileCatalog:
+def _profiles(*, administrator_background_color: str = '#673AB7') -> ProfileCatalog:
     return ProfileCatalog(
-        administrator_color=administrator_color,
+        administrator_background_color=administrator_background_color,
         custom_profiles=(
-            ProfileDefinition(key='viewer', label='Visualizador', color='#123456'),
-            ProfileDefinition(key='analyst', label='Analista', color='#654321'),
+            ProfileDefinition(key='viewer', label='Visualizador', background_color='#123456'),
+            ProfileDefinition(key='analyst', label='Analista', background_color='#654321'),
         )
     )
 
@@ -115,15 +115,25 @@ def test_custom_profile_filters_links_and_child_can_override_group_profiles() ->
     assert tuple(link.key for link in analyst.groups[0].links) == ('override',)
 
 
-def test_guest_has_no_configurable_navigation_access() -> None:
-    menu = resolve_navigation(_definition(), user=_user('guest'), profiles=_profiles())
+def test_guest_access_is_explicitly_configurable() -> None:
+    definition = NavigationDefinition(
+        links=(
+            NavigationLinkDefinition(
+                key='guest-home',
+                label='Guest',
+                href='/guest',
+                allowed_profiles=('guest',),
+            ),
+        )
+    )
 
-    assert menu.links == ()
-    assert menu.groups == ()
+    menu = resolve_navigation(definition, user=_user('guest'), profiles=_profiles())
+
+    assert tuple(link.key for link in menu.links) == ('guest-home',)
 
 
-def test_system_profiles_cannot_be_persisted_in_allowed_profiles() -> None:
-    for profile_key in ('local', 'administrator', 'guest'):
+def test_full_access_system_profiles_cannot_be_persisted_in_allowed_profiles() -> None:
+    for profile_key in ('local', 'administrator'):
         with pytest.raises(WebDefinitionError, match='System profile'):
             NavigationLinkDefinition(
                 key=f'link-{profile_key}',
@@ -150,7 +160,7 @@ def test_navigation_rejects_unknown_custom_profile_during_composition() -> None:
 
 
 def test_administrator_configured_color_flows_to_navigation_presentation() -> None:
-    profiles = _profiles(administrator_color='#112233')
+    profiles = _profiles(administrator_background_color='#112233')
     user = EffectiveUser(
         user_id='administrator-1',
         subject_id='subject:administrator',
@@ -165,7 +175,8 @@ def test_administrator_configured_color_flows_to_navigation_presentation() -> No
     menu = resolve_navigation(_definition(), user=user, profiles=profiles)
 
     assert menu.user.profile_label == 'Administrador'
-    assert menu.user.profile_color == '#112233'
+    assert menu.user.profile_background_color == '#112233'
+    assert menu.user.profile_text_color == '#FFFFFF'
 
 
 def test_navigation_user_is_built_from_effective_user_profile() -> None:
@@ -174,8 +185,35 @@ def test_navigation_user_is_built_from_effective_user_profile() -> None:
     assert menu.user.display_name == 'John Doe'
     assert menu.user.profile_key == 'viewer'
     assert menu.user.profile_label == 'Visualizador'
-    assert menu.user.profile_color == '#123456'
+    assert menu.user.profile_background_color == '#123456'
+    assert menu.user.profile_text_color == '#FFFFFF'
+    assert menu.user.avatar_background_color == '#123456'
+    assert menu.user.avatar_text_color == '#FFFFFF'
     assert menu.user.avatar_text == 'JD'
+
+
+def test_local_persona_visuals_do_not_replace_administrator_profile_visuals() -> None:
+    profiles = _profiles(administrator_background_color='#112233')
+    user = EffectiveUser(
+        user_id='local-user:jane-doe',
+        subject_id='local:jane-doe',
+        display_name='Jane Doe',
+        email='jane.doe@local.atlanticus',
+        enabled=True,
+        pending=False,
+        avatar_text='JD',
+        profile=profiles.require('administrator'),
+        avatar_background_color='#C85D91',
+        avatar_text_color='#FFFFFF',
+        is_local=True,
+    )
+
+    menu = resolve_navigation(_definition(), user=user, profiles=profiles)
+
+    assert menu.user.profile_background_color == '#112233'
+    assert menu.user.profile_text_color == '#FFFFFF'
+    assert menu.user.avatar_background_color == '#C85D91'
+    assert menu.user.avatar_text_color == '#FFFFFF'
 
 
 def test_navigation_module_registers_definition_not_user_menu() -> None:

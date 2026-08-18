@@ -1,6 +1,6 @@
+# Espejo pedagógico del módulo productivo.
+# Los comentarios explican responsabilidades sin alterar estructura ni comportamiento.
 from __future__ import annotations
-
-# Espejo pedagógico: Implementa el dominio administrativo genérico de Users: draft validable, Source versionado, proyección y adapters.
 
 import gzip
 import hashlib
@@ -15,11 +15,12 @@ from atlanticus.web.users.configuration.models import UsersConfigurationCatalog
 
 BUNDLE_DOCUMENT_TYPE = 'atlanticus_users_configuration'
 SOURCE_DOCUMENT_TYPE = 'atlanticus_users_configuration_source'
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 DEFAULT_MAX_COMPRESSED_BYTES = 5 * 1024 * 1024
 DEFAULT_MAX_DECOMPRESSED_BYTES = 20 * 1024 * 1024
 
 
+# Define UsersConfigurationBundle como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class UsersConfigurationBundle:
     catalog: UsersConfigurationCatalog
@@ -93,6 +94,7 @@ class UsersConfigurationBundle:
             ) from error
 
 
+# Define UsersConfigurationVersion como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class UsersConfigurationVersion:
     catalog: UsersConfigurationCatalog
@@ -154,6 +156,7 @@ class UsersConfigurationVersion:
             ) from error
 
 
+# Define UsersConfigurationPublication como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class UsersConfigurationPublication:
     revision: str
@@ -196,6 +199,7 @@ class UsersConfigurationPublication:
             ) from error
 
 
+# Define UsersConfigurationSourceDocument como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class UsersConfigurationSourceDocument:
     current_revision: str
@@ -348,6 +352,7 @@ class UsersConfigurationSourceDocument:
             ) from error
 
 
+# Encapsula la operación build users configuration digest para mantener esta responsabilidad aislada.
 def build_users_configuration_digest(catalog: UsersConfigurationCatalog) -> str:
     canonical = json.dumps(
         catalog.to_document(),
@@ -358,18 +363,22 @@ def build_users_configuration_digest(catalog: UsersConfigurationCatalog) -> str:
     return hashlib.sha256(canonical).hexdigest()
 
 
+# Encapsula la operación encode users configuration source para mantener esta responsabilidad aislada.
 def encode_users_configuration_source(source: UsersConfigurationSourceDocument) -> bytes:
     return _encode_document(source.to_document())
 
 
+# Encapsula la operación decode users configuration source para mantener esta responsabilidad aislada.
 def decode_users_configuration_source(payload: bytes) -> UsersConfigurationSourceDocument:
     return UsersConfigurationSourceDocument.from_document(_decode_document(payload))
 
 
+# Encapsula la operación encode users configuration bundle para mantener esta responsabilidad aislada.
 def encode_users_configuration_bundle(bundle: UsersConfigurationBundle) -> bytes:
     return _encode_document(bundle.to_document())
 
 
+# Encapsula la operación decode users configuration import para mantener esta responsabilidad aislada.
 def decode_users_configuration_import(payload: bytes) -> UsersConfigurationCatalog:
     document = _decode_document(payload)
     document_type = document.get('document_type')
@@ -380,6 +389,7 @@ def decode_users_configuration_import(payload: bytes) -> UsersConfigurationCatal
     raise UsersConfigurationValidationError('Users configuration import document type is invalid')
 
 
+# Encapsula la operación encode document para mantener esta responsabilidad aislada.
 def _encode_document(document: dict[str, object]) -> bytes:
     canonical = json.dumps(
         document,
@@ -390,6 +400,7 @@ def _encode_document(document: dict[str, object]) -> bytes:
     return gzip.compress(canonical, compresslevel=9, mtime=0)
 
 
+# Encapsula la operación decode document para mantener esta responsabilidad aislada.
 def _decode_document(payload: bytes) -> dict[str, Any]:
     if not payload:
         raise UsersConfigurationValidationError('Users configuration file must not be empty')

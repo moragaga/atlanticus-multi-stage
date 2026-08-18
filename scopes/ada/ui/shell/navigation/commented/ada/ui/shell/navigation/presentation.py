@@ -1,4 +1,5 @@
-# Espejo comentado: conserva el diseño ADA aprobado con datos efectivos del usuario.
+# Espejo pedagógico del módulo productivo.
+# Los comentarios explican responsabilidades sin alterar estructura ni comportamiento.
 from __future__ import annotations
 
 import dash_bootstrap_components as dbc
@@ -21,6 +22,7 @@ from atlanticus.web.navigation import (
 from atlanticus.web.services import ServiceRegistry
 
 
+# Encapsula la operación build ada navigation desktop trigger para mantener esta responsabilidad aislada.
 def build_ada_navigation_desktop_trigger() -> dbc.Button:
     return dbc.Button(
         id=AdaNavigationIds.HEADER_DESKTOP_TOGGLE,
@@ -32,6 +34,7 @@ def build_ada_navigation_desktop_trigger() -> dbc.Button:
     )
 
 
+# Encapsula la operación build ada navigation mobile trigger para mantener esta responsabilidad aislada.
 def build_ada_navigation_mobile_trigger() -> dbc.Button:
     return dbc.Button(
         id=AdaNavigationIds.HEADER_MOBILE_TOGGLE,
@@ -43,6 +46,7 @@ def build_ada_navigation_mobile_trigger() -> dbc.Button:
     )
 
 
+# Encapsula la operación build ada navigation offcanvas para mantener esta responsabilidad aislada.
 def build_ada_navigation_offcanvas(menu: NavigationMenu) -> dbc.Offcanvas:
     return dbc.Offcanvas(
         id=AdaNavigationIds.HEADER_OFFCANVAS,
@@ -60,10 +64,12 @@ def build_ada_navigation_offcanvas(menu: NavigationMenu) -> dbc.Offcanvas:
     )
 
 
+# Encapsula la operación build ada navigation offcanvas from services para mantener esta responsabilidad aislada.
 def build_ada_navigation_offcanvas_from_services(services: ServiceRegistry) -> dbc.Offcanvas:
     return build_ada_navigation_offcanvas(resolve_navigation_from_services(services))
 
 
+# Encapsula la operación build navigation offcanvas title para mantener esta responsabilidad aislada.
 def _build_navigation_offcanvas_title() -> html.Div:
     return html.Div(
         className='app-navigation-offcanvas-title',
@@ -89,6 +95,7 @@ def _build_navigation_offcanvas_title() -> html.Div:
     )
 
 
+# Encapsula la operación build navigation menu content para mantener esta responsabilidad aislada.
 def _build_navigation_menu_content(menu: NavigationMenu) -> html.Div:
     nodes = sorted(
         [*menu.links, *menu.groups],
@@ -105,6 +112,7 @@ def _build_navigation_menu_content(menu: NavigationMenu) -> html.Div:
     )
 
 
+# Encapsula la operación build user content para mantener esta responsabilidad aislada.
 def _build_user_content(menu: NavigationMenu) -> html.Div:
     user = menu.user
     return html.Div(
@@ -121,7 +129,10 @@ def _build_user_content(menu: NavigationMenu) -> html.Div:
                     _build_user_email(user.email),
                     html.Div(
                         className='app-navigation-user-profile',
-                        style={'backgroundColor': user.profile_color},
+                        style={
+                            'backgroundColor': user.profile_background_color,
+                            'color': user.profile_text_color,
+                        },
                         children=[
                             html.I(className='bi bi-person-badge me-1'),
                             html.Span(user.profile_label),
@@ -133,6 +144,7 @@ def _build_user_content(menu: NavigationMenu) -> html.Div:
     )
 
 
+# Encapsula la operación build user avatar para mantener esta responsabilidad aislada.
 def _build_user_avatar(user: NavigationUser) -> html.Img | html.Div:
     if user.avatar_src is not None:
         return html.Img(
@@ -142,18 +154,23 @@ def _build_user_avatar(user: NavigationUser) -> html.Img | html.Div:
         )
     return html.Div(
         className='app-navigation-user-avatar app-navigation-user-avatar-fallback',
-        style={'backgroundColor': user.profile_color},
+        style={
+            'backgroundColor': user.avatar_background_color,
+            'color': user.avatar_text_color,
+        },
         title=user.display_name,
         children=user.avatar_text,
     )
 
 
+# Encapsula la operación build user email para mantener esta responsabilidad aislada.
 def _build_user_email(email: str | None) -> html.P | None:
     if email is None:
         return None
     return html.P(className='app-navigation-user-email', children=email)
 
 
+# Encapsula la operación build master projects button para mantener esta responsabilidad aislada.
 def _build_master_projects_button() -> html.A:
     return html.A(
         href=ADA_PROJECTS_URL,
@@ -173,6 +190,7 @@ def _build_master_projects_button() -> html.A:
     )
 
 
+# Encapsula la operación build navigation nodes para mantener esta responsabilidad aislada.
 def _build_navigation_nodes(nodes: list[NavigationLink | NavigationGroup]) -> html.Div:
     if not nodes:
         return html.Div(
@@ -186,12 +204,14 @@ def _build_navigation_nodes(nodes: list[NavigationLink | NavigationGroup]) -> ht
     )
 
 
+# Encapsula la operación build node para mantener esta responsabilidad aislada.
 def _build_node(node: NavigationLink | NavigationGroup) -> html.Div | dcc.Link:
     if isinstance(node, NavigationGroup):
         return _build_group_node(node)
     return _build_link_node(node, is_child=False)
 
 
+# Encapsula la operación build group node para mantener esta responsabilidad aislada.
 def _build_group_node(group: NavigationGroup) -> html.Div:
     return html.Div(
         className='app-navigation-root-item app-navigation-group {0}'.format(
@@ -232,6 +252,7 @@ def _build_group_node(group: NavigationGroup) -> html.Div:
     )
 
 
+# Encapsula la operación build link node para mantener esta responsabilidad aislada.
 def _build_link_node(link: NavigationLink, *, is_child: bool):
     link_child = html.Button(
         type='button',
@@ -243,9 +264,7 @@ def _build_link_node(link: NavigationLink, *, is_child: bool):
     )
 
     disabled = '' if link.enabled else 'disabled'
-    class_name = (
-        'app-navigation-link-wrapper d-block text-decoration-none {0}'.format(disabled)
-    )
+    class_name = 'app-navigation-link-wrapper d-block text-decoration-none {0}'.format(disabled)
 
     if link.new_tab or link.is_external:
         return html.A(
@@ -265,6 +284,7 @@ def _build_link_node(link: NavigationLink, *, is_child: bool):
     )
 
 
+# Encapsula la operación build link button class name para mantener esta responsabilidad aislada.
 def _build_link_button_class_name(*, is_child: bool) -> str:
     class_names = [
         'app-navigation-button',
@@ -274,6 +294,7 @@ def _build_link_button_class_name(*, is_child: bool) -> str:
     return ' '.join(class_names)
 
 
+# Encapsula la operación build group button class name para mantener esta responsabilidad aislada.
 def _build_group_button_class_name(*, is_open: bool) -> str:
     class_names = [
         'app-navigation-button',

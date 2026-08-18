@@ -594,7 +594,9 @@ def test_alarm_route_player_exposes_geometry_only_refresh_event() -> None:
     assert "this.onGeometryRefresh = () => this.markGeometryDirty('external');" in routes
 
 
-def test_alarm_baseline_geometry_hides_offscreen_nodes_instead_of_clamping_to_viewport_edges() -> None:
+def test_alarm_baseline_geometry_hides_offscreen_nodes_instead_of_clamping_to_viewport_edges() -> (
+    None
+):
     from importlib.resources import files
 
     geometry = (

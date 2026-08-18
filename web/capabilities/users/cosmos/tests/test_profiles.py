@@ -13,10 +13,10 @@ def _gateway(revision: str = 'revision-1') -> FakeUsersCosmosGateway:
         state=UsersStateDocument(source_revision=revision, projection_status='ready'),
         catalog=ProfileCatalogDocument(
             source_revision=revision,
-            administrator_color='#112233',
-            guest_color='#334455',
+            administrator_background_color='#112233',
+            guest_background_color='#334455',
             custom_profiles=(
-                ProfileDefinition(key='operator', label='Operador', color='#445566'),
+                ProfileDefinition(key='operator', label='Operador', background_color='#445566'),
             ),
         ),
     )
@@ -31,8 +31,8 @@ def test_profile_catalog_is_cached_for_current_revision() -> None:
     cache.ensure_current()
 
     assert profiles.require('operator').label == 'Operador'
-    assert profiles.require('administrator').color == '#112233'
-    assert profiles.require('guest').color == '#334455'
+    assert profiles.require('administrator').background_color == '#112233'
+    assert profiles.require('guest').background_color == '#334455'
     assert gateway.state_reads == 2
     assert gateway.catalog_reads == 1
 
@@ -46,15 +46,15 @@ def test_profile_catalog_reloads_when_source_revision_changes() -> None:
     gateway.state = UsersStateDocument(source_revision='revision-2', projection_status='ready')
     gateway.catalog = ProfileCatalogDocument(
         source_revision='revision-2',
-        administrator_color='#223344',
+        administrator_background_color='#223344',
         custom_profiles=(
-            ProfileDefinition(key='operator', label='Operador 2', color='#556677'),
+            ProfileDefinition(key='operator', label='Operador 2', background_color='#556677'),
         ),
     )
     cache.ensure_current()
 
     assert profiles.require('operator').label == 'Operador 2'
-    assert profiles.require('administrator').color == '#223344'
+    assert profiles.require('administrator').background_color == '#223344'
     assert gateway.catalog_reads == 2
 
 
@@ -71,7 +71,7 @@ def test_catalog_revision_must_match_state() -> None:
     gateway = _gateway()
     gateway.catalog = ProfileCatalogDocument(
         source_revision='revision-0',
-        administrator_color='#112233',
+        administrator_background_color='#112233',
     )
     cache = UsersCosmosProfileCache(gateway)
 

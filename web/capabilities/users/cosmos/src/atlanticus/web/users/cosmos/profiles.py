@@ -44,8 +44,10 @@ class UsersCosmosProfileCache:
             raise UsersSourceUnavailableError('Users profile catalog revision is not ready')
         try:
             catalog = ProfileCatalog(
-                administrator_color=document.administrator_color,
-                guest_color=document.guest_color,
+                administrator_background_color=document.administrator_background_color,
+                administrator_text_color=document.administrator_text_color,
+                guest_background_color=document.guest_background_color,
+                guest_text_color=document.guest_text_color,
                 custom_profiles=document.custom_profiles,
             )
         except UsersDefinitionError as error:

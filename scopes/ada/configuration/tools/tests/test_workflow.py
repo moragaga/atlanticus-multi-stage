@@ -20,11 +20,7 @@ from ada.contracts.tool_manifest import INTEGRATED_OPERATIONS_MANIFEST
 
 def _catalog() -> ToolConfigurationCatalog:
     return ToolConfigurationCatalog(
-        (
-            integrated_operations_configuration_from_manifest(
-                INTEGRATED_OPERATIONS_MANIFEST
-            ),
-        )
+        (integrated_operations_configuration_from_manifest(INTEGRATED_OPERATIONS_MANIFEST),)
     )
 
 

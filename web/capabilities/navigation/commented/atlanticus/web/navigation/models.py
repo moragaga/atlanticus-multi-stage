@@ -1,4 +1,5 @@
-# Espejo comentado: separa definición global, menú resuelto y metadatos de usuario.
+# Espejo pedagógico del módulo productivo.
+# Los comentarios explican responsabilidades sin alterar estructura ni comportamiento.
 from __future__ import annotations
 
 import re
@@ -8,7 +9,6 @@ from urllib.parse import urlparse
 from atlanticus.web.errors import WebDefinitionError
 from atlanticus.web.users.profiles import (
     ADMINISTRATOR_PROFILE_KEY,
-    GUEST_PROFILE_KEY,
     LOCAL_PROFILE_KEY,
 )
 
@@ -18,18 +18,21 @@ _SYSTEM_PROFILE_KEYS = frozenset(
     {
         LOCAL_PROFILE_KEY,
         ADMINISTRATOR_PROFILE_KEY,
-        GUEST_PROFILE_KEY,
     }
 )
 
 
+# Define NavigationUser como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class NavigationUser:
     display_name: str
     profile_key: str
     profile_label: str
-    profile_color: str
+    profile_background_color: str
+    profile_text_color: str
     avatar_text: str
+    avatar_background_color: str | None = None
+    avatar_text_color: str | None = None
     email: str | None = None
     avatar_src: str | None = None
 
@@ -37,14 +40,33 @@ class NavigationUser:
         display_name = self.display_name.strip()
         profile_key = _normalize_profile_key(self.profile_key)
         profile_label = self.profile_label.strip()
-        profile_color = self.profile_color.strip().upper()
+        profile_background_color = self.profile_background_color.strip().upper()
+        profile_text_color = self.profile_text_color.strip().upper()
+        avatar_background_color = (
+            self.avatar_background_color or profile_background_color
+        ).strip().upper()
+        avatar_text_color = (self.avatar_text_color or profile_text_color).strip().upper()
         avatar_text = self.avatar_text.strip()
         if not display_name:
             raise WebDefinitionError('Navigation user display name must not be empty')
         if not profile_label:
             raise WebDefinitionError('Navigation user profile label must not be empty')
-        if not _HEX_COLOR.fullmatch(profile_color):
-            raise WebDefinitionError('Navigation user profile color must use #RRGGBB format')
+        if not _HEX_COLOR.fullmatch(profile_background_color):
+            raise WebDefinitionError(
+                'Navigation user profile background color must use #RRGGBB format'
+            )
+        if not _HEX_COLOR.fullmatch(profile_text_color):
+            raise WebDefinitionError(
+                'Navigation user profile text color must use #RRGGBB format'
+            )
+        if not _HEX_COLOR.fullmatch(avatar_background_color):
+            raise WebDefinitionError(
+                'Navigation user avatar background color must use #RRGGBB format'
+            )
+        if not _HEX_COLOR.fullmatch(avatar_text_color):
+            raise WebDefinitionError(
+                'Navigation user avatar text color must use #RRGGBB format'
+            )
         if not avatar_text or len(avatar_text) > 4:
             raise WebDefinitionError(
                 'Navigation user avatar text must contain between 1 and 4 characters'
@@ -58,10 +80,14 @@ class NavigationUser:
         object.__setattr__(self, 'display_name', display_name)
         object.__setattr__(self, 'profile_key', profile_key)
         object.__setattr__(self, 'profile_label', profile_label)
-        object.__setattr__(self, 'profile_color', profile_color)
+        object.__setattr__(self, 'profile_background_color', profile_background_color)
+        object.__setattr__(self, 'profile_text_color', profile_text_color)
+        object.__setattr__(self, 'avatar_background_color', avatar_background_color)
+        object.__setattr__(self, 'avatar_text_color', avatar_text_color)
         object.__setattr__(self, 'avatar_text', avatar_text)
 
 
+# Define NavigationLinkDefinition como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class NavigationLinkDefinition:
     key: str
@@ -112,6 +138,7 @@ class NavigationLinkDefinition:
         )
 
 
+# Define NavigationGroupDefinition como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class NavigationGroupDefinition:
     key: str
@@ -152,6 +179,7 @@ class NavigationGroupDefinition:
         )
 
 
+# Define NavigationDefinition como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class NavigationDefinition:
     links: tuple[NavigationLinkDefinition, ...] = ()
@@ -167,6 +195,7 @@ class NavigationDefinition:
             raise WebDefinitionError('Navigation definition contains duplicated link keys')
 
 
+# Define NavigationLink como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class NavigationLink:
     key: str
@@ -191,6 +220,7 @@ class NavigationLink:
         return not self.href.startswith('/')
 
 
+# Define NavigationGroup como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class NavigationGroup:
     key: str
@@ -214,6 +244,7 @@ class NavigationGroup:
             raise WebDefinitionError(f'Navigation group contains duplicated link keys: {self.key}')
 
 
+# Define NavigationMenu como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class NavigationMenu:
     user: NavigationUser
@@ -230,6 +261,7 @@ class NavigationMenu:
             raise WebDefinitionError('Navigation menu contains duplicated link keys')
 
 
+# Encapsula la operación normalize allowed profiles para mantener esta responsabilidad aislada.
 def _normalize_allowed_profiles(values: tuple[str, ...]) -> tuple[str, ...]:
     normalized: list[str] = []
     seen: set[str] = set()
@@ -246,6 +278,7 @@ def _normalize_allowed_profiles(values: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(normalized)
 
 
+# Encapsula la operación normalize profile key para mantener esta responsabilidad aislada.
 def _normalize_profile_key(value: str) -> str:
     normalized = value.strip().casefold()
     if not normalized:
@@ -255,11 +288,13 @@ def _normalize_profile_key(value: str) -> str:
     return normalized
 
 
+# Encapsula la operación validate key para mantener esta responsabilidad aislada.
 def _validate_key(value: str, *, label: str) -> None:
     if not _KEY_PATTERN.fullmatch(value):
         raise WebDefinitionError(f'{label} has an invalid format')
 
 
+# Encapsula la operación validate href para mantener esta responsabilidad aislada.
 def _validate_href(value: str) -> None:
     if value.startswith('/') and not value.startswith('//'):
         return

@@ -1,6 +1,6 @@
+# Espejo pedagógico del módulo productivo.
+# Los comentarios explican responsabilidades sin alterar estructura ni comportamiento.
 from __future__ import annotations
-
-# Espejo pedagógico: Convierte una identidad autenticada en un usuario efectivo y conserva Guest como fallback solo para identidades válidas no configuradas.
 
 import hashlib
 
@@ -14,6 +14,7 @@ from atlanticus.web.users.runtime import UsersRuntime
 from atlanticus.web.users.source import UsersSource
 
 
+# Define UsersAccessResolver como frontera explícita del módulo y valida su contrato.
 class UsersAccessResolver(AccessResolver):
     def __init__(
         self,
@@ -53,11 +54,13 @@ class UsersAccessResolver(AccessResolver):
             pending=True,
             avatar_text=build_avatar_text(display_name),
             profile=self._profiles.require(GUEST_PROFILE_KEY),
-            avatar_color=None,
+            avatar_background_color=None,
+            avatar_text_color=None,
             is_local=False,
         )
 
 
+# Encapsula la operación pending user id para mantener esta responsabilidad aislada.
 def _pending_user_id(identity: AuthenticatedIdentity) -> str:
     material = f'{identity.provider_key}|{identity.issuer}|{identity.subject_id}'.encode()
     digest = hashlib.sha256(material).hexdigest()[:24]

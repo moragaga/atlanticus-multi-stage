@@ -1,6 +1,6 @@
+# Espejo pedagógico del módulo productivo.
+# Los comentarios explican responsabilidades sin alterar estructura ni comportamiento.
 from __future__ import annotations
-
-# Espejo pedagógico: Proyecta Users a Cosmos de forma fail-closed: marca projecting, escribe catálogo/usuarios y activa ready solo al finalizar.
 
 from dataclasses import dataclass
 from datetime import datetime
@@ -16,11 +16,13 @@ from atlanticus.web.users.cosmos.keys import (
 )
 from atlanticus.web.users.cosmos.models import (
     ProfileCatalogDocument,
+    USERS_COSMOS_SCHEMA_VERSION,
     UserDocument,
     UserLookupDocument,
 )
 
 
+# Define CosmosUsersConfigurationClient como frontera explícita del módulo y valida su contrato.
 class CosmosUsersConfigurationClient(Protocol):
     def health_check(self) -> bool: ...
 
@@ -48,21 +50,23 @@ class CosmosUsersConfigurationClient(Protocol):
     ) -> list[dict[str, Any]]: ...
 
 
+# Define CosmosUsersConfigurationSettings como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class CosmosUsersConfigurationSettings:
     users_container: str = 'users'
     support_container: str = 'users_support'
 
 
+# Define CosmosUsersProjectionRepository como frontera explícita del módulo y valida su contrato.
 class CosmosUsersProjectionRepository:
     def __init__(
         self,
         *,
         client: CosmosUsersConfigurationClient,
-        settings: CosmosUsersConfigurationSettings = CosmosUsersConfigurationSettings(),
+        settings: CosmosUsersConfigurationSettings | None = None,
     ) -> None:
         self._client = client
-        self._settings = settings
+        self._settings = settings or CosmosUsersConfigurationSettings()
 
     def load_state(self) -> UsersProjectionState | None:
         try:
@@ -116,7 +120,6 @@ class CosmosUsersProjectionRepository:
         except Exception:
             return False
 
-
     def _write_transition_state(self, source_revision: str) -> None:
         self._client.upsert_item(
             container_name=self._settings.support_container,
@@ -124,7 +127,7 @@ class CosmosUsersProjectionRepository:
                 'id': 'users',
                 'partition_key': 'system',
                 'type': 'users_state',
-                'schema_version': 1,
+                'schema_version': USERS_COSMOS_SCHEMA_VERSION,
                 'source_revision': source_revision,
                 'projection_status': 'projecting',
                 'projection_revision': None,
@@ -163,8 +166,10 @@ class CosmosUsersProjectionRepository:
     def _write_profile_catalog(self, bundle: UsersConfigurationBundle) -> None:
         catalog = ProfileCatalogDocument(
             source_revision=bundle.revision,
-            administrator_color=bundle.catalog.administrator_color,
-            guest_color=bundle.catalog.guest_color,
+            administrator_background_color=bundle.catalog.administrator_background_color,
+            administrator_text_color=bundle.catalog.administrator_text_color,
+            guest_background_color=bundle.catalog.guest_background_color,
+            guest_text_color=bundle.catalog.guest_text_color,
             custom_profiles=tuple(
                 profile.to_profile_definition() for profile in bundle.catalog.profiles
             ),
@@ -177,10 +182,17 @@ class CosmosUsersProjectionRepository:
                 'type': catalog.type,
                 'schema_version': catalog.schema_version,
                 'source_revision': catalog.source_revision,
-                'administrator_color': catalog.administrator_color,
-                'guest_color': catalog.guest_color,
+                'administrator_background_color': catalog.administrator_background_color,
+                'administrator_text_color': catalog.administrator_text_color,
+                'guest_background_color': catalog.guest_background_color,
+                'guest_text_color': catalog.guest_text_color,
                 'custom_profiles': [
-                    {'key': item.key, 'label': item.label, 'color': item.color}
+                    {
+                        'key': item.key,
+                        'label': item.label,
+                        'background_color': item.background_color,
+                        'text_color': item.text_color,
+                    }
                     for item in catalog.custom_profiles
                 ],
             },
@@ -235,7 +247,7 @@ class CosmosUsersProjectionRepository:
                 'id': 'users',
                 'partition_key': 'system',
                 'type': 'users_state',
-                'schema_version': 1,
+                'schema_version': USERS_COSMOS_SCHEMA_VERSION,
                 'source_revision': state.source_revision,
                 'projection_status': 'ready',
                 'projection_revision': state.revision,
@@ -245,15 +257,16 @@ class CosmosUsersProjectionRepository:
         )
 
 
+# Define CosmosDiscoveredUsersSource como frontera explícita del módulo y valida su contrato.
 class CosmosDiscoveredUsersSource:
     def __init__(
         self,
         *,
         client: CosmosUsersConfigurationClient,
-        settings: CosmosUsersConfigurationSettings = CosmosUsersConfigurationSettings(),
+        settings: CosmosUsersConfigurationSettings | None = None,
     ) -> None:
         self._client = client
-        self._settings = settings
+        self._settings = settings or CosmosUsersConfigurationSettings()
 
     def list_discovered(self) -> tuple[DiscoveredUser, ...]:
         try:
@@ -291,6 +304,7 @@ class CosmosDiscoveredUsersSource:
         return tuple(result)
 
 
+# Encapsula la operación user document para mantener esta responsabilidad aislada.
 def _user_document(document: UserDocument) -> dict[str, object]:
     return {
         'id': document.id,
@@ -311,6 +325,7 @@ def _user_document(document: UserDocument) -> dict[str, object]:
     }
 
 
+# Encapsula la operación lookup document para mantener esta responsabilidad aislada.
 def _lookup_document(document: UserLookupDocument) -> dict[str, object]:
     return {
         'id': document.id,

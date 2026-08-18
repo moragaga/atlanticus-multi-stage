@@ -56,7 +56,7 @@ class SharePointUsersConfigurationStore:
                 return
             content = base64.b64encode(encode_users_configuration_source(updated)).decode('ascii')
             self._write_content(content)
-        except (UsersConfigurationPublisherError, UsersConfigurationSourceError):
+        except UsersConfigurationPublisherError, UsersConfigurationSourceError:
             raise
         except Exception as error:
             raise UsersConfigurationPublisherError(

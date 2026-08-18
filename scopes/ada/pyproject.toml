@@ -50,6 +50,7 @@ atlanticus-web-identity = { path = "../../web/capabilities/identity/core", edita
 atlanticus-web-identity-local = { path = "../../web/capabilities/identity/local", editable = true }
 atlanticus-web-users = { path = "../../web/capabilities/users/core", editable = true }
 atlanticus-web-users-local = { path = "../../web/capabilities/users/local", editable = true }
+atlanticus-web-users-configuration = { path = "../../web/capabilities/users/configuration", editable = true }
 
 [tool.uv.workspace]
 members = [

@@ -191,8 +191,19 @@ dependencies = [
     { name = "atlanticus-web-users" },
 ]
 
+[package.optional-dependencies]
+web = [
+    { name = "atlanticus-web" },
+    { name = "dash" },
+]
+
 [package.metadata]
-requires-dist = [{ name = "atlanticus-web-users", editable = "capabilities/users/core" }]
+requires-dist = [
+    { name = "atlanticus-web", marker = "extra == 'web'", editable = "framework/core" },
+    { name = "atlanticus-web-users", editable = "capabilities/users/core" },
+    { name = "dash", marker = "extra == 'web'", specifier = "==4.4.1" },
+]
+provides-extras = ["web"]
 
 [[package]]
 name = "atlanticus-web-users-cosmos"

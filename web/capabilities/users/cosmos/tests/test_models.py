@@ -83,9 +83,9 @@ def test_state_and_catalog_have_fixed_document_identity() -> None:
     state = UsersStateDocument(source_revision='revision-1', projection_status='READY')
     catalog = ProfileCatalogDocument(
         source_revision='revision-1',
-        administrator_color='#112233',
+        administrator_background_color='#112233',
         custom_profiles=(
-            ProfileDefinition(key='operator', label='Operador', color='#445566'),
+            ProfileDefinition(key='operator', label='Operador', background_color='#445566'),
         ),
     )
 

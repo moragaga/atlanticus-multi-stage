@@ -1,6 +1,5 @@
-# Espejo pedagógico: conserva la misma lógica del archivo productivo.
-# Los comentarios documentan la responsabilidad sin cambiar el comportamiento.
-# Compone Manager, Tools, branding y Navigation sin poseer infraestructura.
+# Espejo pedagógico del módulo productivo.
+# Los comentarios explican responsabilidades sin alterar estructura ni comportamiento.
 from __future__ import annotations
 
 from pathlib import Path
@@ -10,7 +9,10 @@ from dash import html
 from ada.applications.configuration_manager.dependencies import (
     ConfigurationManagerDependencies,
 )
-from ada.applications.configuration_manager.workflows import ToolManagerWorkflowAdapter
+from ada.applications.configuration_manager.workflows import (
+    ToolManagerWorkflowAdapter,
+    UsersManagerWorkflowAdapter,
+)
 from ada.configuration.tools.web import (
     ToolAdminWebContext,
     build_tool_admin_configuration,
@@ -43,8 +45,14 @@ from atlanticus.web.models import ApplicationMetadata, DashSettings, WebApplicat
 from atlanticus.web.modules import WebModule
 from atlanticus.web.navigation import NavigationLink, NavigationMenu, NavigationUser
 from atlanticus.web.services import ServiceRegistry
+from atlanticus.web.users.configuration.web import (
+    UsersAdminWebContext,
+    build_users_admin_configuration,
+    create_users_admin_web_module,
+)
 
 TOOLS_WORKFLOW_SERVICE = 'ada.configuration-manager.tools.workflow'
+USERS_WORKFLOW_SERVICE = 'ada.configuration-manager.users.workflow'
 CONFIGURATION_MANAGER_ASSET_LAYER = AssetLayer(
     name='ada_configuration_manager',
     load_order=900,
@@ -55,6 +63,7 @@ ATLANTICUS_CINZEL_STYLESHEET = (
 )
 
 
+# Encapsula la operación create configuration manager application para mantener esta responsabilidad aislada.
 def create_configuration_manager_application(
     *,
     dependencies: ConfigurationManagerDependencies,
@@ -68,6 +77,7 @@ def create_configuration_manager_application(
     )
 
 
+# Encapsula la operación build configuration manager definition para mantener esta responsabilidad aislada.
 def build_configuration_manager_definition(
     *,
     dependencies: ConfigurationManagerDependencies,
@@ -82,6 +92,16 @@ def build_configuration_manager_definition(
         can_manage=lambda: _can_manage_tools(dependencies.principal_provider()),
         source_name=dependencies.tools_source_name,
         projection_name=dependencies.tools_projection_name,
+    )
+    users_context = UsersAdminWebContext(
+        services=dependencies.users,
+        draft_store_id=workflow_draft_id('users'),
+        draft_save_action_id=workflow_action_id('users', 'save-draft'),
+        workflow_refresh_signal_id=workflow_refresh_signal_id('users'),
+        draft_owner_provider=lambda: dependencies.principal_provider().subject_id,
+        can_manage=lambda: _can_manage_users(dependencies.principal_provider()),
+        source_name=dependencies.users_source_name,
+        projection_name=dependencies.users_projection_name,
     )
     return ManagerApplicationDefinition(
         import_name='ada.applications.configuration_manager',
@@ -121,6 +141,27 @@ def build_configuration_manager_definition(
                 source_name=dependencies.tools_source_name,
                 projection_name=dependencies.tools_projection_name,
             ),
+            ManagerModule(
+                key='users',
+                group_key='configuration',
+                title='Usuarios',
+                route='/users',
+                order=20,
+                description='Perfiles, usuarios y descubrimiento de identidades Atlanticus.',
+                layout=lambda _services: build_users_admin_configuration(users_context),
+                workflow_service=USERS_WORKFLOW_SERVICE,
+                access=ManagerModuleAccess(
+                    view='users.manage',
+                    validate='users.manage',
+                    project='users.manage',
+                    publish='users.manage',
+                ),
+                web_module=create_users_admin_web_module(users_context),
+                workflow_section_title='Estado y trazabilidad',
+                content_section_title='Usuarios y perfiles',
+                source_name=dependencies.users_source_name,
+                projection_name=dependencies.users_projection_name,
+            ),
         ),
         subtitle=(
             'Asistente de decisiones ágiles · '
@@ -148,6 +189,7 @@ def build_configuration_manager_definition(
     )
 
 
+# Encapsula la operación register services para mantener esta responsabilidad aislada.
 def _register_services(
     services: ServiceRegistry,
     dependencies: ConfigurationManagerDependencies,
@@ -156,8 +198,13 @@ def _register_services(
         TOOLS_WORKFLOW_SERVICE,
         ToolManagerWorkflowAdapter(dependencies.tools),
     )
+    services.add(
+        USERS_WORKFLOW_SERVICE,
+        UsersManagerWorkflowAdapter(dependencies.users),
+    )
 
 
+# Encapsula la operación build brand para mantener esta responsabilidad aislada.
 def _build_brand() -> ManagerBrand:
     root = f'/assets/{CONFIGURATION_MANAGER_ASSET_LAYER.target_name}/img'
     return ManagerBrand(
@@ -184,6 +231,7 @@ def _build_brand() -> ManagerBrand:
     )
 
 
+# Encapsula la operación build navigation triggers para mantener esta responsabilidad aislada.
 def _build_navigation_triggers() -> object:
     return html.Div(
         [
@@ -194,13 +242,15 @@ def _build_navigation_triggers() -> object:
     )
 
 
+# Encapsula la operación build navigation menu para mantener esta responsabilidad aislada.
 def _build_navigation_menu(principal: ManagerPrincipal) -> NavigationMenu:
     return NavigationMenu(
         user=NavigationUser(
             display_name=principal.display_name,
             profile_key='administrator',
             profile_label='Administrador',
-            profile_color='#C9A24B',
+            profile_background_color='#C9A24B',
+            profile_text_color='#071522',
             avatar_text=_avatar_text(principal.display_name),
         ),
         links=(
@@ -215,6 +265,7 @@ def _build_navigation_menu(principal: ManagerPrincipal) -> NavigationMenu:
     )
 
 
+# Encapsula la operación avatar text para mantener esta responsabilidad aislada.
 def _avatar_text(display_name: str) -> str:
     words = [word for word in display_name.split() if word]
     if not words:
@@ -222,9 +273,19 @@ def _avatar_text(display_name: str) -> str:
     return ''.join(word[0].upper() for word in words[:2])
 
 
+# Encapsula la operación can manage tools para mantener esta responsabilidad aislada.
 def _can_manage_tools(principal: ManagerPrincipal) -> bool:
     return (
         principal.is_local
         or 'administrator' in principal.profile_keys
         or 'tools.manage' in principal.access_keys
+    )
+
+
+# Encapsula la operación can manage users para mantener esta responsabilidad aislada.
+def _can_manage_users(principal: ManagerPrincipal) -> bool:
+    return (
+        principal.is_local
+        or 'administrator' in principal.profile_keys
+        or 'users.manage' in principal.access_keys
     )

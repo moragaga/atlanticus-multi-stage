@@ -91,6 +91,4 @@ def test_coordinator_orchestrates_draft_publish_projection_and_history() -> None
     assert publication.source_revision == build_draft_revision(payload)
     assert coordinator.project('tools', principal, 'source').projection_revision == 'projection'
     assert coordinator.list_history('tools', principal)[0].revision == 'source'
-    assert coordinator.load_history_revision('tools', principal, 'source') == {
-        'revision': 'source'
-    }
+    assert coordinator.load_history_revision('tools', principal, 'source') == {'revision': 'source'}

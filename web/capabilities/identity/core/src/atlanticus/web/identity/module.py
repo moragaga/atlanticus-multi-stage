@@ -67,7 +67,7 @@ def create_identity_module(
                 return None
             try:
                 snapshot = bootstrap.refresh(request)
-            except (IdentityProviderUnavailableError, AccessResolverUnavailableError):
+            except IdentityProviderUnavailableError, AccessResolverUnavailableError:
                 return identity_unavailable_response()
             if snapshot.status is AccessStatus.INVALID_IDENTITY:
                 return invalid_identity_response()

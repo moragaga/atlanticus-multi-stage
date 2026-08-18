@@ -10,13 +10,16 @@ from atlanticus.web.users.configuration.errors import UsersConfigurationValidati
 
 def test_catalog_configures_system_colors_and_custom_profiles() -> None:
     catalog = UsersConfigurationCatalog(
-        administrator_color='#112233',
-        guest_color='#445566',
+        administrator_background_color='#112233',
+        administrator_text_color='#FFFFFF',
+        guest_background_color='#445566',
+        guest_text_color='#000000',
         profiles=(
             UserProfileConfiguration(
                 key='operator',
                 label='Operador',
-                color='#778899',
+                background_color='#778899',
+                text_color='#101010',
             ),
         ),
         users=(
@@ -29,9 +32,12 @@ def test_catalog_configures_system_colors_and_custom_profiles() -> None:
     )
 
     profiles = catalog.profile_catalog()
-    assert profiles.require('administrator').color == '#112233'
-    assert profiles.require('guest').color == '#445566'
-    assert profiles.require('operator').color == '#778899'
+    assert profiles.require('administrator').background_color == '#112233'
+    assert profiles.require('administrator').text_color == '#FFFFFF'
+    assert profiles.require('guest').background_color == '#445566'
+    assert profiles.require('guest').text_color == '#000000'
+    assert profiles.require('operator').background_color == '#778899'
+    assert profiles.require('operator').text_color == '#101010'
     assert [item.key for item in profiles.navigation_selectable()] == ['guest', 'operator']
 
 
@@ -40,7 +46,7 @@ def test_system_profile_cannot_be_redefined() -> None:
         UserProfileConfiguration(
             key='guest',
             label='Otro invitado',
-            color='#123456',
+            background_color='#123456',
         )
 
 

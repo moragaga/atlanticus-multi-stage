@@ -95,6 +95,7 @@ def _build_server(
     server = Flask(__name__)
     assert module.register_middlewares is not None
     module.register_middlewares(server, services)
+
     @server.get('/')
     def home():
         return 'home'

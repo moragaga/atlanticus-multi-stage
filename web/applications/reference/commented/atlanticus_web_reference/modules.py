@@ -1,4 +1,5 @@
-# Espejo comentado: rutas de prueba para inspeccionar snapshots y navegación efectiva.
+# Espejo pedagógico del módulo productivo.
+# Los comentarios explican responsabilidades sin alterar estructura ni comportamiento.
 from __future__ import annotations
 
 from flask import Flask
@@ -13,6 +14,7 @@ from atlanticus.web.services import ServiceRegistry
 from atlanticus.web.users.runtime import USERS_RUNTIME_SERVICE_KEY, UsersRuntime
 
 
+# Encapsula la operación create reference module para mantener esta responsabilidad aislada.
 def create_reference_module() -> WebModule:
     return WebModule(
         name='reference',
@@ -37,6 +39,7 @@ def create_reference_module() -> WebModule:
     )
 
 
+# Encapsula la operación register services para mantener esta responsabilidad aislada.
 def _register_services(services: ServiceRegistry) -> None:
     services.add('reference.application_name', 'Atlanticus Web')
     services.add(
@@ -45,10 +48,12 @@ def _register_services(services: ServiceRegistry) -> None:
     )
 
 
+# Encapsula la operación register health checks para mantener esta responsabilidad aislada.
 def _register_health_checks(health: HealthRegistry, _services: ServiceRegistry) -> None:
     health.add('reference', lambda: True)
 
 
+# Encapsula la operación register middlewares para mantener esta responsabilidad aislada.
 def _register_middlewares(server: Flask, _services: ServiceRegistry) -> None:
     @server.after_request
     def add_reference_header(response):
@@ -56,6 +61,7 @@ def _register_middlewares(server: Flask, _services: ServiceRegistry) -> None:
         return response
 
 
+# Encapsula la operación register routes para mantener esta responsabilidad aislada.
 def _register_routes(server: Flask, services: ServiceRegistry) -> None:
     @server.get('/api/access')
     def access_status() -> tuple[dict[str, str | None], int]:
@@ -80,10 +86,13 @@ def _register_routes(server: Flask, services: ServiceRegistry) -> None:
             'enabled': user.enabled,
             'pending': user.pending,
             'avatar_text': user.avatar_text,
+            'avatar_background_color': user.avatar_background_color,
+            'avatar_text_color': user.avatar_text_color,
             'profile': {
                 'key': user.profile.key,
                 'label': user.profile.label,
-                'color': user.profile.color,
+                'background_color': user.profile.background_color,
+                'text_color': user.profile.text_color,
             },
             'full_access': user.has_full_access,
         }, 200
@@ -96,7 +105,10 @@ def _register_routes(server: Flask, services: ServiceRegistry) -> None:
                 'display_name': menu.user.display_name,
                 'profile_key': menu.user.profile_key,
                 'profile_label': menu.user.profile_label,
-                'profile_color': menu.user.profile_color,
+                'profile_background_color': menu.user.profile_background_color,
+                'profile_text_color': menu.user.profile_text_color,
+                'avatar_background_color': menu.user.avatar_background_color,
+                'avatar_text_color': menu.user.avatar_text_color,
                 'avatar_text': menu.user.avatar_text,
             },
             'links': [link.key for link in menu.links],

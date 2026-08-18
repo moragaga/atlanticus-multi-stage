@@ -36,11 +36,7 @@ def test_cosmos_repository_roundtrips_only_active_runtime_projection() -> None:
     )
     registry = build_tool_manifest_registry(
         ToolConfigurationCatalog(
-            (
-                integrated_operations_configuration_from_manifest(
-                    INTEGRATED_OPERATIONS_MANIFEST
-                ),
-            )
+            (integrated_operations_configuration_from_manifest(INTEGRATED_OPERATIONS_MANIFEST),)
         )
     )
     projection = ToolConfigurationProjection.create(

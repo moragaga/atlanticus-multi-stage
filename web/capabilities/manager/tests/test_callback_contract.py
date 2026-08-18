@@ -2,16 +2,15 @@ from pathlib import Path
 
 
 def _source() -> str:
-    return (
-        Path(__file__).parents[1]
-        / 'src/atlanticus/web/manager/web/callbacks.py'
-    ).read_text(encoding='utf-8')
+    return (Path(__file__).parents[1] / 'src/atlanticus/web/manager/web/callbacks.py').read_text(
+        encoding='utf-8'
+    )
 
 
 def test_workflow_callbacks_keep_match_scoped_outputs_per_module() -> None:
     source = _source()
 
-    assert "Output(REFRESH_SIGNAL_ID" not in source
+    assert 'Output(REFRESH_SIGNAL_ID' not in source
     assert source.count("Output(workflow_refresh_signal_id(MATCH), 'data'") == 2
     assert "Input(workflow_refresh_signal_id(ALL), 'data')" in source
 

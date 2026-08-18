@@ -11,7 +11,7 @@ def build_layout(services: ServiceRegistry) -> object:
     return html.Div(
         [
             html.Header(
-                f"{services.require('reference.application_name', str)} · "
+                f'{services.require("reference.application_name", str)} · '
                 f'{navigation.user.display_name}',
                 className='reference-shell__header',
             ),

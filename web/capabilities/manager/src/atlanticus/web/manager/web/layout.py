@@ -16,10 +16,11 @@ from atlanticus.web.manager.models import (
     ManagerPrincipal,
 )
 from atlanticus.web.manager.projection import (
+    ManagerDraft,
     ProjectionIssue,
     ProjectionState,
     ProjectionStatus,
-    ManagerDraft,
+    ProjectionSummaryItem,
     RevisionHistoryEntry,
     resolve_projection_state,
 )
@@ -122,8 +123,7 @@ def build_manager_shell(
                                 'Recargar',
                                 id=REFRESH_BUTTON_ID,
                                 className=(
-                                    'atlanticus-manager__button '
-                                    'atlanticus-manager__button--header'
+                                    'atlanticus-manager__button atlanticus-manager__button--header'
                                 ),
                             ),
                             definition.header_actions(services)
@@ -182,9 +182,7 @@ def build_manager_shell(
                 className='atlanticus-manager__sidebar-backdrop',
                 **{'aria-label': 'Cerrar configuraciones'},
             ),
-            definition.shell_overlays(services)
-            if definition.shell_overlays is not None
-            else None,
+            definition.shell_overlays(services) if definition.shell_overlays is not None else None,
             html.Div(page_container, id=PAGE_CONTAINER_ID, hidden=True),
         ],
         className='atlanticus-manager',
@@ -196,10 +194,7 @@ def build_summary(states: Mapping[str, ProjectionState]) -> object:
     total = len(values)
     synchronized = sum(value is ProjectionState.SYNCHRONIZED for value in values)
     ready = sum(value is ProjectionState.READY for value in values)
-    errors = sum(
-        value is ProjectionState.UNAVAILABLE
-        for value in values
-    )
+    errors = sum(value is ProjectionState.UNAVAILABLE for value in values)
     pending = total - synchronized - ready - errors
     return html.Div(
         [
@@ -651,8 +646,7 @@ def _build_workflow_actions(
                             id=workflow_action_id(module.key, 'save-draft'),
                             n_clicks=0,
                             className=(
-                                'atlanticus-manager__button '
-                                'atlanticus-manager__button--secondary'
+                                'atlanticus-manager__button atlanticus-manager__button--secondary'
                             ),
                         ),
                     ),
@@ -665,8 +659,7 @@ def _build_workflow_actions(
                             id=workflow_action_id(module.key, 'validate'),
                             n_clicks=0,
                             className=(
-                                'atlanticus-manager__button '
-                                'atlanticus-manager__button--secondary'
+                                'atlanticus-manager__button atlanticus-manager__button--secondary'
                             ),
                             disabled=True,
                         ),
@@ -680,8 +673,7 @@ def _build_workflow_actions(
                             id=workflow_action_id(module.key, 'publish'),
                             n_clicks=0,
                             className=(
-                                'atlanticus-manager__button '
-                                'atlanticus-manager__button--secondary'
+                                'atlanticus-manager__button atlanticus-manager__button--secondary'
                             ),
                             disabled=True,
                         ),
@@ -695,8 +687,7 @@ def _build_workflow_actions(
                             id=workflow_action_id(module.key, 'project'),
                             n_clicks=0,
                             className=(
-                                'atlanticus-manager__button '
-                                'atlanticus-manager__button--primary'
+                                'atlanticus-manager__button atlanticus-manager__button--primary'
                             ),
                             disabled=not _can_project(status),
                         ),
@@ -746,10 +737,7 @@ def _workflow_group_header(
             html.Div([html.H3(title), html.P(description)]),
             html.Span(
                 _STATE_LABELS[state],
-                className=(
-                    'atlanticus-manager__state '
-                    f'atlanticus-manager__state--{state.value}'
-                ),
+                className=(f'atlanticus-manager__state atlanticus-manager__state--{state.value}'),
             )
             if state is not None
             else None,
@@ -893,7 +881,7 @@ def _validation_issues(
                     path=str(item['path']) if item.get('path') is not None else None,
                 )
             )
-        except (KeyError, ValueError):
+        except KeyError, ValueError:
             continue
     return tuple(result)
 

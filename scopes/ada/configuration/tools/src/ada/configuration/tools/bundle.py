@@ -72,13 +72,9 @@ class ToolConfigurationBundle:
     @classmethod
     def from_document(cls, document: dict[str, Any]) -> ToolConfigurationBundle:
         if document.get('document_type') != BUNDLE_DOCUMENT_TYPE:
-            raise ToolConfigurationValidationError(
-                'Tool configuration document type is invalid'
-            )
+            raise ToolConfigurationValidationError('Tool configuration document type is invalid')
         if document.get('schema_version') != SCHEMA_VERSION:
-            raise ToolConfigurationValidationError(
-                'Tool configuration schema version is invalid'
-            )
+            raise ToolConfigurationValidationError('Tool configuration schema version is invalid')
         try:
             catalog = document['catalog']
             if not isinstance(catalog, dict):
@@ -190,9 +186,7 @@ class ToolConfigurationPublication:
             return cls(
                 revision=str(document['revision']),
                 published_by=str(document['published_by']),
-                published_at_utc=datetime.fromisoformat(
-                    str(document['published_at_utc'])
-                ),
+                published_at_utc=datetime.fromisoformat(str(document['published_at_utc'])),
             )
         except (KeyError, TypeError, ValueError) as error:
             raise ToolConfigurationValidationError(
@@ -282,10 +276,7 @@ class ToolConfigurationSourceDocument:
             key=lambda version: latest_publication[version.revision].published_at_utc,
             reverse=True,
         )
-        return tuple(
-            self._bundle_for_revision(version.revision)
-            for version in ordered[:limit]
-        )
+        return tuple(self._bundle_for_revision(version.revision) for version in ordered[:limit])
 
     def fetch_revision(self, revision: str) -> ToolConfigurationBundle | None:
         normalized = revision.strip()
@@ -329,8 +320,7 @@ class ToolConfigurationSourceDocument:
                     ToolConfigurationVersion.from_document(dict(item)) for item in versions
                 ),
                 publications=tuple(
-                    ToolConfigurationPublication.from_document(dict(item))
-                    for item in publications
+                    ToolConfigurationPublication.from_document(dict(item)) for item in publications
                 ),
             )
         except (KeyError, TypeError, ValueError) as error:

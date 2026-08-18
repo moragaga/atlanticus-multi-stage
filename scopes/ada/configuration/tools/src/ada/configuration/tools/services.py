@@ -196,9 +196,7 @@ class ToolProjectionWorkflow:
         if bundle is None:
             raise ToolConfigurationSourceError('Tool configuration source does not exist')
         if expected_revision is not None and bundle.revision != expected_revision:
-            raise ToolConfigurationProjectionError(
-                'Tool source revision changed before projection'
-            )
+            raise ToolConfigurationProjectionError('Tool source revision changed before projection')
         return bundle
 
 
@@ -255,9 +253,7 @@ def _catalog_summary(
 ) -> tuple[ToolProjectionSummaryItem, ...]:
     components = sum(len(tool.components) for tool in catalog.tools)
     subcomponents = sum(
-        len(component.subcomponents)
-        for tool in catalog.tools
-        for component in tool.components
+        len(component.subcomponents) for tool in catalog.tools for component in tool.components
     )
     return (
         ToolProjectionSummaryItem('Herramientas', str(len(catalog.tools))),

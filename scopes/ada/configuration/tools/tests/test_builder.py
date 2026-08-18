@@ -112,9 +112,7 @@ def test_process_derives_center_and_context_targets() -> None:
                 key='transporte_fluidos',
                 display_name='Transporte de Fluidos',
                 layout_role=ProcessBodySection.RIGHT,
-                subcomponents=(
-                    ToolSubcomponentConfiguration(key='str', display_name='STR'),
-                ),
+                subcomponents=(ToolSubcomponentConfiguration(key='str', display_name='STR'),),
             ),
         ),
     )
@@ -133,9 +131,7 @@ def test_process_derives_center_and_context_targets() -> None:
 
 
 def test_registry_preserves_catalog_order() -> None:
-    integrated = integrated_operations_configuration_from_manifest(
-        INTEGRATED_OPERATIONS_MANIFEST
-    )
+    integrated = integrated_operations_configuration_from_manifest(INTEGRATED_OPERATIONS_MANIFEST)
     process = ToolConfiguration(
         tool_key='flotacion',
         display_name='Flotación',

@@ -214,9 +214,7 @@ def register_manager_callbacks(
             principal,
         )
         state = (
-            resolve_projection_state(status)
-            if status is not None
-            else ProjectionState.UNAVAILABLE
+            resolve_projection_state(status) if status is not None else ProjectionState.UNAVAILABLE
         )
         return (
             [
@@ -258,9 +256,7 @@ def register_manager_callbacks(
         draft = _safe_draft(draft_data, principal)
         source_revision = _source_revision(revision_state)
         validation_current = _validation_is_current(draft, validation_data)
-        publication_pending = bool(
-            draft is not None and draft.revision != source_revision
-        )
+        publication_pending = bool(draft is not None and draft.revision != source_revision)
         return (
             build_workflow_draft_content(
                 draft=draft,

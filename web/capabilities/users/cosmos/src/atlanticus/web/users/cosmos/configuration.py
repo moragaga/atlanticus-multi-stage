@@ -14,6 +14,7 @@ from atlanticus.web.users.cosmos.keys import (
 )
 from atlanticus.web.users.cosmos.models import (
     ProfileCatalogDocument,
+    USERS_COSMOS_SCHEMA_VERSION,
     UserDocument,
     UserLookupDocument,
 )
@@ -57,10 +58,10 @@ class CosmosUsersProjectionRepository:
         self,
         *,
         client: CosmosUsersConfigurationClient,
-        settings: CosmosUsersConfigurationSettings = CosmosUsersConfigurationSettings(),
+        settings: CosmosUsersConfigurationSettings | None = None,
     ) -> None:
         self._client = client
-        self._settings = settings
+        self._settings = settings or CosmosUsersConfigurationSettings()
 
     def load_state(self) -> UsersProjectionState | None:
         try:
@@ -114,7 +115,6 @@ class CosmosUsersProjectionRepository:
         except Exception:
             return False
 
-
     def _write_transition_state(self, source_revision: str) -> None:
         self._client.upsert_item(
             container_name=self._settings.support_container,
@@ -122,7 +122,7 @@ class CosmosUsersProjectionRepository:
                 'id': 'users',
                 'partition_key': 'system',
                 'type': 'users_state',
-                'schema_version': 1,
+                'schema_version': USERS_COSMOS_SCHEMA_VERSION,
                 'source_revision': source_revision,
                 'projection_status': 'projecting',
                 'projection_revision': None,
@@ -161,8 +161,10 @@ class CosmosUsersProjectionRepository:
     def _write_profile_catalog(self, bundle: UsersConfigurationBundle) -> None:
         catalog = ProfileCatalogDocument(
             source_revision=bundle.revision,
-            administrator_color=bundle.catalog.administrator_color,
-            guest_color=bundle.catalog.guest_color,
+            administrator_background_color=bundle.catalog.administrator_background_color,
+            administrator_text_color=bundle.catalog.administrator_text_color,
+            guest_background_color=bundle.catalog.guest_background_color,
+            guest_text_color=bundle.catalog.guest_text_color,
             custom_profiles=tuple(
                 profile.to_profile_definition() for profile in bundle.catalog.profiles
             ),
@@ -175,10 +177,17 @@ class CosmosUsersProjectionRepository:
                 'type': catalog.type,
                 'schema_version': catalog.schema_version,
                 'source_revision': catalog.source_revision,
-                'administrator_color': catalog.administrator_color,
-                'guest_color': catalog.guest_color,
+                'administrator_background_color': catalog.administrator_background_color,
+                'administrator_text_color': catalog.administrator_text_color,
+                'guest_background_color': catalog.guest_background_color,
+                'guest_text_color': catalog.guest_text_color,
                 'custom_profiles': [
-                    {'key': item.key, 'label': item.label, 'color': item.color}
+                    {
+                        'key': item.key,
+                        'label': item.label,
+                        'background_color': item.background_color,
+                        'text_color': item.text_color,
+                    }
                     for item in catalog.custom_profiles
                 ],
             },
@@ -233,7 +242,7 @@ class CosmosUsersProjectionRepository:
                 'id': 'users',
                 'partition_key': 'system',
                 'type': 'users_state',
-                'schema_version': 1,
+                'schema_version': USERS_COSMOS_SCHEMA_VERSION,
                 'source_revision': state.source_revision,
                 'projection_status': 'ready',
                 'projection_revision': state.revision,
@@ -248,10 +257,10 @@ class CosmosDiscoveredUsersSource:
         self,
         *,
         client: CosmosUsersConfigurationClient,
-        settings: CosmosUsersConfigurationSettings = CosmosUsersConfigurationSettings(),
+        settings: CosmosUsersConfigurationSettings | None = None,
     ) -> None:
         self._client = client
-        self._settings = settings
+        self._settings = settings or CosmosUsersConfigurationSettings()
 
     def list_discovered(self) -> tuple[DiscoveredUser, ...]:
         try:

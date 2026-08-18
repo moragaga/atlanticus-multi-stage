@@ -24,8 +24,8 @@ def test_sharepoint_uses_same_generic_read_write_operation() -> None:
     )
     bundle = UsersConfigurationBundle.create(
         catalog=UsersConfigurationCatalog(
-            administrator_color='#673AB7',
-            guest_color='#FF5722',
+            administrator_background_color='#673AB7',
+            guest_background_color='#FF5722',
         ),
         saved_by='administrator',
     )

@@ -1,6 +1,6 @@
+# Espejo pedagógico del módulo productivo.
+# Los comentarios explican responsabilidades sin alterar estructura ni comportamiento.
 from __future__ import annotations
-
-# Espejo pedagógico: Implementa el dominio administrativo genérico de Users: draft validable, Source versionado, proyección y adapters.
 
 import hashlib
 import json
@@ -21,6 +21,7 @@ from atlanticus.web.users.configuration.errors import (
 )
 from atlanticus.web.users.configuration.models import (
     DiscoveredUser,
+    UserConfiguration,
     UsersConfigurationCatalog,
 )
 from atlanticus.web.users.configuration.projection import (
@@ -34,6 +35,7 @@ from atlanticus.web.users.configuration.projection import (
 )
 
 
+# Define UsersConfigurationServices como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class UsersConfigurationServices:
     administration: UsersAdministrationService
@@ -42,6 +44,7 @@ class UsersConfigurationServices:
     projection: UsersProjectionRepository
 
 
+# Define UsersAdministrationService como frontera explícita del módulo y valida su contrato.
 class UsersAdministrationService:
     def __init__(
         self,
@@ -62,11 +65,11 @@ class UsersAdministrationService:
 
     def list_discovered(self) -> tuple[DiscoveredUser, ...]:
         configured = self.load_catalog()
-        configured_ids = {user.user_id for user in configured.users} if configured else set()
+        configured_users = configured.users if configured else ()
         return tuple(
             user
             for user in self._discovered.list_discovered()
-            if user.user_id not in configured_ids
+            if not any(_matches_configured_identity(user, current) for current in configured_users)
         )
 
     def validate_catalog(self, catalog: UsersConfigurationCatalog) -> UsersDraftValidationResult:
@@ -123,6 +126,7 @@ class UsersAdministrationService:
         return bundle.catalog
 
 
+# Define UsersProjectionWorkflow como frontera explícita del módulo y valida su contrato.
 class UsersProjectionWorkflow:
     def __init__(
         self,
@@ -195,6 +199,7 @@ class UsersProjectionWorkflow:
         return bundle
 
 
+# Encapsula la operación compose users configuration services para mantener esta responsabilidad aislada.
 def compose_users_configuration_services(
     *,
     source: UsersConfigurationSource,
@@ -220,6 +225,7 @@ def compose_users_configuration_services(
     )
 
 
+# Encapsula la operación validate catalog para mantener esta responsabilidad aislada.
 def _validate_catalog(
     catalog: UsersConfigurationCatalog,
 ) -> tuple[UsersProjectionIssue, ...]:
@@ -237,6 +243,7 @@ def _validate_catalog(
     return tuple(issues)
 
 
+# Encapsula la operación catalog summary para mantener esta responsabilidad aislada.
 def _catalog_summary(
     catalog: UsersConfigurationCatalog,
 ) -> tuple[UsersProjectionSummaryItem, ...]:
@@ -248,6 +255,7 @@ def _catalog_summary(
     )
 
 
+# Encapsula la operación build draft revision para mantener esta responsabilidad aislada.
 def _build_draft_revision(catalog: UsersConfigurationCatalog) -> str:
     canonical = json.dumps(
         catalog.to_document(),
@@ -256,3 +264,18 @@ def _build_draft_revision(catalog: UsersConfigurationCatalog) -> str:
         separators=(',', ':'),
     ).encode('utf-8')
     return hashlib.sha256(canonical).hexdigest()
+
+
+# Encapsula la operación matches configured identity para mantener esta responsabilidad aislada.
+def _matches_configured_identity(
+    discovered: DiscoveredUser,
+    configured: UserConfiguration,
+) -> bool:
+    if discovered.user_id == configured.user_id:
+        return True
+    if configured.issuer is None or configured.subject_id is None:
+        return False
+    return (
+        discovered.issuer.casefold() == configured.issuer.casefold()
+        and discovered.subject_id == configured.subject_id
+    )

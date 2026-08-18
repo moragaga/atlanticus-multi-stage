@@ -45,5 +45,7 @@ def test_local_persona_colors_are_fixed_independently_from_profile() -> None:
         )
     )
 
-    assert john.avatar_color == '#3778C2'
-    assert jane.avatar_color == '#C85D91'
+    assert john.avatar_background_color == '#3778C2'
+    assert john.avatar_text_color == '#FFFFFF'
+    assert jane.avatar_background_color == '#C85D91'
+    assert jane.avatar_text_color == '#FFFFFF'

@@ -36,9 +36,9 @@ def _source(
         state=UsersStateDocument(source_revision='revision-1', projection_status='ready'),
         catalog=ProfileCatalogDocument(
             source_revision='revision-1',
-            administrator_color='#673AB7',
+            administrator_background_color='#673AB7',
             custom_profiles=(
-                ProfileDefinition(key='operator', label='Operador', color='#445566'),
+                ProfileDefinition(key='operator', label='Operador', background_color='#445566'),
             ),
         ),
         users=users,

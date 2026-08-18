@@ -120,7 +120,10 @@ def _build_user_content(menu: NavigationMenu) -> html.Div:
                     _build_user_email(user.email),
                     html.Div(
                         className='app-navigation-user-profile',
-                        style={'backgroundColor': user.profile_color},
+                        style={
+                            'backgroundColor': user.profile_background_color,
+                            'color': user.profile_text_color,
+                        },
                         children=[
                             html.I(className='bi bi-person-badge me-1'),
                             html.Span(user.profile_label),
@@ -141,7 +144,10 @@ def _build_user_avatar(user: NavigationUser) -> html.Img | html.Div:
         )
     return html.Div(
         className='app-navigation-user-avatar app-navigation-user-avatar-fallback',
-        style={'backgroundColor': user.profile_color},
+        style={
+            'backgroundColor': user.avatar_background_color,
+            'color': user.avatar_text_color,
+        },
         title=user.display_name,
         children=user.avatar_text,
     )

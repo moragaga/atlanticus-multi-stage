@@ -62,9 +62,7 @@ def test_file_source_uses_one_document_and_unique_history_by_revision(tmp_path) 
     )
 
     store.publish_bundle(bundle)
-    store.publish_bundle(
-        ToolConfigurationBundle.create(catalog=_catalog(), saved_by='tester-2')
-    )
+    store.publish_bundle(ToolConfigurationBundle.create(catalog=_catalog(), saved_by='tester-2'))
 
     assert store.fetch_bundle() == bundle
     assert store.list_history() == (bundle,)
@@ -91,9 +89,7 @@ def test_file_projection_persists_only_runtime_projection(tmp_path) -> None:
 
 
 def test_file_source_can_project_into_memory_repository(tmp_path) -> None:
-    source = FileToolConfigurationStore(
-        FileToolConfigurationSettings(root=tmp_path / 'source')
-    )
+    source = FileToolConfigurationStore(FileToolConfigurationSettings(root=tmp_path / 'source'))
     services = compose_tool_configuration_services(
         source=source,
         publisher=source,

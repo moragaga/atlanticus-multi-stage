@@ -1,6 +1,6 @@
+# Espejo pedagógico del módulo productivo.
+# Los comentarios explican responsabilidades sin alterar estructura ni comportamiento.
 from __future__ import annotations
-
-# Espejo pedagógico: Mantiene el catálogo de perfiles alineado con la revisión activa de Cosmos y bloquea el runtime si la proyección no está ready.
 
 from atlanticus.web.users.cosmos.errors import UsersCosmosGatewayError
 from atlanticus.web.users.cosmos.gateway import UsersCosmosGateway
@@ -9,6 +9,7 @@ from atlanticus.web.users.errors import UsersDefinitionError, UsersSourceUnavail
 from atlanticus.web.users.profiles import ProfileCatalog, ProfileDefinition
 
 
+# Define UsersCosmosProfileCache como frontera explícita del módulo y valida su contrato.
 class UsersCosmosProfileCache:
     def __init__(self, gateway: UsersCosmosGateway) -> None:
         self._gateway = gateway
@@ -46,8 +47,10 @@ class UsersCosmosProfileCache:
             raise UsersSourceUnavailableError('Users profile catalog revision is not ready')
         try:
             catalog = ProfileCatalog(
-                administrator_color=document.administrator_color,
-                guest_color=document.guest_color,
+                administrator_background_color=document.administrator_background_color,
+                administrator_text_color=document.administrator_text_color,
+                guest_background_color=document.guest_background_color,
+                guest_text_color=document.guest_text_color,
                 custom_profiles=document.custom_profiles,
             )
         except UsersDefinitionError as error:
@@ -56,6 +59,7 @@ class UsersCosmosProfileCache:
         self._source_revision = source_revision
 
 
+# Define CosmosProfileCatalog como frontera explícita del módulo y valida su contrato.
 class CosmosProfileCatalog(ProfileCatalog):
     def __init__(self, cache: UsersCosmosProfileCache) -> None:
         super().__init__()

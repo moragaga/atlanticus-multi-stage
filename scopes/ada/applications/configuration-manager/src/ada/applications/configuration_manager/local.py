@@ -14,6 +14,17 @@ from ada.configuration.tools.adapters.file import (
     FileToolProjectionRepository,
     FileToolProjectionSettings,
 )
+from atlanticus.web.users.configuration import (
+    DiscoveredUser,
+    build_user_key,
+    compose_users_configuration_services,
+)
+from atlanticus.web.users.configuration.adapters.file import (
+    FileUsersConfigurationSettings,
+    FileUsersConfigurationStore,
+    FileUsersProjectionRepository,
+)
+from atlanticus.web.users.configuration.adapters.memory import MemoryDiscoveredUsersSource
 
 
 def build_local_dependencies(
@@ -21,23 +32,69 @@ def build_local_dependencies(
     runtime_root: str | Path | None = None,
 ) -> ConfigurationManagerDependencies:
     resolved_root = Path(runtime_root).expanduser() if runtime_root is not None else _runtime_root()
-    source = FileToolConfigurationStore(
+    tools_source = FileToolConfigurationStore(
         FileToolConfigurationSettings(root=resolved_root / 'source' / 'tools')
     )
-    projection = FileToolProjectionRepository(
+    tools_projection = FileToolProjectionRepository(
         FileToolProjectionSettings(root=resolved_root / 'projection' / 'tools')
     )
-    services = compose_tool_configuration_services(
-        source=source,
-        publisher=source,
-        projection=projection,
+    tools = compose_tool_configuration_services(
+        source=tools_source,
+        publisher=tools_source,
+        projection=tools_projection,
+        audit_actor_provider=lambda: 'Administrador local',
+    )
+    users_source = FileUsersConfigurationStore(
+        FileUsersConfigurationSettings(root=resolved_root / 'source' / 'users')
+    )
+    users_projection = FileUsersProjectionRepository(
+        FileUsersConfigurationSettings(root=resolved_root / 'projection' / 'users')
+    )
+    users_discovered = MemoryDiscoveredUsersSource(users=list(_preview_discovered_users()))
+    users = compose_users_configuration_services(
+        source=users_source,
+        publisher=users_source,
+        projection=users_projection,
+        discovered=users_discovered,
         audit_actor_provider=lambda: 'Administrador local',
     )
     return ConfigurationManagerDependencies(
-        tools=services,
+        tools=tools,
+        users=users,
         principal_provider=local_manager_principal,
         tools_source_name='Archivo local',
         tools_projection_name='Archivo local',
+        users_source_name='Archivo local',
+        users_projection_name='Archivo local',
+    )
+
+
+def _preview_discovered_users() -> tuple[DiscoveredUser, ...]:
+    identities = (
+        (
+            'preview:guest-one',
+            'Usuario Guest de prueba',
+            'guest.one@local.atlanticus',
+        ),
+        (
+            'preview:guest-two',
+            'Segundo Guest de prueba',
+            'guest.two@local.atlanticus',
+        ),
+    )
+    return tuple(
+        DiscoveredUser(
+            user_id=build_user_key(
+                issuer='preview',
+                subject_id=subject_id,
+                email=email,
+            ),
+            issuer='preview',
+            subject_id=subject_id,
+            display_name=display_name,
+            email=email,
+        )
+        for subject_id, display_name, email in identities
     )
 
 

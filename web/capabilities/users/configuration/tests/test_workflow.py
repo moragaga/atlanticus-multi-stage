@@ -1,6 +1,7 @@
 import pytest
 
 from atlanticus.web.users.configuration import (
+    DiscoveredUser,
     UserConfiguration,
     UserProfileConfiguration,
     UsersConfigurationCatalog,
@@ -16,13 +17,13 @@ from atlanticus.web.users.configuration.errors import UsersConfigurationSourceEr
 
 def _catalog(label: str = 'Operador') -> UsersConfigurationCatalog:
     return UsersConfigurationCatalog(
-        administrator_color='#673AB7',
-        guest_color='#FF5722',
+        administrator_background_color='#673AB7',
+        guest_background_color='#FF5722',
         profiles=(
             UserProfileConfiguration(
                 key='operator',
                 label=label,
-                color='#123456',
+                background_color='#123456',
             ),
         ),
         users=(
@@ -103,3 +104,54 @@ def test_stale_source_revision_is_rejected() -> None:
         )
 
     assert source.fetch_bundle().revision == first.source_revision
+
+
+def test_discovered_identity_remains_visible_until_it_is_materialized_in_source() -> None:
+    source = MemoryUsersConfigurationStore()
+    discovered = MemoryDiscoveredUsersSource(
+        users=[
+            DiscoveredUser(
+                user_id='user:stable',
+                issuer='entra',
+                subject_id='subject-1',
+                display_name='User One',
+                email='one@example.com',
+            )
+        ]
+    )
+    services = compose_users_configuration_services(
+        source=source,
+        publisher=source,
+        projection=MemoryUsersProjectionRepository(),
+        discovered=discovered,
+        audit_actor_provider=lambda: 'administrator',
+    )
+    manual = _catalog()
+    first = services.administration.publish_catalog(manual, expected_source_revision=None)
+
+    assert tuple(user.user_id for user in services.administration.list_discovered()) == (
+        'user:stable',
+    )
+
+    materialized_user = UserConfiguration.create(
+        user_id='user:stable',
+        issuer='entra',
+        subject_id='subject-1',
+        display_name='User One',
+        email='one@example.com',
+        profile_key='operator',
+    )
+    materialized = UsersConfigurationCatalog(
+        administrator_background_color=manual.administrator_background_color,
+        administrator_text_color=manual.administrator_text_color,
+        guest_background_color=manual.guest_background_color,
+        guest_text_color=manual.guest_text_color,
+        profiles=manual.profiles,
+        users=(materialized_user,),
+    )
+    services.administration.publish_catalog(
+        materialized,
+        expected_source_revision=first.source_revision,
+    )
+
+    assert services.administration.list_discovered() == ()

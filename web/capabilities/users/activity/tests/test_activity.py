@@ -44,7 +44,7 @@ class Repository:
 
 
 def _user(*, is_local: bool = False) -> EffectiveUser:
-    profile = ProfileDefinition(key='operator', label='Operador', color='#123456')
+    profile = ProfileDefinition(key='operator', label='Operador', background_color='#123456')
     return EffectiveUser(
         user_id='user:1',
         subject_id='entra:1',
@@ -138,7 +138,7 @@ def test_activity_keeps_profile_resolution_that_started_the_session() -> None:
         profile=ProfileDefinition(
             key='supervisor',
             label='Supervisor',
-            color='#654321',
+            background_color='#654321',
         ),
     )
 

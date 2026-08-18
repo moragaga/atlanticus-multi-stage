@@ -24,12 +24,12 @@ from ada.configuration.tools.web.ids import (
     CREATE_CANCEL_ID,
     CREATE_KIND_ID,
     CREATE_MODAL_ID,
-    CREATE_OPEN_ID,
     CREATE_NAME_ID,
+    CREATE_OPEN_ID,
     CREATE_RESULT_ID,
     DISPATCH_FRESHNESS_FIELD_ID,
-    DRAFT_LOAD_SIGNAL_ID,
     DISPATCH_FRESHNESS_ID,
+    DRAFT_LOAD_SIGNAL_ID,
     IMPORT_RESULT_ID,
     IMPORT_UPLOAD_ID,
     PI_FRESHNESS_FIELD_ID,
@@ -73,10 +73,7 @@ def build_tool_admin_configuration(context: ToolAdminWebContext) -> object:
         catalog = ToolConfigurationCatalog(())
         source_revision = None
         error = 'Tool configuration source could not be loaded'
-    options = [
-        {'label': tool.display_name, 'value': tool.tool_key}
-        for tool in catalog.tools
-    ]
+    options = [{'label': tool.display_name, 'value': tool.tool_key} for tool in catalog.tools]
     selected = catalog.tools[0].tool_key if catalog.tools else None
     return html.Div(
         [
@@ -134,8 +131,7 @@ def _runtime_context(context: ToolAdminWebContext) -> object:
                         children=html.Button(
                             'Cargar archivo de configuración local',
                             className=(
-                                'atlanticus-manager__button '
-                                'atlanticus-manager__button--secondary'
+                                'atlanticus-manager__button atlanticus-manager__button--secondary'
                             ),
                         ),
                         multiple=False,
@@ -178,8 +174,7 @@ def _tool_toolbar(options: list[dict[str, str]], selected: str | None) -> object
                         '+ Nueva herramienta',
                         id=CREATE_OPEN_ID,
                         className=(
-                            'atlanticus-manager__button '
-                            'atlanticus-manager__button--secondary'
+                            'atlanticus-manager__button atlanticus-manager__button--secondary'
                         ),
                     ),
                 ],
@@ -272,8 +267,7 @@ def _tool_modal() -> object:
                                 'Crear borrador',
                                 id=CREATE_BUTTON_ID,
                                 className=(
-                                    'atlanticus-manager__button '
-                                    'atlanticus-manager__button--primary'
+                                    'atlanticus-manager__button atlanticus-manager__button--primary'
                                 ),
                             ),
                         ],
@@ -472,8 +466,7 @@ def _reference_section(context: ToolAdminWebContext) -> object:
                         'Guardar borrador',
                         id=SAVE_BUTTON_ID,
                         className=(
-                            'atlanticus-manager__button '
-                            'atlanticus-manager__button--primary'
+                            'atlanticus-manager__button atlanticus-manager__button--primary'
                         ),
                     ),
                 ],
@@ -573,8 +566,7 @@ def _component_modal() -> object:
                                 'Guardar componente',
                                 id=COMPONENT_SAVE_ID,
                                 className=(
-                                    'atlanticus-manager__button '
-                                    'atlanticus-manager__button--primary'
+                                    'atlanticus-manager__button atlanticus-manager__button--primary'
                                 ),
                             ),
                         ],
@@ -669,8 +661,7 @@ def _subcomponent_modal() -> object:
                                 'Guardar subcomponente',
                                 id=SUBCOMPONENT_SAVE_ID,
                                 className=(
-                                    'atlanticus-manager__button '
-                                    'atlanticus-manager__button--primary'
+                                    'atlanticus-manager__button atlanticus-manager__button--primary'
                                 ),
                             ),
                         ],

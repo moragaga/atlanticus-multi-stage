@@ -83,7 +83,6 @@ def test_disabled_user_returns_disabled_access_decision() -> None:
     assert decision.user_id == 'user-1'
 
 
-
 def test_identity_conflict_is_reported_as_users_service_unavailable() -> None:
     from flask import Flask
 

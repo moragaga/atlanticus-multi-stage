@@ -13,7 +13,7 @@ from atlanticus.web.users.configuration.models import UsersConfigurationCatalog
 
 BUNDLE_DOCUMENT_TYPE = 'atlanticus_users_configuration'
 SOURCE_DOCUMENT_TYPE = 'atlanticus_users_configuration_source'
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 DEFAULT_MAX_COMPRESSED_BYTES = 5 * 1024 * 1024
 DEFAULT_MAX_DECOMPRESSED_BYTES = 20 * 1024 * 1024
 

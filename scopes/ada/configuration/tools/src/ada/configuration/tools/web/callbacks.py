@@ -40,12 +40,12 @@ from ada.configuration.tools.web.ids import (
     CREATE_CANCEL_ID,
     CREATE_KIND_ID,
     CREATE_MODAL_ID,
-    CREATE_OPEN_ID,
     CREATE_NAME_ID,
+    CREATE_OPEN_ID,
     CREATE_RESULT_ID,
     DISPATCH_FRESHNESS_FIELD_ID,
-    DRAFT_LOAD_SIGNAL_ID,
     DISPATCH_FRESHNESS_ID,
+    DRAFT_LOAD_SIGNAL_ID,
     IMPORT_RESULT_ID,
     IMPORT_UPLOAD_ID,
     PI_FRESHNESS_FIELD_ID,
@@ -112,9 +112,7 @@ def _pattern_click_is_real(
         if dict(item_id) != target:
             continue
         return (
-            isinstance(click_count, int)
-            and not isinstance(click_count, bool)
-            and click_count > 0
+            isinstance(click_count, int) and not isinstance(click_count, bool) and click_count > 0
         )
     return False
 
@@ -940,6 +938,7 @@ def _save_draft_click_is_real(
 def _click_is_real(clicks: int | None) -> bool:
     return isinstance(clicks, int) and not isinstance(clicks, bool) and clicks > 0
 
+
 def _catalog(data: dict[str, object] | None) -> ToolConfigurationCatalog:
     if not isinstance(data, dict):
         return ToolConfigurationCatalog(())
@@ -959,10 +958,7 @@ def _optional_tool(
 
 
 def _tool_options(catalog: ToolConfigurationCatalog) -> list[dict[str, str]]:
-    return [
-        {'label': item.display_name, 'value': item.tool_key}
-        for item in catalog.tools
-    ]
+    return [{'label': item.display_name, 'value': item.tool_key} for item in catalog.tools]
 
 
 def _scope_value(scope: ToolScope | None) -> str | None:
@@ -975,9 +971,7 @@ def _structure_components(
     if not isinstance(data, list):
         return ()
     return tuple(
-        ToolComponentConfiguration.from_document(item)
-        for item in data
-        if isinstance(item, dict)
+        ToolComponentConfiguration.from_document(item) for item in data if isinstance(item, dict)
     )
 
 
@@ -1007,9 +1001,7 @@ def _render_component_list(
                         [
                             html.Strong(component.display_name),
                             html.Code(component.key),
-                            html.Span(
-                                f'{detail} · {len(component.subcomponents)} subcomponentes'
-                            ),
+                            html.Span(f'{detail} · {len(component.subcomponents)} subcomponentes'),
                         ],
                         className='ada-tools-admin__structure-copy',
                     ),
@@ -1093,8 +1085,7 @@ def _component_actions(key: str, index: int, total: int) -> object:
                 id=component_delete_id(key),
                 n_clicks=0,
                 className=(
-                    'ada-tools-admin__structure-action '
-                    'ada-tools-admin__structure-action--danger'
+                    'ada-tools-admin__structure-action ada-tools-admin__structure-action--danger'
                 ),
             ),
         ],
@@ -1137,8 +1128,7 @@ def _subcomponent_actions(
                 id=subcomponent_delete_id(component_key, key),
                 n_clicks=0,
                 className=(
-                    'ada-tools-admin__structure-action '
-                    'ada-tools-admin__structure-action--danger'
+                    'ada-tools-admin__structure-action ada-tools-admin__structure-action--danger'
                 ),
             ),
         ],
@@ -1183,10 +1173,7 @@ def _save_component_draft(
         if placement_value not in {'left', 'center', 'right', 'bottom'}:
             raise ValueError('Process component placement is required')
         placement = ProcessBodySection(placement_value)
-        if any(
-            item.key != key and item.layout_role is placement
-            for item in components
-        ):
+        if any(item.key != key and item.layout_role is placement for item in components):
             raise ValueError('Process component placement must be unique')
         replacement = ToolComponentConfiguration(
             key=key,
@@ -1261,9 +1248,7 @@ def _validate_shared_component_scopes(
                 if linked is None:
                     raise ValueError('Shared subcomponent references an unknown component')
                 if linked.scope is not component.scope:
-                    raise ValueError(
-                        'Shared subcomponents must link components from the same area'
-                    )
+                    raise ValueError('Shared subcomponents must link components from the same area')
 
 
 def _validate_linked_components(
@@ -1340,10 +1325,7 @@ def _move_item(items: list[object], item_key: str, direction: str, *, key) -> li
 def _component_options(
     components: list[ToolComponentConfiguration],
 ) -> list[dict[str, str]]:
-    return [
-        {'label': component.display_name, 'value': component.key}
-        for component in components
-    ]
+    return [{'label': component.display_name, 'value': component.key} for component in components]
 
 
 def _build_tool_from_editor(

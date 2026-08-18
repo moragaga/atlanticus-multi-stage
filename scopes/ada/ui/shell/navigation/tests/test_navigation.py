@@ -23,8 +23,11 @@ def _menu() -> NavigationMenu:
             email='john.doe@local.atlanticus',
             profile_key='local',
             profile_label='Local',
-            profile_color='#3778C2',
+            profile_background_color='#3778C2',
+            profile_text_color='#FFFFFF',
             avatar_text='JD',
+            avatar_background_color='#3778C2',
+            avatar_text_color='#FFFFFF',
         ),
         links=(
             NavigationLink(
@@ -93,6 +96,7 @@ def test_user_fallback_uses_effective_initials_and_profile_color() -> None:
 
     assert 'JD' in payload
     assert '#3778C2' in payload
+    assert '#FFFFFF' in payload
     assert 'Local' in payload
     assert 'John Doe' in payload
 

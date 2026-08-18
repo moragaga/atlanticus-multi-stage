@@ -71,9 +71,8 @@ class ManagerProjectionCoordinator:
 
     def can_load_history(self, module_key: str, principal: ManagerPrincipal) -> bool:
         module, workflow = self._resolve(module_key)
-        return (
-            isinstance(workflow, RevisionHistoryWorkflow)
-            and self._authorization.can_view(principal, module)
+        return isinstance(workflow, RevisionHistoryWorkflow) and self._authorization.can_view(
+            principal, module
         )
 
     def load_history_revision(

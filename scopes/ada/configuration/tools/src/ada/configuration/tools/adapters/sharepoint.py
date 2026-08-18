@@ -56,7 +56,7 @@ class SharePointToolConfigurationStore:
                 return
             content = base64.b64encode(encode_tool_configuration_source(updated)).decode('ascii')
             self._write_content(content)
-        except (ToolConfigurationPublisherError, ToolConfigurationSourceError):
+        except ToolConfigurationPublisherError, ToolConfigurationSourceError:
             raise
         except Exception as error:
             raise ToolConfigurationPublisherError(
@@ -103,9 +103,7 @@ class SharePointToolConfigurationStore:
         if content is None:
             return None
         if not isinstance(content, str):
-            raise ToolConfigurationSourceError(
-                'SharePoint tool configuration content must be text'
-            )
+            raise ToolConfigurationSourceError('SharePoint tool configuration content must be text')
         return content.strip() or None
 
     def _write_content(self, content: str) -> None:

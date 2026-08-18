@@ -7,7 +7,10 @@ from dash import html
 from ada.applications.configuration_manager.dependencies import (
     ConfigurationManagerDependencies,
 )
-from ada.applications.configuration_manager.workflows import ToolManagerWorkflowAdapter
+from ada.applications.configuration_manager.workflows import (
+    ToolManagerWorkflowAdapter,
+    UsersManagerWorkflowAdapter,
+)
 from ada.configuration.tools.web import (
     ToolAdminWebContext,
     build_tool_admin_configuration,
@@ -40,8 +43,14 @@ from atlanticus.web.models import ApplicationMetadata, DashSettings, WebApplicat
 from atlanticus.web.modules import WebModule
 from atlanticus.web.navigation import NavigationLink, NavigationMenu, NavigationUser
 from atlanticus.web.services import ServiceRegistry
+from atlanticus.web.users.configuration.web import (
+    UsersAdminWebContext,
+    build_users_admin_configuration,
+    create_users_admin_web_module,
+)
 
 TOOLS_WORKFLOW_SERVICE = 'ada.configuration-manager.tools.workflow'
+USERS_WORKFLOW_SERVICE = 'ada.configuration-manager.users.workflow'
 CONFIGURATION_MANAGER_ASSET_LAYER = AssetLayer(
     name='ada_configuration_manager',
     load_order=900,
@@ -79,6 +88,16 @@ def build_configuration_manager_definition(
         can_manage=lambda: _can_manage_tools(dependencies.principal_provider()),
         source_name=dependencies.tools_source_name,
         projection_name=dependencies.tools_projection_name,
+    )
+    users_context = UsersAdminWebContext(
+        services=dependencies.users,
+        draft_store_id=workflow_draft_id('users'),
+        draft_save_action_id=workflow_action_id('users', 'save-draft'),
+        workflow_refresh_signal_id=workflow_refresh_signal_id('users'),
+        draft_owner_provider=lambda: dependencies.principal_provider().subject_id,
+        can_manage=lambda: _can_manage_users(dependencies.principal_provider()),
+        source_name=dependencies.users_source_name,
+        projection_name=dependencies.users_projection_name,
     )
     return ManagerApplicationDefinition(
         import_name='ada.applications.configuration_manager',
@@ -118,6 +137,27 @@ def build_configuration_manager_definition(
                 source_name=dependencies.tools_source_name,
                 projection_name=dependencies.tools_projection_name,
             ),
+            ManagerModule(
+                key='users',
+                group_key='configuration',
+                title='Usuarios',
+                route='/users',
+                order=20,
+                description='Perfiles, usuarios y descubrimiento de identidades Atlanticus.',
+                layout=lambda _services: build_users_admin_configuration(users_context),
+                workflow_service=USERS_WORKFLOW_SERVICE,
+                access=ManagerModuleAccess(
+                    view='users.manage',
+                    validate='users.manage',
+                    project='users.manage',
+                    publish='users.manage',
+                ),
+                web_module=create_users_admin_web_module(users_context),
+                workflow_section_title='Estado y trazabilidad',
+                content_section_title='Usuarios y perfiles',
+                source_name=dependencies.users_source_name,
+                projection_name=dependencies.users_projection_name,
+            ),
         ),
         subtitle=(
             'Asistente de decisiones ágiles · '
@@ -152,6 +192,10 @@ def _register_services(
     services.add(
         TOOLS_WORKFLOW_SERVICE,
         ToolManagerWorkflowAdapter(dependencies.tools),
+    )
+    services.add(
+        USERS_WORKFLOW_SERVICE,
+        UsersManagerWorkflowAdapter(dependencies.users),
     )
 
 
@@ -197,7 +241,8 @@ def _build_navigation_menu(principal: ManagerPrincipal) -> NavigationMenu:
             display_name=principal.display_name,
             profile_key='administrator',
             profile_label='Administrador',
-            profile_color='#C9A24B',
+            profile_background_color='#C9A24B',
+            profile_text_color='#071522',
             avatar_text=_avatar_text(principal.display_name),
         ),
         links=(
@@ -224,4 +269,12 @@ def _can_manage_tools(principal: ManagerPrincipal) -> bool:
         principal.is_local
         or 'administrator' in principal.profile_keys
         or 'tools.manage' in principal.access_keys
+    )
+
+
+def _can_manage_users(principal: ManagerPrincipal) -> bool:
+    return (
+        principal.is_local
+        or 'administrator' in principal.profile_keys
+        or 'users.manage' in principal.access_keys
     )

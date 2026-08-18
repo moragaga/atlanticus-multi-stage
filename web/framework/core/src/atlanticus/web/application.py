@@ -171,7 +171,7 @@ def _resolve_namespace_flask_paths(import_name: str) -> tuple[Path, Path] | None
     root_name = import_name.partition('.')[0]
     try:
         root_spec = importlib.util.find_spec(root_name)
-    except (ImportError, ValueError):
+    except ImportError, ValueError:
         return None
 
     if (
@@ -189,9 +189,7 @@ def _resolve_namespace_flask_paths(import_name: str) -> tuple[Path, Path] | None
         ) from error
 
     if package_spec is None:
-        raise WebDefinitionError(
-            f'Application import name could not be resolved: {import_name}'
-        )
+        raise WebDefinitionError(f'Application import name could not be resolved: {import_name}')
 
     if package_spec.origin not in {None, 'namespace'}:
         root_path = Path(package_spec.origin).resolve().parent

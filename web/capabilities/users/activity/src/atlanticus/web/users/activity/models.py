@@ -419,7 +419,7 @@ def _limit_routes(
 def _safe_dimension(value: object) -> int:
     try:
         return max(0, int(value or 0))
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return 0
 
 
@@ -430,7 +430,7 @@ def _safe_non_negative_int(value: object) -> int:
 def _safe_ratio(value: object) -> float:
     try:
         ratio = float(value or 1)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return 1.0
     return ratio if ratio > 0 else 1.0
 

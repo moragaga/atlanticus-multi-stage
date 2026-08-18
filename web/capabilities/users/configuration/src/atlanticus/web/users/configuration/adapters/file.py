@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -50,7 +50,7 @@ class FileUsersConfigurationStore:
                 self._source_path,
                 encode_users_configuration_source(updated),
             )
-        except (UsersConfigurationPublisherError, UsersConfigurationSourceError):
+        except UsersConfigurationPublisherError, UsersConfigurationSourceError:
             raise
         except Exception as error:
             raise UsersConfigurationPublisherError(

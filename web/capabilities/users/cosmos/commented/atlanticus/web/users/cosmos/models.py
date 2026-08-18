@@ -1,18 +1,25 @@
+# Espejo pedagógico del módulo productivo.
+# Los comentarios explican responsabilidades sin alterar estructura ni comportamiento.
 from __future__ import annotations
-
-# Espejo pedagógico: Contratos documentales de Users en Cosmos, incluyendo colores de perfiles de sistema y metadatos de estado de proyección.
 
 from dataclasses import dataclass
 from typing import Literal
 
 from atlanticus.web.users.errors import UsersDefinitionError
-from atlanticus.web.users.profiles import ProfileDefinition
+from atlanticus.web.users.profiles import (
+    DEFAULT_ADMINISTRATOR_BACKGROUND_COLOR,
+    DEFAULT_ADMINISTRATOR_TEXT_COLOR,
+    DEFAULT_GUEST_BACKGROUND_COLOR,
+    DEFAULT_GUEST_TEXT_COLOR,
+    ProfileDefinition,
+)
 
-USERS_COSMOS_SCHEMA_VERSION = 1
+USERS_COSMOS_SCHEMA_VERSION = 2
 UserOrigin = Literal['projection', 'identity']
 LookupKind = Literal['identity', 'email']
 
 
+# Encapsula la operación required para mantener esta responsabilidad aislada.
 def _required(value: str, *, field_name: str) -> str:
     normalized = value.strip()
     if not normalized:
@@ -20,6 +27,7 @@ def _required(value: str, *, field_name: str) -> str:
     return normalized
 
 
+# Encapsula la operación optional para mantener esta responsabilidad aislada.
 def _optional(value: str | None) -> str | None:
     if value is None:
         return None
@@ -27,6 +35,7 @@ def _optional(value: str | None) -> str | None:
     return normalized or None
 
 
+# Define UsersStateDocument como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class UsersStateDocument:
     source_revision: str
@@ -56,11 +65,14 @@ class UsersStateDocument:
             raise UsersDefinitionError('Users state document identity is invalid')
 
 
+# Define ProfileCatalogDocument como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class ProfileCatalogDocument:
     source_revision: str
-    administrator_color: str
-    guest_color: str = '#FF5722'
+    administrator_background_color: str = DEFAULT_ADMINISTRATOR_BACKGROUND_COLOR
+    administrator_text_color: str = DEFAULT_ADMINISTRATOR_TEXT_COLOR
+    guest_background_color: str = DEFAULT_GUEST_BACKGROUND_COLOR
+    guest_text_color: str = DEFAULT_GUEST_TEXT_COLOR
     custom_profiles: tuple[ProfileDefinition, ...] = ()
     schema_version: int = USERS_COSMOS_SCHEMA_VERSION
     id: str = 'catalog'
@@ -83,6 +95,7 @@ class ProfileCatalogDocument:
             raise UsersDefinitionError('Profile catalog document identity is invalid')
 
 
+# Define UserDocument como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class UserDocument:
     user_id: str
@@ -143,6 +156,7 @@ class UserDocument:
         object.__setattr__(self, 'partition_key', partition_key)
 
 
+# Define UserLookupDocument como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class UserLookupDocument:
     kind: LookupKind

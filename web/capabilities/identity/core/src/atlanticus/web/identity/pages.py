@@ -30,7 +30,7 @@ def identity_unavailable_response() -> Response:
 
 
 def _page(*, status_code: int, title: str, message: str) -> Response:
-    body = f'''<!doctype html>
+    body = f"""<!doctype html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
@@ -44,7 +44,7 @@ h1{{font-size:28px;margin:0 0 12px}}p{{font-size:16px;line-height:1.5;margin:0;c
 </style>
 </head>
 <body><main><section><h1>{escape(title)}</h1><p>{escape(message)}</p></section></main></body>
-</html>'''
+</html>"""
     response = Response(body, status=status_code, content_type='text/html; charset=utf-8')
     response.headers['Cache-Control'] = 'no-store'
     return response

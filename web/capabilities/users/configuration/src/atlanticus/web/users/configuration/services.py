@@ -19,6 +19,7 @@ from atlanticus.web.users.configuration.errors import (
 )
 from atlanticus.web.users.configuration.models import (
     DiscoveredUser,
+    UserConfiguration,
     UsersConfigurationCatalog,
 )
 from atlanticus.web.users.configuration.projection import (
@@ -60,11 +61,11 @@ class UsersAdministrationService:
 
     def list_discovered(self) -> tuple[DiscoveredUser, ...]:
         configured = self.load_catalog()
-        configured_ids = {user.user_id for user in configured.users} if configured else set()
+        configured_users = configured.users if configured else ()
         return tuple(
             user
             for user in self._discovered.list_discovered()
-            if user.user_id not in configured_ids
+            if not any(_matches_configured_identity(user, current) for current in configured_users)
         )
 
     def validate_catalog(self, catalog: UsersConfigurationCatalog) -> UsersDraftValidationResult:
@@ -254,3 +255,17 @@ def _build_draft_revision(catalog: UsersConfigurationCatalog) -> str:
         separators=(',', ':'),
     ).encode('utf-8')
     return hashlib.sha256(canonical).hexdigest()
+
+
+def _matches_configured_identity(
+    discovered: DiscoveredUser,
+    configured: UserConfiguration,
+) -> bool:
+    if discovered.user_id == configured.user_id:
+        return True
+    if configured.issuer is None or configured.subject_id is None:
+        return False
+    return (
+        discovered.issuer.casefold() == configured.issuer.casefold()
+        and discovered.subject_id == configured.subject_id
+    )

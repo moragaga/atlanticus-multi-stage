@@ -17,6 +17,7 @@ dependencies = [
     "atlanticus-web==0.1.0",
     "atlanticus-web-manager==0.1.0",
     "atlanticus-web-navigation==0.1.0",
+    "atlanticus-web-users-configuration[web]==0.1.0",
     "gunicorn==26.0.0",
 ]
 
@@ -31,6 +32,7 @@ ada-ui-shell-navigation = { workspace = true }
 atlanticus-web = { path = "../../../../web/framework/core", editable = true }
 atlanticus-web-manager = { path = "../../../../web/capabilities/manager", editable = true }
 atlanticus-web-navigation = { path = "../../../../web/capabilities/navigation", editable = true }
+atlanticus-web-users-configuration = { path = "../../../../web/capabilities/users/configuration", editable = true }
 
 [tool.setuptools]
 package-dir = {"" = "src"}

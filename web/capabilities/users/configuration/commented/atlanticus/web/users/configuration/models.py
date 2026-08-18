@@ -1,6 +1,6 @@
+# Espejo pedagógico del módulo productivo.
+# Los comentarios explican responsabilidades sin alterar estructura ni comportamiento.
 from __future__ import annotations
-
-# Espejo pedagógico: Implementa el dominio administrativo genérico de Users: draft validable, Source versionado, proyección y adapters.
 
 import hashlib
 import re
@@ -11,6 +11,10 @@ from typing import Any
 from atlanticus.web.users.configuration.errors import UsersConfigurationValidationError
 from atlanticus.web.users.profiles import (
     ADMINISTRATOR_PROFILE_KEY,
+    DEFAULT_ADMINISTRATOR_BACKGROUND_COLOR,
+    DEFAULT_ADMINISTRATOR_TEXT_COLOR,
+    DEFAULT_GUEST_BACKGROUND_COLOR,
+    DEFAULT_GUEST_TEXT_COLOR,
     GUEST_PROFILE_KEY,
     LOCAL_PROFILE_KEY,
     ProfileCatalog,
@@ -26,6 +30,7 @@ _PROFILE_KEY_PATTERN = re.compile(r'^[a-z][a-z0-9_]*$')
 _NON_KEY_PATTERN = re.compile(r'[^a-z0-9]+')
 
 
+# Encapsula la operación required para mantener esta responsabilidad aislada.
 def _required(value: str, *, label: str) -> str:
     normalized = value.strip()
     if not normalized:
@@ -33,6 +38,7 @@ def _required(value: str, *, label: str) -> str:
     return normalized
 
 
+# Encapsula la operación optional para mantener esta responsabilidad aislada.
 def _optional(value: str | None) -> str | None:
     if value is None:
         return None
@@ -40,7 +46,7 @@ def _optional(value: str | None) -> str | None:
     return normalized or None
 
 
-
+# Encapsula la operación build profile key para mantener esta responsabilidad aislada.
 def build_profile_key(label: str) -> str:
     normalized = unicodedata.normalize('NFKD', label.strip())
     ascii_text = ''.join(
@@ -54,6 +60,7 @@ def build_profile_key(label: str) -> str:
     return candidate
 
 
+# Encapsula la operación normalize email para mantener esta responsabilidad aislada.
 def normalize_email(value: str) -> str:
     normalized = value.strip().casefold()
     if not normalized or '@' not in normalized:
@@ -61,33 +68,48 @@ def normalize_email(value: str) -> str:
     return normalized
 
 
+# Encapsula la operación build user key para mantener esta responsabilidad aislada.
 def build_user_key(*, issuer: str | None, subject_id: str | None, email: str) -> str:
     identity = f'{issuer}|{subject_id}' if issuer and subject_id else normalize_email(email)
     digest = hashlib.sha256(identity.encode('utf-8')).hexdigest()[:24]
     return f'user:{digest}'
 
 
+# Define UserProfileConfiguration como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class UserProfileConfiguration:
     key: str
     label: str
-    color: str
+    background_color: str
+    text_color: str = '#FFFFFF'
 
     def __post_init__(self) -> None:
         key = normalize_profile_key(self.key)
         if key in _RESERVED_PROFILE_KEYS:
             raise UsersConfigurationValidationError('System profiles cannot be redefined')
         label = _required(self.label, label='Profile label')
-        color = normalize_profile_color(self.color)
+        background_color = normalize_profile_color(self.background_color)
+        text_color = normalize_profile_color(self.text_color)
         object.__setattr__(self, 'key', key)
         object.__setattr__(self, 'label', label)
-        object.__setattr__(self, 'color', color)
+        object.__setattr__(self, 'background_color', background_color)
+        object.__setattr__(self, 'text_color', text_color)
 
     def to_profile_definition(self) -> ProfileDefinition:
-        return ProfileDefinition(key=self.key, label=self.label, color=self.color)
+        return ProfileDefinition(
+            key=self.key,
+            label=self.label,
+            background_color=self.background_color,
+            text_color=self.text_color,
+        )
 
     def to_document(self) -> dict[str, object]:
-        return {'key': self.key, 'label': self.label, 'color': self.color}
+        return {
+            'key': self.key,
+            'label': self.label,
+            'background_color': self.background_color,
+            'text_color': self.text_color,
+        }
 
     @classmethod
     def from_document(cls, document: dict[str, Any]) -> UserProfileConfiguration:
@@ -95,12 +117,14 @@ class UserProfileConfiguration:
             return cls(
                 key=str(document['key']),
                 label=str(document['label']),
-                color=str(document['color']),
+                background_color=str(document['background_color']),
+                text_color=str(document['text_color']),
             )
         except (KeyError, TypeError, ValueError) as error:
             raise UsersConfigurationValidationError('Profile contract is invalid') from error
 
 
+# Define UserConfiguration como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class UserConfiguration:
     user_id: str
@@ -191,6 +215,7 @@ class UserConfiguration:
             raise UsersConfigurationValidationError('User contract is invalid') from error
 
 
+# Define DiscoveredUser como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class DiscoveredUser:
     user_id: str
@@ -225,16 +250,23 @@ class DiscoveredUser:
         )
 
 
+# Define UsersConfigurationCatalog como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class UsersConfigurationCatalog:
-    administrator_color: str
-    guest_color: str
+    administrator_background_color: str = DEFAULT_ADMINISTRATOR_BACKGROUND_COLOR
+    administrator_text_color: str = DEFAULT_ADMINISTRATOR_TEXT_COLOR
+    guest_background_color: str = DEFAULT_GUEST_BACKGROUND_COLOR
+    guest_text_color: str = DEFAULT_GUEST_TEXT_COLOR
     profiles: tuple[UserProfileConfiguration, ...] = ()
     users: tuple[UserConfiguration, ...] = ()
 
     def __post_init__(self) -> None:
-        administrator_color = normalize_profile_color(self.administrator_color)
-        guest_color = normalize_profile_color(self.guest_color)
+        administrator_background_color = normalize_profile_color(
+            self.administrator_background_color
+        )
+        administrator_text_color = normalize_profile_color(self.administrator_text_color)
+        guest_background_color = normalize_profile_color(self.guest_background_color)
+        guest_text_color = normalize_profile_color(self.guest_text_color)
         profiles = tuple(self.profiles)
         users = tuple(self.users)
         profile_keys = tuple(profile.key for profile in profiles)
@@ -254,28 +286,40 @@ class UsersConfigurationCatalog:
         if len(identities) != len(set(identities)):
             raise UsersConfigurationValidationError('User identities must be unique')
         catalog = ProfileCatalog(
-            administrator_color=administrator_color,
-            guest_color=guest_color,
+            administrator_background_color=administrator_background_color,
+            administrator_text_color=administrator_text_color,
+            guest_background_color=guest_background_color,
+            guest_text_color=guest_text_color,
             custom_profiles=tuple(profile.to_profile_definition() for profile in profiles),
         )
         for user in users:
             catalog.require(user.profile_key)
-        object.__setattr__(self, 'administrator_color', administrator_color)
-        object.__setattr__(self, 'guest_color', guest_color)
+        object.__setattr__(
+            self,
+            'administrator_background_color',
+            administrator_background_color,
+        )
+        object.__setattr__(self, 'administrator_text_color', administrator_text_color)
+        object.__setattr__(self, 'guest_background_color', guest_background_color)
+        object.__setattr__(self, 'guest_text_color', guest_text_color)
         object.__setattr__(self, 'profiles', profiles)
         object.__setattr__(self, 'users', users)
 
     def profile_catalog(self) -> ProfileCatalog:
         return ProfileCatalog(
-            administrator_color=self.administrator_color,
-            guest_color=self.guest_color,
+            administrator_background_color=self.administrator_background_color,
+            administrator_text_color=self.administrator_text_color,
+            guest_background_color=self.guest_background_color,
+            guest_text_color=self.guest_text_color,
             custom_profiles=tuple(profile.to_profile_definition() for profile in self.profiles),
         )
 
     def to_document(self) -> dict[str, object]:
         return {
-            'administrator_color': self.administrator_color,
-            'guest_color': self.guest_color,
+            'administrator_background_color': self.administrator_background_color,
+            'administrator_text_color': self.administrator_text_color,
+            'guest_background_color': self.guest_background_color,
+            'guest_text_color': self.guest_text_color,
             'profiles': [profile.to_document() for profile in self.profiles],
             'users': [user.to_document() for user in self.users],
         }
@@ -292,8 +336,12 @@ class UsersConfigurationCatalog:
             if not isinstance(users, list) or not all(isinstance(item, dict) for item in users):
                 raise TypeError
             return cls(
-                administrator_color=str(document['administrator_color']),
-                guest_color=str(document['guest_color']),
+                administrator_background_color=str(
+                    document['administrator_background_color']
+                ),
+                administrator_text_color=str(document['administrator_text_color']),
+                guest_background_color=str(document['guest_background_color']),
+                guest_text_color=str(document['guest_text_color']),
                 profiles=tuple(
                     UserProfileConfiguration.from_document(dict(item)) for item in profiles
                 ),
@@ -305,6 +353,7 @@ class UsersConfigurationCatalog:
             ) from error
 
 
+# Encapsula la operación optional value para mantener esta responsabilidad aislada.
 def _optional_value(value: object) -> str | None:
     if value is None:
         return None

@@ -19,10 +19,11 @@ from atlanticus.web.manager.models import (
     ManagerPrincipal,
 )
 from atlanticus.web.manager.projection import (
+    ManagerDraft,
     ProjectionIssue,
     ProjectionState,
     ProjectionStatus,
-    ManagerDraft,
+    ProjectionSummaryItem,
     RevisionHistoryEntry,
     resolve_projection_state,
 )

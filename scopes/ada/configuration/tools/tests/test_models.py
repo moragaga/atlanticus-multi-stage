@@ -65,6 +65,4 @@ def test_catalog_roundtrip_preserves_order_and_stable_ids() -> None:
 
 def test_source_document_rejects_boolean_freshness() -> None:
     with pytest.raises(ToolConfigurationValidationError, match='contract is invalid'):
-        ToolSourceConfiguration.from_document(
-            {'key': 'pi', 'stale_after_seconds': True}
-        )
+        ToolSourceConfiguration.from_document({'key': 'pi', 'stale_after_seconds': True})

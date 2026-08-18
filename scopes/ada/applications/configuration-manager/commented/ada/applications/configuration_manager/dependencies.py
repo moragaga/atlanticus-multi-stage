@@ -1,18 +1,24 @@
-# Dependencias explícitas de la composición ADA; los nombres indican qué backend está activo.
+# Declara las dependencias requeridas por la composición para mantener inyección explícita.
 from dataclasses import dataclass
 
 from ada.configuration.tools import ToolConfigurationServices
 from atlanticus.web.manager import ManagerPrincipal, ManagerPrincipalProvider
+from atlanticus.web.users.configuration import UsersConfigurationServices
 
 
 @dataclass(frozen=True, slots=True)
+# ConfigurationManagerDependencies: mantiene esta responsabilidad aislada y verificable.
 class ConfigurationManagerDependencies:
     tools: ToolConfigurationServices
+    users: UsersConfigurationServices
     principal_provider: ManagerPrincipalProvider
     tools_source_name: str = 'Source'
     tools_projection_name: str = 'Projection'
+    users_source_name: str = 'Source'
+    users_projection_name: str = 'Projection'
 
 
+# local_manager_principal: mantiene esta operación aislada y verificable.
 def local_manager_principal() -> ManagerPrincipal:
     return ManagerPrincipal(
         subject_id='local',

@@ -43,13 +43,16 @@ def test_cosmos_projection_writes_profiles_users_lookups_and_state() -> None:
     repository = CosmosUsersProjectionRepository(client=client)
     bundle = UsersConfigurationBundle.create(
         catalog=UsersConfigurationCatalog(
-            administrator_color='#112233',
-            guest_color='#445566',
+            administrator_background_color='#112233',
+            administrator_text_color='#FFFFFF',
+            guest_background_color='#445566',
+            guest_text_color='#000000',
             profiles=(
                 UserProfileConfiguration(
                     key='operator',
                     label='Operador',
-                    color='#778899',
+                    background_color='#778899',
+                    text_color='#101010',
                 ),
             ),
             users=(
@@ -73,9 +76,19 @@ def test_cosmos_projection_writes_profiles_users_lookups_and_state() -> None:
         item_id='catalog',
         partition_key='profiles',
     )
-    assert profiles['administrator_color'] == '#112233'
-    assert profiles['guest_color'] == '#445566'
+    assert profiles['schema_version'] == 2
+    assert profiles['administrator_background_color'] == '#112233'
+    assert profiles['administrator_text_color'] == '#FFFFFF'
+    assert profiles['guest_background_color'] == '#445566'
+    assert profiles['guest_text_color'] == '#000000'
     assert profiles['custom_profiles'][0]['key'] == 'operator'
+    assert profiles['custom_profiles'][0]['text_color'] == '#101010'
+    state_document = client.find_item(
+        container_name='users_support',
+        item_id='users',
+        partition_key='system',
+    )
+    assert state_document['schema_version'] == 2
     assert repository.load_state().source_revision == bundle.revision
     assert state.source_revision == bundle.revision
 
@@ -116,8 +129,8 @@ def test_cosmos_projection_disables_users_removed_from_source() -> None:
     )
     first = UsersConfigurationBundle.create(
         catalog=UsersConfigurationCatalog(
-            administrator_color='#673AB7',
-            guest_color='#FF5722',
+            administrator_background_color='#673AB7',
+            guest_background_color='#FF5722',
             users=(first_user,),
         ),
         saved_by='administrator',
@@ -125,8 +138,8 @@ def test_cosmos_projection_disables_users_removed_from_source() -> None:
     repository.project(first, actor='administrator')
     second = UsersConfigurationBundle.create(
         catalog=UsersConfigurationCatalog(
-            administrator_color='#673AB7',
-            guest_color='#FF5722',
+            administrator_background_color='#673AB7',
+            guest_background_color='#FF5722',
         ),
         saved_by='administrator',
     )

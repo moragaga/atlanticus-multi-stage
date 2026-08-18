@@ -18,6 +18,8 @@ def test_effective_user_contains_resolved_profile_and_full_access_policy() -> No
     assert user.email == 'jane@example.com'
     assert user.profile.label == 'Administrador'
     assert user.has_full_access is True
+    assert user.avatar_background_color == profile.background_color
+    assert user.avatar_text_color == profile.text_color
     assert build_avatar_text('John Doe') == 'JD'
 
     local_user = EffectiveUser(
@@ -29,9 +31,12 @@ def test_effective_user_contains_resolved_profile_and_full_access_policy() -> No
         pending=False,
         avatar_text='JD',
         profile=ProfileCatalog().require('local'),
+        avatar_background_color='#112233',
+        avatar_text_color='#ABCDEF',
     )
     assert local_user.has_full_access is True
-
+    assert local_user.avatar_background_color == '#112233'
+    assert local_user.avatar_text_color == '#ABCDEF'
 
 
 def test_resolved_record_preserves_pending_state() -> None:

@@ -33,13 +33,13 @@ def _build_page_package(tmp_path: Path, package_name: str = 'test_web_pages') ->
         encoding='utf-8',
     )
     (package / 'home.py').write_text(
-        "from dash import html, register_page\n"
+        'from dash import html, register_page\n'
         "register_page(__name__, path='/', name='Home', order=0)\n"
         "layout = html.Div('Home')\n",
         encoding='utf-8',
     )
     (package / 'status.py').write_text(
-        "from dash import html, register_page\n"
+        'from dash import html, register_page\n'
         "register_page(__name__, path='/status', name='Status', order=1)\n"
         "layout = html.Div('Status')\n",
         encoding='utf-8',
@@ -142,6 +142,7 @@ def test_application_requires_pages(tmp_path: Path) -> None:
             ),
         )
 
+
 def test_application_supports_concrete_package_below_namespace_root(
     tmp_path: Path,
     monkeypatch,
@@ -168,4 +169,3 @@ def test_application_supports_concrete_package_below_namespace_root(
 
     assert Path(runtime.server.root_path) == package_path.resolve()
     assert Path(runtime.server.instance_path) == package_path.resolve().parent / 'instance'
-
