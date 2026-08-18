@@ -1,4 +1,5 @@
-# Espejo pedagógico: La página principal integra el circuito Dashboard E2E para IO y Process y mantiene las alarmas interactivas existentes.
+# Espejo pedagógico: la página principal funciona como galería QA de estados,
+# renderizado, layouts y alarmas; las composiciones reales viven fuera de reference.
 from dash import html, register_page
 
 from ada.applications.reference.alarm_dashboard import build_reference_alarm_interaction
@@ -58,10 +59,11 @@ layout = html.Div(
         ),
         html.Section(
             [
-                html.H2('Dashboard E2E'),
+                html.H2('Component Rendering QA'),
                 html.P(
                     'FakeSnapshotRepository → microcaché por worker → polling → Stores → '
-                    'ComponentBundle → renderers de IO y Process.'
+                    'ComponentBundle. Reference certifica renderizado y geometría, '
+                    'no composiciones de herramienta.'
                 ),
             ],
             className='reference-ada__dashboard-e2e-intro',

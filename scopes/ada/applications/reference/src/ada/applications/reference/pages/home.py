@@ -57,10 +57,11 @@ layout = html.Div(
         ),
         html.Section(
             [
-                html.H2('Dashboard E2E'),
+                html.H2('Component Rendering QA'),
                 html.P(
                     'FakeSnapshotRepository → microcaché por worker → polling → Stores → '
-                    'ComponentBundle → renderers de IO y Process.'
+                    'ComponentBundle. Reference certifica renderizado y geometría, '
+                    'no composiciones de herramienta.'
                 ),
             ],
             className='reference-ada__dashboard-e2e-intro',

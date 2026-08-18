@@ -1,6 +1,8 @@
-# Espejo comentado: harness de alarmas de referencia y helper reutilizable de card.
+# Espejo pedagógico: el laboratorio de alarmas usa la geometría reusable y el manifest
+# real de IO; no contiene zoom ni composición full-tool.
 from dash import html
 
+from ada.contracts.tool_manifest import INTEGRATED_OPERATIONS_MANIFEST, ToolSectionKind
 from ada.features.alarms.dashboard import (
     AlarmBaselineTarget,
     AlarmBaselineTargetKind,
@@ -21,51 +23,21 @@ from ada.ui.framework.core import (
     subcomponent_identity_attributes,
 )
 
-_IO_COMPONENTS = (
-    ('general_mine', 'General Mina'),
-    ('loading', 'Carguío'),
-    ('transport', 'Transporte'),
-    ('crushing_stmg', 'Chancado-STMG'),
-    ('stock_chacay', 'Stock Chacay'),
-    ('grinding', 'Molienda'),
-    ('flotation', 'Flotación'),
-    ('fluid_transport', 'Transporte Fluidos'),
-    ('port', 'Puerto'),
+# Derivamos componentes y subcomponentes del manifest canónico para evitar mantener
+# una geometría paralela en reference.
+_IO_COMPONENTS = tuple(
+    (component.key, component.display_name)
+    for scope_key in ('mine', 'plant')
+    for component in INTEGRATED_OPERATIONS_MANIFEST.children(scope_key)
+    if component.kind is ToolSectionKind.COMPONENT
 )
 _IO_SUBCOMPONENTS = {
-    'general_mine': (('general_mine_subcomponent_1', 'Subcomponente 1'),),
-    'loading': (
-        ('loading_subcomponent_1', 'Subcomponente 1'),
-        ('loading_subcomponent_2', 'Subcomponente 2'),
-    ),
-    'transport': (
-        ('transport_subcomponent_1', 'Subcomponente 1'),
-        ('transport_subcomponent_2', 'Subcomponente 2'),
-        ('transport_subcomponent_3', 'Subcomponente 3'),
-    ),
-    'crushing_stmg': (
-        ('crushing_stmg_subcomponent_1', 'Subcomponente 1'),
-        ('crushing_stmg_subcomponent_2', 'Subcomponente 2'),
-    ),
-    'stock_chacay': (('stock_chacay_subcomponent_1', 'Subcomponente 1'),),
-    'grinding': (
-        ('grinding_subcomponent_1', 'Subcomponente 1'),
-        ('grinding_subcomponent_2', 'Subcomponente 2'),
-        ('grinding_subcomponent_3', 'Subcomponente 3'),
-    ),
-    'flotation': (
-        ('flotation_selective', 'Selectiva'),
-        ('flotation_collective', 'Colectiva'),
-    ),
-    'fluid_transport': (
-        ('fluid_transport_subcomponent_1', 'Subcomponente 1'),
-        ('fluid_transport_subcomponent_2', 'Subcomponente 2'),
-        ('fluid_transport_subcomponent_3', 'Subcomponente 3'),
-    ),
-    'port': (
-        ('port_subcomponent_1', 'Subcomponente 1'),
-        ('port_subcomponent_2', 'Subcomponente 2'),
-    ),
+    component_key: tuple(
+        (section.key, section.display_name)
+        for section in INTEGRATED_OPERATIONS_MANIFEST.children(component_key)
+        if section.kind is ToolSectionKind.SUBCOMPONENT
+    )
+    for component_key, _ in _IO_COMPONENTS
 }
 _PROCESS_ALARM_COUNT = 6
 _TRACE_DWELL_MS = 15_000
@@ -91,80 +63,82 @@ def build_reference_alarm_interaction() -> html.Section:
     )
 
 
+# Los eventos son casos QA controlados; sus targets se resuelven contra las identidades
+# reales del manifest.
 def _build_integrated_operations_player_reference() -> html.Div:
     definitions = {
-        'general_mine': _route_definition(
-            event_id='io-player-gm-001',
-            assignment_key='component:general_mine',
-            placement_key='io-general-mine-slot-1',
-            card_key='io_player_gm_001',
-            origin=_component_target_definition('general_mine'),
-            destinations=(_component_target_definition('general_mine'),),
-            affected_targets=(_subcomponent_target_definition('general_mine_subcomponent_1'),),
+        'general_mina': _route_definition(
+            event_id='io-player-general-mina-001',
+            assignment_key='component:general_mina',
+            placement_key='io-general-mina-slot-1',
+            card_key='io_player_general_mina_001',
+            origin=_component_target_definition('general_mina'),
+            destinations=(_component_target_definition('general_mina'),),
+            affected_targets=(_io_subcomponent_target('general_mina', 'movimiento_mina'),),
             tone=AlarmRouteTone.CRITICAL,
         ),
-        'loading': _route_definition(
-            event_id='io-player-load-001',
-            assignment_key='component:loading',
-            placement_key='io-loading-slot-1',
-            card_key='io_player_load_001',
-            origin=_component_target_definition('loading'),
+        'carguio': _route_definition(
+            event_id='io-player-carguio-001',
+            assignment_key='component:carguio',
+            placement_key='io-carguio-slot-1',
+            card_key='io_player_carguio_001',
+            origin=_component_target_definition('carguio'),
             destinations=(
-                _component_target_definition('flotation'),
-                _component_target_definition('fluid_transport'),
-                _component_target_definition('port'),
+                _component_target_definition('flotacion'),
+                _component_target_definition('transporte_fluidos'),
+                _component_target_definition('puerto'),
             ),
             affected_targets=(
-                _subcomponent_target_definition('flotation_selective'),
-                _subcomponent_target_definition('fluid_transport_subcomponent_2'),
-                _subcomponent_target_definition('port_subcomponent_2'),
+                _io_subcomponent_target('flotacion', 'selectiva'),
+                _io_subcomponent_target('transporte_fluidos', 'stc'),
+                _io_subcomponent_target('puerto', 'desaladora'),
             ),
             tone=AlarmRouteTone.ATTENTION,
         ),
-        'transport': _route_definition(
-            event_id='io-player-transport-001',
-            assignment_key='component:transport',
-            placement_key='io-transport-slot-1',
-            card_key='io_player_transport_001',
-            origin=_component_target_definition('transport'),
-            destinations=(_component_target_definition('transport'),),
-            affected_targets=(_subcomponent_target_definition('transport_subcomponent_2'),),
+        'transporte': _route_definition(
+            event_id='io-player-transporte-001',
+            assignment_key='component:transporte',
+            placement_key='io-transporte-slot-1',
+            card_key='io_player_transporte_001',
+            origin=_component_target_definition('transporte'),
+            destinations=(_component_target_definition('transporte'),),
+            affected_targets=(_io_subcomponent_target('transporte', 'numero_operativos'),),
             tone=AlarmRouteTone.CRITICAL,
         ),
-        'crushing_stmg': _route_definition(
-            event_id='io-player-crushing-001',
-            assignment_key='component:crushing_stmg',
-            placement_key='io-crushing-stmg-slot-1',
-            card_key='io_player_crushing_001',
-            origin=_component_target_definition('crushing_stmg'),
-            destinations=(_component_target_definition('crushing_stmg'),),
-            affected_targets=(_subcomponent_target_definition('crushing_stmg_subcomponent_1'),),
+        'chancado_stmg': _route_definition(
+            event_id='io-player-chancado-001',
+            assignment_key='component:chancado_stmg',
+            placement_key='io-chancado-stmg-slot-1',
+            card_key='io_player_chancado_001',
+            origin=_component_target_definition('chancado_stmg'),
+            destinations=(_component_target_definition('chancado_stmg'),),
+            affected_targets=(_io_subcomponent_target('chancado_stmg', 'chancado_stmg'),),
             tone=AlarmRouteTone.CRITICAL,
         ),
-        'flotation': _route_definition(
-            event_id='io-player-flotation-001',
-            assignment_key='component:flotation',
-            placement_key='io-flotation-slot-1',
-            card_key='io_player_flotation_001',
-            origin=_component_target_definition('flotation'),
+        'flotacion': _route_definition(
+            event_id='io-player-flotacion-001',
+            assignment_key='component:flotacion',
+            placement_key='io-flotacion-slot-1',
+            card_key='io_player_flotacion_001',
+            origin=_component_target_definition('flotacion'),
             destinations=(
-                _component_target_definition('grinding'),
-                _component_target_definition('flotation'),
+                _component_target_definition('molienda'),
+                _component_target_definition('flotacion'),
             ),
             affected_targets=(
-                _subcomponent_target_definition('grinding_subcomponent_2'),
-                _component_target_definition('flotation'),
+                _io_subcomponent_target('molienda', 'molienda'),
+                _component_target_definition('flotacion'),
             ),
             tone=AlarmRouteTone.ATTENTION,
         ),
-        'port': _route_definition(
-            event_id='io-player-port-001',
-            assignment_key='component:port',
-            placement_key='io-port-slot-1',
-            card_key='io_player_port_001',
-            origin=_component_target_definition('port'),
-            destinations=(_component_target_definition('port'),),
-            affected_targets=(_subcomponent_target_definition('port_subcomponent_1'),),
+        'puerto': _route_definition(
+            event_id='io-player-puerto-001',
+            assignment_key='component:puerto',
+            placement_key='io-puerto-slot-1',
+            card_key='io_player_puerto_001',
+            origin=_component_target_definition('puerto'),
+            destinations=(_component_target_definition('puerto'),),
+            affected_targets=(_io_subcomponent_target('puerto', 'puerto'),),
             tone=AlarmRouteTone.CRITICAL,
         ),
     }
@@ -365,6 +339,16 @@ def _component_target_definition(key: str) -> AlarmBaselineTarget:
 
 def _subcomponent_target_definition(key: str) -> AlarmBaselineTarget:
     return AlarmBaselineTarget(AlarmBaselineTargetKind.SUBCOMPONENT, key)
+
+
+# La identidad técnica del subcomponente la resuelve ToolManifest; reference no concatena
+# claves por su cuenta.
+def _io_subcomponent_target(component: str, subcomponent: str) -> AlarmBaselineTarget:
+    section = INTEGRATED_OPERATIONS_MANIFEST.subcomponent(
+        component=component,
+        subcomponent=subcomponent,
+    )
+    return _subcomponent_target_definition(section.key)
 
 
 def _component_lane(key: str, label: str) -> html.Div:

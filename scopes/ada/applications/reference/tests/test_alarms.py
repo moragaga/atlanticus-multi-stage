@@ -6,7 +6,7 @@ from ada.applications.reference.alarms import (
     build_reference_alarm_management_summary,
     build_reference_alarm_status,
 )
-from ada.contracts.tool_manifest import INTEGRATED_OPERATIONS_MANIFEST
+from ada.contracts.tool_manifest import INTEGRATED_OPERATIONS_MANIFEST, ToolSectionKind
 
 
 def test_reference_alarm_header_presentations_preserve_existing_states() -> None:
@@ -105,24 +105,26 @@ def test_reference_exposes_only_interactive_alarm_players() -> None:
     ]
     assert len(io_events) == 6
     assert len(process_events) == 6
-    loading = next(
-        item for item in io_events if _prop(item, 'data-ada-alarm-event-id') == 'io-player-load-001'
-    )
-    flotation = next(
+    carguio = next(
         item
         for item in io_events
-        if _prop(item, 'data-ada-alarm-event-id') == 'io-player-flotation-001'
+        if _prop(item, 'data-ada-alarm-event-id') == 'io-player-carguio-001'
     )
-    assert _prop(loading, 'data-ada-alarm-route-destinations') == (
-        'component:flotation|component:fluid_transport|component:port'
+    flotacion = next(
+        item
+        for item in io_events
+        if _prop(item, 'data-ada-alarm-event-id') == 'io-player-flotacion-001'
     )
-    assert _prop(loading, 'data-ada-alarm-affected-targets') == (
-        'subcomponent:flotation_selective|'
-        'subcomponent:fluid_transport_subcomponent_2|'
-        'subcomponent:port_subcomponent_2'
+    assert _prop(carguio, 'data-ada-alarm-route-destinations') == (
+        'component:flotacion|component:transporte_fluidos|component:puerto'
     )
-    assert _prop(flotation, 'data-ada-alarm-affected-targets') == (
-        'subcomponent:grinding_subcomponent_2|component:flotation'
+    assert _prop(carguio, 'data-ada-alarm-affected-targets') == (
+        'subcomponent:flotacion_selectiva|'
+        'subcomponent:transporte_fluidos_stc|'
+        'subcomponent:puerto_desaladora'
+    )
+    assert _prop(flotacion, 'data-ada-alarm-affected-targets') == (
+        'subcomponent:molienda_molienda|component:flotacion'
     )
     assert all(_prop(event, 'data-ada-alarm-placement-key') for event in io_events)
     assert all(_prop(event, 'data-ada-alarm-placement-key') for event in process_events)
@@ -146,28 +148,30 @@ def test_reference_exposes_only_interactive_alarm_players() -> None:
         if 'reference-ada__alarm-component-lane'
         in (_optional_prop(item, 'className') or '').split()
     ]
-    assert [_prop(item, 'data-ada-component-key') for item in io_lanes] == [
-        'general_mine',
-        'loading',
-        'transport',
-        'crushing_stmg',
-        'stock_chacay',
-        'grinding',
-        'flotation',
-        'fluid_transport',
-        'port',
+    expected_components = [
+        component
+        for scope_key in ('mine', 'plant')
+        for component in INTEGRATED_OPERATIONS_MANIFEST.children(scope_key)
+        if component.kind is ToolSectionKind.COMPONENT
     ]
-    assert [
-        len(
-            [
-                item
-                for item in _walk(lane)
-                if 'reference-ada__alarm-subcomponent-card'
-                in (_optional_prop(item, 'className') or '').split()
-            ]
-        )
-        for lane in io_lanes
-    ] == [1, 2, 3, 2, 1, 3, 2, 3, 2]
+    assert [_prop(item, 'data-ada-component-key') for item in io_lanes] == [
+        component.key for component in expected_components
+    ]
+    for lane, component in zip(io_lanes, expected_components, strict=True):
+        rendered_subcomponents = [
+            item
+            for item in _walk(lane)
+            if 'reference-ada__alarm-subcomponent-card'
+            in (_optional_prop(item, 'className') or '').split()
+        ]
+        expected_subcomponents = [
+            section
+            for section in INTEGRATED_OPERATIONS_MANIFEST.children(component.key)
+            if section.kind is ToolSectionKind.SUBCOMPONENT
+        ]
+        assert [_prop(item, 'data-ada-subcomponent-key') for item in rendered_subcomponents] == [
+            section.key for section in expected_subcomponents
+        ]
 
 
 def test_reference_alarm_static_examples_are_removed() -> None:
