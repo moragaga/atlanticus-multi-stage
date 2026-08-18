@@ -1,0 +1,2 @@
+class IntegratedOperationsCompositionError(ValueError):
+    pass

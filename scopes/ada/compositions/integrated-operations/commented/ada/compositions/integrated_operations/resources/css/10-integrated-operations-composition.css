@@ -1,0 +1,96 @@
+/* La composition controla superficies full-tool; el baseline permanece edge-to-edge. */
+.ada-integrated-operations-tool {
+    --ada-integrated-operations-tool-surface: var(--background, #858585);
+    --ada-integrated-operations-tool-surface-ink: var(--primary-background, #EBEBEB);
+    --ada-integrated-operations-tool-card-surface: var(--primary-background, #EBEBEB);
+    --ada-integrated-operations-tool-gap: .25rem;
+    --ada-alarm-scope-split: 44.444444%;
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+    overflow: hidden;
+    background: var(--ada-integrated-operations-tool-surface);
+}
+
+.ada-integrated-operations-tool__time-status,
+.ada-integrated-operations-tool__alarm-surface,
+.ada-integrated-operations-tool__body,
+.ada-integrated-operations-tool__layout,
+.ada-integrated-operations-tool__component-cards,
+.ada-integrated-operations-tool__card {
+    min-width: 0;
+    min-height: 0;
+}
+
+.ada-integrated-operations-tool__time-status {
+    position: relative;
+    z-index: 3;
+}
+
+.ada-integrated-operations-tool__alarm-surface {
+    position: relative;
+    z-index: 2;
+    padding: 0;
+    overflow: visible;
+    background: var(--ada-integrated-operations-tool-surface);
+    color: var(--ada-integrated-operations-tool-surface-ink);
+}
+
+.ada-integrated-operations-tool__alarm-content {
+    width: 100%;
+    min-width: 0;
+    padding-inline: var(--ada-integrated-operations-tool-gap);
+}
+
+.ada-integrated-operations-tool__alarm-surface > .ada-alarm-dashboard-baseline {
+    width: 100%;
+    margin: 0;
+}
+
+.ada-integrated-operations-tool__body {
+    width: 100%;
+    padding: 0 var(--ada-integrated-operations-tool-gap) var(--ada-integrated-operations-tool-gap);
+    overflow: hidden;
+    background: var(--ada-integrated-operations-tool-surface);
+    color: var(--ada-integrated-operations-tool-surface-ink);
+}
+
+.ada-integrated-operations-tool__layout {
+    --ada-io-layout-gap: var(--ada-integrated-operations-tool-gap);
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.ada-integrated-operations-tool__layout > .ada-io-layout__scope {
+    min-height: 0;
+    overflow: hidden;
+}
+
+.ada-integrated-operations-tool__layout .ada-component-container,
+.ada-integrated-operations-tool__component-cards,
+.ada-integrated-operations-tool__card {
+    height: 100%;
+}
+
+.ada-integrated-operations-tool__component-cards {
+    display: flex;
+    width: 100%;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: var(--ada-integrated-operations-tool-gap);
+    overflow: hidden;
+}
+
+.ada-integrated-operations-tool__card {
+    max-width: 100%;
+    flex: 1 1 auto;
+    overflow: hidden;
+    --ada-component-card-background: var(--ada-integrated-operations-tool-card-surface);
+}
+
+.ada-integrated-operations-tool__shared-card {
+    width: 100%;
+}

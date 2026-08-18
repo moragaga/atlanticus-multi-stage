@@ -8,6 +8,7 @@ classifiers = [
 dependencies = [
     "ada-application-reference==0.1.0",
     "ada-composition-process==0.1.0",
+    "ada-composition-integrated-operations==0.1.0",
 ]
 
 [dependency-groups]
@@ -20,6 +21,7 @@ dev = [
 package = false
 
 [tool.uv.sources]
+ada-composition-integrated-operations = { workspace = true }
 ada-composition-process = { workspace = true }
 ada-application-reference = { workspace = true }
 ada-contracts-tool-manifest = { workspace = true }
@@ -50,6 +52,7 @@ members = [
     "contracts/tool-manifest",
     "runtime/web",
     "compositions/process",
+    "compositions/integrated-operations",
     "ui/framework/core",
     "ui/layouts/integrated-operations",
     "ui/layouts/process",
@@ -96,6 +99,7 @@ testpaths = [
     "contracts/tool-manifest/tests",
     "runtime/web/tests",
     "compositions/process/tests",
+    "compositions/integrated-operations/tests",
     "ui/framework/core/tests",
     "ui/layouts/integrated-operations/tests",
     "ui/layouts/process/tests",
