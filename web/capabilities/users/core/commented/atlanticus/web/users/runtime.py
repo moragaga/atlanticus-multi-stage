@@ -1,8 +1,6 @@
-# Guarda EffectiveUser en la sesión Flask firmada para reutilizarlo sin consultas.
-# El snapshot queda ligado al load_id de AccessSnapshot y por eso una recarga
-# invalida automáticamente cualquier usuario efectivo de la carga anterior.
-
 from __future__ import annotations
+
+# Espejo pedagógico: Serializa el usuario efectivo en la sesión web, incluyendo color visual e indicador local para mantener consistencia entre requests.
 
 from dataclasses import dataclass
 from typing import Any
@@ -40,6 +38,8 @@ class UsersSnapshot:
                 'enabled': self.user.enabled,
                 'pending': self.user.pending,
                 'avatar_text': self.user.avatar_text,
+                'avatar_color': self.user.avatar_color,
+                'is_local': self.user.is_local,
                 'profile': {
                     'key': self.user.profile.key,
                     'label': self.user.profile.label,
@@ -73,6 +73,8 @@ class UsersSnapshot:
                 pending=bool(user_value['pending']),
                 avatar_text=str(user_value['avatar_text']),
                 profile=profile,
+                avatar_color=_optional_string(user_value.get('avatar_color')),
+                is_local=bool(user_value.get('is_local', False)),
             )
             return cls(load_id=str(value['load_id']), user=user)
         except (KeyError, TypeError, ValueError, UsersDefinitionError) as error:

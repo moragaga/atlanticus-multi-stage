@@ -29,6 +29,9 @@ def _optional(value: str | None) -> str | None:
 class UsersStateDocument:
     source_revision: str
     projection_status: str
+    projection_revision: str | None = None
+    projected_by: str | None = None
+    projected_at_utc: str | None = None
     schema_version: int = USERS_COSMOS_SCHEMA_VERSION
     id: str = 'users'
     partition_key: str = 'system'
@@ -55,6 +58,7 @@ class UsersStateDocument:
 class ProfileCatalogDocument:
     source_revision: str
     administrator_color: str
+    guest_color: str = '#FF5722'
     custom_profiles: tuple[ProfileDefinition, ...] = ()
     schema_version: int = USERS_COSMOS_SCHEMA_VERSION
     id: str = 'catalog'

@@ -1,5 +1,6 @@
-# Espejo comentado: filtra rutas desde el snapshot existente sin consultar Users.
 from __future__ import annotations
+
+# Espejo pedagógico: Resuelve el menú efectivo desde el usuario y usa el color visual ya resuelto por Users, sin reinterpretar perfiles.
 
 from atlanticus.web.errors import WebDefinitionError
 from atlanticus.web.identity.access import ACCESS_RUNTIME_SERVICE_KEY, AccessRuntime
@@ -91,7 +92,7 @@ def _navigation_user(user: EffectiveUser) -> NavigationUser:
         email=user.email,
         profile_key=user.profile.key,
         profile_label=user.profile.label,
-        profile_color=user.profile.color,
+        profile_color=user.avatar_color,
         avatar_text=user.avatar_text,
     )
 

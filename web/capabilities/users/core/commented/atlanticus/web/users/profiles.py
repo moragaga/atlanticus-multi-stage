@@ -1,5 +1,6 @@
-# Espejo comentado: políticas de perfiles de sistema y acceso reutilizable.
 from __future__ import annotations
+
+# Espejo pedagógico: Define perfiles reservados y personalizados. Local y Administrator tienen acceso total; Guest queda seleccionable por Navigation.
 
 import re
 from dataclasses import dataclass
@@ -10,8 +11,10 @@ LOCAL_PROFILE_KEY = 'local'
 ADMINISTRATOR_PROFILE_KEY = 'administrator'
 GUEST_PROFILE_KEY = 'guest'
 LOCAL_PROFILE_COLOR = '#3778C2'
+LOCAL_JOHN_COLOR = '#3778C2'
+LOCAL_JANE_COLOR = '#C85D91'
 DEFAULT_ADMINISTRATOR_COLOR = '#673AB7'
-GUEST_PROFILE_COLOR = '#FF5722'
+DEFAULT_GUEST_COLOR = '#FF5722'
 _SYSTEM_PROFILE_KEYS = frozenset(
     {
         LOCAL_PROFILE_KEY,
@@ -29,13 +32,11 @@ class ProfileDefinition:
     color: str
 
     def __post_init__(self) -> None:
-        key = _normalize_key(self.key)
+        key = normalize_profile_key(self.key)
         label = self.label.strip()
-        color = self.color.strip().upper()
+        color = normalize_profile_color(self.color)
         if not label:
             raise UsersDefinitionError('Profile label must not be empty')
-        if not _HEX_COLOR.fullmatch(color):
-            raise UsersDefinitionError('Profile color must use #RRGGBB format')
         object.__setattr__(self, 'key', key)
         object.__setattr__(self, 'label', label)
         object.__setattr__(self, 'color', color)
@@ -46,27 +47,28 @@ class ProfileCatalog:
         self,
         *,
         administrator_color: str = DEFAULT_ADMINISTRATOR_COLOR,
+        guest_color: str = DEFAULT_GUEST_COLOR,
         custom_profiles: tuple[ProfileDefinition, ...] = (),
     ) -> None:
-        administrator = ProfileDefinition(
-            key=ADMINISTRATOR_PROFILE_KEY,
-            label='Administrador',
-            color=administrator_color,
-        )
         system_profiles = (
             ProfileDefinition(
                 key=LOCAL_PROFILE_KEY,
                 label='Local',
                 color=LOCAL_PROFILE_COLOR,
             ),
-            administrator,
+            ProfileDefinition(
+                key=ADMINISTRATOR_PROFILE_KEY,
+                label='Administrador',
+                color=administrator_color,
+            ),
             ProfileDefinition(
                 key=GUEST_PROFILE_KEY,
                 label='Invitado',
-                color=GUEST_PROFILE_COLOR,
+                color=guest_color,
             ),
         )
         profiles = {profile.key: profile for profile in system_profiles}
+        custom_keys: list[str] = []
         for profile in custom_profiles:
             if profile.key in _SYSTEM_PROFILE_KEYS:
                 raise UsersDefinitionError(
@@ -75,11 +77,24 @@ class ProfileCatalog:
             if profile.key in profiles:
                 raise UsersDefinitionError(f'Duplicate profile key {profile.key!r}')
             profiles[profile.key] = profile
+            custom_keys.append(profile.key)
         self._profiles = profiles
-        self._custom_keys = tuple(profile.key for profile in custom_profiles)
+        self._custom_keys = tuple(custom_keys)
+
+    @property
+    def administrator_color(self) -> str:
+        return self._profiles[ADMINISTRATOR_PROFILE_KEY].color
+
+    @property
+    def guest_color(self) -> str:
+        return self._profiles[GUEST_PROFILE_KEY].color
+
+    @property
+    def custom_profiles(self) -> tuple[ProfileDefinition, ...]:
+        return tuple(self._profiles[key] for key in self._custom_keys)
 
     def require(self, key: str) -> ProfileDefinition:
-        normalized = _normalize_key(key)
+        normalized = normalize_profile_key(key)
         try:
             return self._profiles[normalized]
         except KeyError as error:
@@ -95,27 +110,39 @@ class ProfileCatalog:
         )
 
     def navigation_selectable(self) -> tuple[ProfileDefinition, ...]:
-        return tuple(self._profiles[key] for key in self._custom_keys)
+        return (
+            self._profiles[GUEST_PROFILE_KEY],
+            *(self._profiles[key] for key in self._custom_keys),
+        )
 
 
 def has_full_access(profile_key: str) -> bool:
-    return _normalize_key(profile_key) in {
+    return normalize_profile_key(profile_key) in {
         LOCAL_PROFILE_KEY,
         ADMINISTRATOR_PROFILE_KEY,
     }
 
 
 def profile_has_access(profile_key: str, allowed_profiles: tuple[str, ...]) -> bool:
-    normalized_profile = _normalize_key(profile_key)
+    normalized_profile = normalize_profile_key(profile_key)
     if has_full_access(normalized_profile):
         return True
-    return normalized_profile in {_normalize_key(value) for value in allowed_profiles}
+    return normalized_profile in {
+        normalize_profile_key(value) for value in allowed_profiles
+    }
 
 
-def _normalize_key(value: str) -> str:
+def normalize_profile_key(value: str) -> str:
     normalized = value.strip().casefold()
     if not normalized:
         raise UsersDefinitionError('Profile key must not be empty')
     if any(character.isspace() for character in normalized):
         raise UsersDefinitionError('Profile key must not contain spaces')
+    return normalized
+
+
+def normalize_profile_color(value: str) -> str:
+    normalized = value.strip().upper()
+    if not _HEX_COLOR.fullmatch(normalized):
+        raise UsersDefinitionError('Profile color must use #RRGGBB format')
     return normalized

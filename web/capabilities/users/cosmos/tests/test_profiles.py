@@ -14,6 +14,7 @@ def _gateway(revision: str = 'revision-1') -> FakeUsersCosmosGateway:
         catalog=ProfileCatalogDocument(
             source_revision=revision,
             administrator_color='#112233',
+            guest_color='#334455',
             custom_profiles=(
                 ProfileDefinition(key='operator', label='Operador', color='#445566'),
             ),
@@ -31,6 +32,7 @@ def test_profile_catalog_is_cached_for_current_revision() -> None:
 
     assert profiles.require('operator').label == 'Operador'
     assert profiles.require('administrator').color == '#112233'
+    assert profiles.require('guest').color == '#334455'
     assert gateway.state_reads == 2
     assert gateway.catalog_reads == 1
 

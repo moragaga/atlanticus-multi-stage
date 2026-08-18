@@ -3,7 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from atlanticus.web.users.errors import UsersDefinitionError
-from atlanticus.web.users.profiles import ProfileDefinition, has_full_access
+from atlanticus.web.users.profiles import (
+    ProfileDefinition,
+    has_full_access,
+    normalize_profile_color,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -16,6 +20,8 @@ class EffectiveUser:
     pending: bool
     avatar_text: str
     profile: ProfileDefinition
+    avatar_color: str | None = None
+    is_local: bool = False
 
     def __post_init__(self) -> None:
         for field_name in ('user_id', 'subject_id', 'display_name', 'avatar_text'):
@@ -26,6 +32,8 @@ class EffectiveUser:
         if self.email is not None:
             email = self.email.strip().casefold()
             object.__setattr__(self, 'email', email or None)
+        color = self.avatar_color or self.profile.color
+        object.__setattr__(self, 'avatar_color', normalize_profile_color(color))
 
     @property
     def has_full_access(self) -> bool:
@@ -41,12 +49,20 @@ class ResolvedUserRecord:
     enabled: bool
     profile_key: str
     pending: bool = False
+    avatar_color: str | None = None
+    is_local: bool = False
 
     def __post_init__(self) -> None:
         profile_key = self.profile_key.strip().casefold()
         if not profile_key:
             raise UsersDefinitionError('Resolved user profile key must not be empty')
         object.__setattr__(self, 'profile_key', profile_key)
+        if self.avatar_color is not None:
+            object.__setattr__(
+                self,
+                'avatar_color',
+                normalize_profile_color(self.avatar_color),
+            )
 
     def to_effective_user(self, *, profile: ProfileDefinition) -> EffectiveUser:
         if profile.key != self.profile_key:
@@ -60,6 +76,8 @@ class ResolvedUserRecord:
             pending=self.pending,
             avatar_text=build_avatar_text(self.display_name),
             profile=profile,
+            avatar_color=self.avatar_color,
+            is_local=self.is_local,
         )
 
 

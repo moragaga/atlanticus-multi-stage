@@ -12,6 +12,8 @@ dependencies = [
 [dependency-groups]
 dev = [
     "atlanticus-web-users-cosmos==0.1.0",
+    "atlanticus-web-users-configuration==0.1.0",
+    "atlanticus-web-users-activity==0.1.0",
     "atlanticus-web-manager==0.1.0",
     "pytest==9.1.1",
     "ruff==0.15.22",
@@ -30,6 +32,8 @@ atlanticus-web-identity-app-service = { workspace = true }
 atlanticus-web-users = { workspace = true }
 atlanticus-web-users-local = { workspace = true }
 atlanticus-web-users-cosmos = { workspace = true }
+atlanticus-web-users-configuration = { workspace = true }
+atlanticus-web-users-activity = { workspace = true }
 atlanticus-web-navigation = { workspace = true }
 atlanticus-web-manager = { workspace = true }
 
@@ -45,6 +49,8 @@ members = [
     "capabilities/users/core",
     "capabilities/users/local",
     "capabilities/users/cosmos",
+    "capabilities/users/configuration",
+    "capabilities/users/activity",
     "applications/reference",
 ]
 
@@ -83,6 +89,8 @@ testpaths = [
     "capabilities/users/core/tests",
     "capabilities/users/local/tests",
     "capabilities/users/cosmos/tests",
+    "capabilities/users/configuration/tests",
+    "capabilities/users/activity/tests",
     "applications/reference/tests",
 ]
 addopts = "-q --import-mode=importlib"

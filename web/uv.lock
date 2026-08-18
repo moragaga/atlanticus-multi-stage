@@ -13,6 +13,8 @@ members = [
     "atlanticus-web-observability",
     "atlanticus-web-reference",
     "atlanticus-web-users",
+    "atlanticus-web-users-activity",
+    "atlanticus-web-users-configuration",
     "atlanticus-web-users-cosmos",
     "atlanticus-web-users-local",
     "atlanticus-web-workspace",
@@ -171,15 +173,41 @@ requires-dist = [
 ]
 
 [[package]]
-name = "atlanticus-web-users-cosmos"
+name = "atlanticus-web-users-activity"
 version = "0.1.0"
-source = { editable = "capabilities/users/cosmos" }
+source = { editable = "capabilities/users/activity" }
 dependencies = [
     { name = "atlanticus-web-users" },
 ]
 
 [package.metadata]
 requires-dist = [{ name = "atlanticus-web-users", editable = "capabilities/users/core" }]
+
+[[package]]
+name = "atlanticus-web-users-configuration"
+version = "0.1.0"
+source = { editable = "capabilities/users/configuration" }
+dependencies = [
+    { name = "atlanticus-web-users" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "atlanticus-web-users", editable = "capabilities/users/core" }]
+
+[[package]]
+name = "atlanticus-web-users-cosmos"
+version = "0.1.0"
+source = { editable = "capabilities/users/cosmos" }
+dependencies = [
+    { name = "atlanticus-web-users" },
+    { name = "atlanticus-web-users-configuration" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "atlanticus-web-users", editable = "capabilities/users/core" },
+    { name = "atlanticus-web-users-configuration", editable = "capabilities/users/configuration" },
+]
 
 [[package]]
 name = "atlanticus-web-users-local"
@@ -203,6 +231,8 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "atlanticus-web-manager" },
+    { name = "atlanticus-web-users-activity" },
+    { name = "atlanticus-web-users-configuration" },
     { name = "atlanticus-web-users-cosmos" },
     { name = "pytest" },
     { name = "ruff" },
@@ -214,6 +244,8 @@ requires-dist = [{ name = "atlanticus-web-reference", editable = "applications/r
 [package.metadata.requires-dev]
 dev = [
     { name = "atlanticus-web-manager", editable = "capabilities/manager" },
+    { name = "atlanticus-web-users-activity", editable = "capabilities/users/activity" },
+    { name = "atlanticus-web-users-configuration", editable = "capabilities/users/configuration" },
     { name = "atlanticus-web-users-cosmos", editable = "capabilities/users/cosmos" },
     { name = "pytest", specifier = "==9.1.1" },
     { name = "ruff", specifier = "==0.15.22" },

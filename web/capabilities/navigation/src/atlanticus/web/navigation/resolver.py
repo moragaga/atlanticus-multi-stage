@@ -90,7 +90,7 @@ def _navigation_user(user: EffectiveUser) -> NavigationUser:
         email=user.email,
         profile_key=user.profile.key,
         profile_label=user.profile.label,
-        profile_color=user.profile.color,
+        profile_color=user.avatar_color,
         avatar_text=user.avatar_text,
     )
 

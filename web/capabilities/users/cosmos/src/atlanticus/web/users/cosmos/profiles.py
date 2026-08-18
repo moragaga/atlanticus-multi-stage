@@ -45,6 +45,7 @@ class UsersCosmosProfileCache:
         try:
             catalog = ProfileCatalog(
                 administrator_color=document.administrator_color,
+                guest_color=document.guest_color,
                 custom_profiles=document.custom_profiles,
             )
         except UsersDefinitionError as error:

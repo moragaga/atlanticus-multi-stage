@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# Espejo pedagógico: Mantiene el catálogo de perfiles alineado con la revisión activa de Cosmos y bloquea el runtime si la proyección no está ready.
+
 from atlanticus.web.users.cosmos.errors import UsersCosmosGatewayError
 from atlanticus.web.users.cosmos.gateway import UsersCosmosGateway
 from atlanticus.web.users.cosmos.models import UsersStateDocument
@@ -7,7 +9,6 @@ from atlanticus.web.users.errors import UsersDefinitionError, UsersSourceUnavail
 from atlanticus.web.users.profiles import ProfileCatalog, ProfileDefinition
 
 
-# Cache por worker: revisa el estado en cada carga y recarga el catálogo solo al cambiar source_revision.
 class UsersCosmosProfileCache:
     def __init__(self, gateway: UsersCosmosGateway) -> None:
         self._gateway = gateway
@@ -46,6 +47,7 @@ class UsersCosmosProfileCache:
         try:
             catalog = ProfileCatalog(
                 administrator_color=document.administrator_color,
+                guest_color=document.guest_color,
                 custom_profiles=document.custom_profiles,
             )
         except UsersDefinitionError as error:
@@ -54,7 +56,6 @@ class UsersCosmosProfileCache:
         self._source_revision = source_revision
 
 
-# Mantiene compatibilidad con ProfileCatalog para Users y Navigation delegando al catálogo cacheado.
 class CosmosProfileCatalog(ProfileCatalog):
     def __init__(self, cache: UsersCosmosProfileCache) -> None:
         super().__init__()

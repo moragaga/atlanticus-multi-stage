@@ -1,13 +1,15 @@
-# Modelos efectivos de Users para una carga de página.
-# ResolvedUserRecord transporta profile_key; el catálogo canónico resuelve
-# la definición completa para impedir redefinir perfiles de sistema desde la fuente.
-
 from __future__ import annotations
+
+# Espejo pedagógico: Modela el usuario efectivo separado de su perfil; avatar_color permite identidades locales con color fijo sin cambiar permisos.
 
 from dataclasses import dataclass
 
 from atlanticus.web.users.errors import UsersDefinitionError
-from atlanticus.web.users.profiles import ProfileDefinition, has_full_access
+from atlanticus.web.users.profiles import (
+    ProfileDefinition,
+    has_full_access,
+    normalize_profile_color,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,6 +22,8 @@ class EffectiveUser:
     pending: bool
     avatar_text: str
     profile: ProfileDefinition
+    avatar_color: str | None = None
+    is_local: bool = False
 
     def __post_init__(self) -> None:
         for field_name in ('user_id', 'subject_id', 'display_name', 'avatar_text'):
@@ -30,6 +34,8 @@ class EffectiveUser:
         if self.email is not None:
             email = self.email.strip().casefold()
             object.__setattr__(self, 'email', email or None)
+        color = self.avatar_color or self.profile.color
+        object.__setattr__(self, 'avatar_color', normalize_profile_color(color))
 
     @property
     def has_full_access(self) -> bool:
@@ -44,14 +50,21 @@ class ResolvedUserRecord:
     email: str | None
     enabled: bool
     profile_key: str
-    # Conserva si la fuente ya materializó al usuario como pendiente.
     pending: bool = False
+    avatar_color: str | None = None
+    is_local: bool = False
 
     def __post_init__(self) -> None:
         profile_key = self.profile_key.strip().casefold()
         if not profile_key:
             raise UsersDefinitionError('Resolved user profile key must not be empty')
         object.__setattr__(self, 'profile_key', profile_key)
+        if self.avatar_color is not None:
+            object.__setattr__(
+                self,
+                'avatar_color',
+                normalize_profile_color(self.avatar_color),
+            )
 
     def to_effective_user(self, *, profile: ProfileDefinition) -> EffectiveUser:
         if profile.key != self.profile_key:
@@ -62,10 +75,11 @@ class ResolvedUserRecord:
             display_name=self.display_name,
             email=self.email,
             enabled=self.enabled,
-            # El estado pending viaja desde la fuente hasta la sesión efectiva.
             pending=self.pending,
             avatar_text=build_avatar_text(self.display_name),
             profile=profile,
+            avatar_color=self.avatar_color,
+            is_local=self.is_local,
         )
 
 

@@ -12,10 +12,12 @@ classifiers = [
 ]
 dependencies = [
     "atlanticus-web-users==0.1.0",
+    "atlanticus-web-users-configuration==0.1.0",
 ]
 
 [tool.uv.sources]
 atlanticus-web-users = { workspace = true }
+atlanticus-web-users-configuration = { workspace = true }
 
 [tool.setuptools]
 package-dir = {"" = "src"}

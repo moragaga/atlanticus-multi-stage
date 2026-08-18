@@ -36,6 +36,8 @@ class UsersSnapshot:
                 'enabled': self.user.enabled,
                 'pending': self.user.pending,
                 'avatar_text': self.user.avatar_text,
+                'avatar_color': self.user.avatar_color,
+                'is_local': self.user.is_local,
                 'profile': {
                     'key': self.user.profile.key,
                     'label': self.user.profile.label,
@@ -69,6 +71,8 @@ class UsersSnapshot:
                 pending=bool(user_value['pending']),
                 avatar_text=str(user_value['avatar_text']),
                 profile=profile,
+                avatar_color=_optional_string(user_value.get('avatar_color')),
+                is_local=bool(user_value.get('is_local', False)),
             )
             return cls(load_id=str(value['load_id']), user=user)
         except (KeyError, TypeError, ValueError, UsersDefinitionError) as error:

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+# Espejo pedagógico: Contratos documentales de Users en Cosmos, incluyendo colores de perfiles de sistema y metadatos de estado de proyección.
+
 from dataclasses import dataclass
 from typing import Literal
 
 from atlanticus.web.users.errors import UsersDefinitionError
 from atlanticus.web.users.profiles import ProfileDefinition
 
-# Todos los documentos de consumo declaran el schema que entiende este adapter.
 USERS_COSMOS_SCHEMA_VERSION = 1
 UserOrigin = Literal['projection', 'identity']
 LookupKind = Literal['identity', 'email']
@@ -27,10 +28,12 @@ def _optional(value: str | None) -> str | None:
 
 
 @dataclass(frozen=True, slots=True)
-# Estado colectivo de Users: indica revisión fuente y si la proyección puede consumirse.
 class UsersStateDocument:
     source_revision: str
     projection_status: str
+    projection_revision: str | None = None
+    projected_by: str | None = None
+    projected_at_utc: str | None = None
     schema_version: int = USERS_COSMOS_SCHEMA_VERSION
     id: str = 'users'
     partition_key: str = 'system'
@@ -54,10 +57,10 @@ class UsersStateDocument:
 
 
 @dataclass(frozen=True, slots=True)
-# Catálogo compacto de perfiles; los perfiles de sistema siguen gobernados por código.
 class ProfileCatalogDocument:
     source_revision: str
     administrator_color: str
+    guest_color: str = '#FF5722'
     custom_profiles: tuple[ProfileDefinition, ...] = ()
     schema_version: int = USERS_COSMOS_SCHEMA_VERSION
     id: str = 'catalog'
@@ -81,7 +84,6 @@ class ProfileCatalogDocument:
 
 
 @dataclass(frozen=True, slots=True)
-# Entidad estable de usuario, independiente de snapshots completos de SharePoint.
 class UserDocument:
     user_id: str
     display_name: str
@@ -142,7 +144,6 @@ class UserDocument:
 
 
 @dataclass(frozen=True, slots=True)
-# Índice pequeño para resolver identidad o email mediante point-read hacia un user_id.
 class UserLookupDocument:
     kind: LookupKind
     lookup_key: str

@@ -1,8 +1,6 @@
-# Convierte AuthenticatedIdentity en EffectiveUser una sola vez por carga.
-# Un usuario desconocido autenticado se convierte en pending + guest; un usuario
-# deshabilitado produce USER_DISABLED y una caída de la fuente produce 503.
-
 from __future__ import annotations
+
+# Espejo pedagógico: Convierte una identidad autenticada en un usuario efectivo y conserva Guest como fallback solo para identidades válidas no configuradas.
 
 import hashlib
 
@@ -31,7 +29,6 @@ class UsersAccessResolver(AccessResolver):
     def resolve(self, identity: AuthenticatedIdentity, *, load_id: str) -> AccessDecision:
         try:
             record = self._source.resolve(identity)
-        # Un conflicto OID/email indica inconsistencia de Users, no una credencial inválida.
         except (UsersSourceUnavailableError, UsersIdentityConflictError) as error:
             raise AccessResolverUnavailableError('Users source is unavailable') from error
 
@@ -56,6 +53,8 @@ class UsersAccessResolver(AccessResolver):
             pending=True,
             avatar_text=build_avatar_text(display_name),
             profile=self._profiles.require(GUEST_PROFILE_KEY),
+            avatar_color=None,
+            is_local=False,
         )
 
 

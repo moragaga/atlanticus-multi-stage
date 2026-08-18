@@ -51,6 +51,8 @@ class UsersAccessResolver(AccessResolver):
             pending=True,
             avatar_text=build_avatar_text(display_name),
             profile=self._profiles.require(GUEST_PROFILE_KEY),
+            avatar_color=None,
+            is_local=False,
         )
 
 
