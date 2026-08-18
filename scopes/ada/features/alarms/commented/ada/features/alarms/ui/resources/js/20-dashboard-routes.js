@@ -1,7 +1,6 @@
 (() => {
     'use strict';
 
-    // Contrato DOM del reproductor y límites de velocidad compartidos por IO y Process.
     const ROUTE_SELECTOR = '[data-ada-alarm-route]';
     const SCOPE_SELECTOR = '[data-ada-alarm-geometry-scope="true"]';
     const PRESENTATION_SCOPE_SELECTOR = '[data-ada-alarm-presentation-scope="true"]';
@@ -9,6 +8,8 @@
     const CARD_SELECTOR = '[data-ada-alarm-event-id]';
     const INTERACTIVE_SELECTOR = 'button, a, input, select, textarea, [role="button"], [data-ada-alarm-card-control]';
     const PLAYER_REFRESH_EVENT = 'ada:alarm-player-refresh';
+    // Evento genérico para cambios de geometría externos sin reiniciar la iteración del player.
+    const GEOMETRY_REFRESH_EVENT = 'ada:alarm-geometry-refresh';
     const MOTION_SCOPE_WIDTHS_PER_SECOND = 0.2;
     const MIN_MOTION_SPEED_PX_PER_SECOND = 160;
     const MAX_MOTION_SPEED_PX_PER_SECOND = 960;
@@ -20,7 +21,6 @@
     const SVG_NS = 'http://www.w3.org/2000/svg';
     const controllers = new Set();
 
-    // Un controlador por scope mantiene catálogo, selección, geometría y timeline aislados.
     class AlarmRoutePlayer {
         constructor(root) {
             this.root = root;
@@ -48,6 +48,8 @@
             this.debugStartedAt = performance.now();
             this.onClick = (event) => this.handleClick(event);
             this.onRefresh = () => this.handleRefresh();
+            // Sólo marca geometría dirty; no reinicia selección, rotación ni dwell.
+            this.onGeometryRefresh = () => this.markGeometryDirty('external');
         }
 
         start() {
@@ -57,6 +59,7 @@
             this.started = true;
             this.scope.addEventListener('click', this.onClick);
             this.scope.addEventListener(PLAYER_REFRESH_EVENT, this.onRefresh);
+            this.scope.addEventListener(GEOMETRY_REFRESH_EVENT, this.onGeometryRefresh);
             if (typeof ResizeObserver === 'function') {
                 this.resizeObserver = new ResizeObserver((entries) => {
                     let changed = false;
@@ -111,6 +114,7 @@
             this.cancelMotion('disconnect');
             this.scope?.removeEventListener('click', this.onClick);
             this.scope?.removeEventListener(PLAYER_REFRESH_EVENT, this.onRefresh);
+            this.scope?.removeEventListener(GEOMETRY_REFRESH_EVENT, this.onGeometryRefresh);
             this.resizeObserver?.disconnect();
             this.geometrySizes.clear();
             this.clearActiveVisualState('disconnect');
@@ -138,7 +142,6 @@
             return this.presentationScope()?.dataset.adaAlarmInteraction === 'interactive';
         }
 
-        // El scheduler confirma aquí cambios semánticos de placement o contenido.
         handleRefresh() {
             if (this.isPresentationScope()) {
                 this.reconcilePresentation('explicit');
@@ -268,7 +271,6 @@
             this.applyStaticNodeStates(specification, color, foreground);
         }
 
-        // Un resize solo sustituye la geometría; un placement o evento distinto repite la traza.
         reconcilePresentation(reason) {
             if (!this.root.isConnected || !this.isPresentationScope()) {
                 return;
@@ -454,7 +456,6 @@
             });
         }
 
-        // El dwell empieza únicamente después de completar ruta e impactos.
         scheduleAutoAdvance(index, generation, eventId) {
             if (!this.isGenerationCurrent(generation) || this.pinnedEventId) {
                 return;
@@ -689,8 +690,6 @@
             this.motionFrame = requestAnimationFrame((timestamp) => this.tickMotion(timestamp));
         }
 
-        // La secuencia es explícita: tronco, origen, destinos uno a uno y cards una a una.
-        // Process conserva center como único destino aunque sus cards afectadas sean varias.
         createMotionSteps(specification) {
             const steps = [
                 {
@@ -746,7 +745,6 @@
             return steps;
         }
 
-        // Solo materializa los paths del paso actual; los pasos futuros todavía no existen.
         beginNextMotionStep() {
             if (!this.motion || !this.isGenerationCurrent(this.motion.generation)) {
                 return;
@@ -805,8 +803,6 @@
                 .filter(Boolean);
         }
 
-        // Mide con la geometría completa oculta y la reemplaza por un path de longitud cero
-        // antes de que el navegador pueda pintarla.
         prepareMotionStroke(path, stage, container) {
             if (!this.motion || !container?.isConnected) {
                 path.remove();
@@ -868,7 +864,6 @@
             return stroke;
         }
 
-        // Muestreo único del path original. La animación no depende de dasharray ni pathLength.
         createMotionSamples(path, length) {
             const segmentCount = Math.max(1, Math.ceil(length / MOTION_SAMPLE_STEP_PX));
             const samples = [];
@@ -880,7 +875,6 @@
             return samples;
         }
 
-        // Construye un d que contiene únicamente el prefijo realmente recorrido en este frame.
         motionPrefixData(stroke, visibleLength) {
             const clamped = Math.min(stroke.length, Math.max(0, visibleLength));
             const lastIndex = stroke.samples.length - 1;
@@ -941,7 +935,6 @@
             stroke.path.setAttribute('d', this.motionPrefixData(stroke, visibleLength));
         }
 
-        // El punto del baseline cambia de estado únicamente al terminar su propio ramal.
         completeMotionStep(step) {
             if (!this.motion || !step?.nodeTarget || !step.nodeState) {
                 return;
@@ -957,8 +950,6 @@
             }
         }
 
-        // Cada frame extiende el path real; al completar se restaura el d exacto original.
-        // Un reloj único conserva el sobrante del frame al cruzar entre segmentos.
         tickMotion(timestamp) {
             this.motionFrame = null;
             if (!this.motion || !this.isGenerationCurrent(this.motion.generation)) {
@@ -1177,7 +1168,6 @@
             });
         }
 
-        // Separa anclas de baseline de elementos del body para evitar semánticas mezcladas.
         cardSpecification(card, baseline) {
             const origin = this.parseTarget(card.dataset.adaAlarmRouteOrigin);
             const destinations = this.parseTargets(card.dataset.adaAlarmRouteDestinations);
@@ -1225,7 +1215,6 @@
             };
         }
 
-        // Un target component se expande a todos sus subcomponentes DOM actuales.
         resolveAffectedTargets(targets) {
             const resolved = [];
             const identities = new Set();
@@ -1266,7 +1255,6 @@
             return resolved;
         }
 
-        // La firma detecta una alarma distinta aunque conserve slot, color o event_id por error.
         cardSpecificationSignature(card) {
             return [
                 card.dataset.adaAlarmCardKey || '',
@@ -1314,7 +1302,6 @@
             };
         }
 
-        // Cada lado avanza desde el punto más cercano hacia afuera sin recorrer color existente.
         destinationRouteSegments(destinationXs, originX, trackY, baselineY) {
             const candidates = destinationXs
                 .map((x, index) => ({ index, x }))
@@ -1357,7 +1344,6 @@
             return path;
         }
 
-        // Dos mitades parten del centro superior y avanzan hasta encontrarse abajo.
         createImpactPaths(target, color) {
             const rootRect = this.root.getBoundingClientRect();
             const rect = target.getBoundingClientRect();
@@ -1473,7 +1459,6 @@
         }
 
         findTarget(target) {
-            // El punto de ruta usa component/slot y el contorno usa la card subcomponent.
             const attribute = {
                 component: 'data-ada-component-key',
                 subcomponent: 'data-ada-subcomponent-key',

@@ -50,3 +50,18 @@ def test_integrated_operations_starts_in_overview_without_empty_alarm_message() 
 
     assert _props(root)['data-ada-io-presentation'] == 'overview'
     assert 'Sin alarmas activas' not in strings
+
+
+def test_integrated_operations_artifact_exposes_overview_mine_plant_controls() -> None:
+    tool = build_integrated_operations_tool()
+    nodes = tuple(_walk(tool))
+    targets = [
+        _props(node).get('data-ada-io-presentation-target')
+        for node in nodes
+        if _props(node).get('data-ada-io-presentation-target')
+    ]
+
+    assert set(targets) == {'overview', 'mine', 'plant'}
+    assert targets.count('overview') == 1
+    assert targets.count('mine') == 2
+    assert targets.count('plant') == 2

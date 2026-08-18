@@ -3,12 +3,19 @@
     --ada-integrated-operations-tool-surface-ink: var(--primary-background, #EBEBEB);
     --ada-integrated-operations-tool-card-surface: var(--primary-background, #EBEBEB);
     --ada-integrated-operations-tool-gap: .25rem;
+    --ada-integrated-operations-alarm-content-size: 5rem;
+    --ada-integrated-operations-alarm-baseline-size: 1.5rem;
+    --ada-integrated-operations-alarm-surface-size: calc(
+        var(--ada-integrated-operations-alarm-content-size) +
+        var(--ada-integrated-operations-alarm-baseline-size)
+    );
     --ada-alarm-scope-split: 44.444444%;
+    position: relative;
     display: grid;
     width: 100%;
     min-width: 0;
     min-height: 0;
-    grid-template-rows: auto auto auto minmax(0, 1fr);
+    grid-template-rows: auto auto var(--ada-integrated-operations-alarm-surface-size) minmax(0, 1fr);
     overflow: hidden;
     background: var(--ada-integrated-operations-tool-surface);
 }
@@ -31,6 +38,8 @@
 .ada-integrated-operations-tool__alarm-surface {
     position: relative;
     z-index: 2;
+    width: 100%;
+    height: var(--ada-integrated-operations-alarm-surface-size);
     padding: 0;
     overflow: visible;
     background: var(--ada-integrated-operations-tool-surface);
@@ -39,16 +48,22 @@
 
 .ada-integrated-operations-tool__alarm-content {
     width: 100%;
+    height: var(--ada-integrated-operations-alarm-content-size);
     min-width: 0;
+    min-height: var(--ada-integrated-operations-alarm-content-size);
     padding-inline: var(--ada-integrated-operations-tool-gap);
+    overflow: hidden;
 }
 
 .ada-integrated-operations-tool__alarm-surface > .ada-alarm-dashboard-baseline {
     width: 100%;
+    height: var(--ada-integrated-operations-alarm-baseline-size);
+    min-height: var(--ada-integrated-operations-alarm-baseline-size);
     margin: 0;
 }
 
 .ada-integrated-operations-tool__body {
+    position: relative;
     width: 100%;
     padding: 0 var(--ada-integrated-operations-tool-gap) var(--ada-integrated-operations-tool-gap);
     overflow: hidden;
@@ -60,7 +75,8 @@
     --ada-io-layout-gap: var(--ada-integrated-operations-tool-gap);
     height: 100%;
     min-height: 0;
-    overflow: hidden;
+    overflow: visible;
+    transform-origin: top left;
 }
 
 .ada-integrated-operations-tool__layout > .ada-io-layout__scope {
@@ -92,4 +108,160 @@
 
 .ada-integrated-operations-tool__shared-card {
     width: 100%;
+}
+
+.ada-integrated-operations-tool__presentation-button {
+    position: absolute;
+    z-index: 8;
+    min-width: 0;
+    min-height: 1.35rem;
+    padding: .1rem .42rem;
+    background: var(--primary-background, #EBEBEB);
+    border: 1px solid var(--primary-border-color, #BDBDBD);
+    border-radius: .3rem;
+    color: var(--custom-text-color, #4D4D4D);
+    font: inherit;
+    font-size: .52rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: .02rem;
+    cursor: pointer;
+}
+
+.ada-integrated-operations-tool__presentation-button:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 1px;
+}
+
+.ada-integrated-operations-tool__overview-controls,
+.ada-integrated-operations-tool__zoom-controls {
+    pointer-events: none;
+}
+
+.ada-integrated-operations-tool__overview-controls .ada-integrated-operations-tool__presentation-button,
+.ada-integrated-operations-tool__zoom-controls .ada-integrated-operations-tool__presentation-button {
+    pointer-events: auto;
+}
+
+.ada-integrated-operations-tool__overview-control--mine,
+.ada-integrated-operations-tool__overview-control--plant {
+    bottom: calc(var(--ada-integrated-operations-alarm-baseline-size) + .12rem);
+}
+
+.ada-integrated-operations-tool__overview-control--mine {
+    left: var(--ada-integrated-operations-tool-gap);
+}
+
+.ada-integrated-operations-tool__overview-control--plant {
+    right: var(--ada-integrated-operations-tool-gap);
+}
+
+.ada-integrated-operations-tool__zoom-close {
+    top: .25rem;
+    right: .25rem;
+    display: none;
+    width: 1.45rem;
+    height: 1.45rem;
+    min-height: 1.45rem;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+    font-size: .85rem;
+}
+
+.ada-integrated-operations-tool__zoom-side {
+    top: 50%;
+    display: none;
+    transform: translateY(-50%);
+}
+
+.ada-integrated-operations-tool__zoom-side--mine {
+    left: .25rem;
+}
+
+.ada-integrated-operations-tool__zoom-side--plant {
+    right: .25rem;
+}
+
+.ada-integrated-operations-tool[data-ada-io-presentation='mine']
+    .ada-integrated-operations-tool__overview-controls,
+.ada-integrated-operations-tool[data-ada-io-presentation='plant']
+    .ada-integrated-operations-tool__overview-controls {
+    display: none;
+}
+
+.ada-integrated-operations-tool[data-ada-io-presentation='mine']
+    .ada-integrated-operations-tool__zoom-close,
+.ada-integrated-operations-tool[data-ada-io-presentation='plant']
+    .ada-integrated-operations-tool__zoom-close {
+    display: inline-flex;
+}
+
+.ada-integrated-operations-tool[data-ada-io-presentation='mine']
+    .ada-integrated-operations-tool__zoom-side--plant,
+.ada-integrated-operations-tool[data-ada-io-presentation='plant']
+    .ada-integrated-operations-tool__zoom-side--mine {
+    display: inline-flex;
+}
+
+.ada-integrated-operations-tool[data-ada-io-presentation='mine']
+    .ada-header__global-indicator[data-scope='plant'],
+.ada-integrated-operations-tool[data-ada-io-presentation='plant']
+    .ada-header__global-indicator[data-scope='mine'],
+.ada-integrated-operations-tool[data-ada-io-presentation='mine']
+    .ada-alarm-management-summary__segment[data-scope='plant'],
+.ada-integrated-operations-tool[data-ada-io-presentation='plant']
+    .ada-alarm-management-summary__segment[data-scope='mine'] {
+    display: none;
+}
+
+.ada-integrated-operations-tool[data-ada-io-presentation='mine']
+    .ada-header__global-indicator[data-scope='mine'],
+.ada-integrated-operations-tool[data-ada-io-presentation='plant']
+    .ada-header__global-indicator[data-scope='plant'] {
+    flex: 0 0 calc(100% / var(--ada-io-overview-indicator-count));
+}
+
+.ada-integrated-operations-tool .ada-header__management-slot {
+    border-left: 1px solid var(--ada-header-border, var(--primary-border-color, #BDBDBD));
+}
+
+.ada-integrated-operations-tool
+    .ada-header__indicators
+    > .ada-header__global-indicator:last-child {
+    border-right: 0;
+}
+
+.ada-integrated-operations-tool .ada-alarm-dashboard-baseline__scope-divider {
+    display: none;
+}
+
+@media (max-width: 95.999rem) {
+    .ada-integrated-operations-tool__presentation-button {
+        display: none !important;
+    }
+}
+
+@media (min-width: 96rem) {
+    .ada-integrated-operations-tool__layout {
+        column-gap: var(--ada-integrated-operations-tool-gap);
+    }
+
+    .ada-integrated-operations-tool[data-ada-io-presentation='overview']
+        .ada-integrated-operations-tool__layout {
+        width: 100%;
+        transform: translateX(0);
+    }
+
+    .ada-integrated-operations-tool[data-ada-io-presentation='mine']
+        .ada-integrated-operations-tool__layout {
+        width: 225%;
+        transform: translateX(0);
+    }
+
+    .ada-integrated-operations-tool[data-ada-io-presentation='plant']
+        .ada-integrated-operations-tool__layout {
+        width: 180%;
+        transform: translateX(-44.444444%);
+    }
 }

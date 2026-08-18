@@ -142,3 +142,50 @@ def test_shared_carguio_transporte_card_starts_in_construction() -> None:
     )
 
     assert any(_props(node).get('data-overlay-kind') == 'construction' for node in _walk(shared))
+
+
+def test_integrated_operations_composition_exposes_presentation_controls_without_removing_scopes() -> (
+    None
+):
+    composition = create_integrated_operations_tool_composition(INTEGRATED_OPERATIONS_MANIFEST)
+    tool = composition.build_tool(header_state=_header_state())
+    nodes = tuple(_walk(tool))
+
+    targets = {
+        _props(node).get('data-ada-io-presentation-target')
+        for node in nodes
+        if _props(node).get('data-ada-io-presentation-target')
+    }
+    scopes = {
+        _props(node).get('data-ada-io-scope-key')
+        for node in nodes
+        if _props(node).get('data-ada-io-scope-key')
+    }
+
+    assert targets == {'overview', 'mine', 'plant'}
+    assert scopes == {'mine', 'plant'}
+
+
+def test_integrated_operations_alarm_surface_reserves_empty_content_boundary() -> None:
+    composition = create_integrated_operations_tool_composition(INTEGRATED_OPERATIONS_MANIFEST)
+    tool = composition.build_tool(header_state=_header_state())
+    nodes = tuple(_walk(tool))
+    content = next(
+        node
+        for node in nodes
+        if _props(node).get('className') == 'ada-integrated-operations-tool__alarm-content'
+    )
+
+    assert _props(content)['children'] == []
+
+
+def test_integrated_operations_exposes_overview_indicator_count_for_stable_zoom_cells() -> None:
+    composition = create_integrated_operations_tool_composition(INTEGRATED_OPERATIONS_MANIFEST)
+    tool = composition.build_tool(header_state=_header_state())
+    root = next(
+        node
+        for node in _walk(tool)
+        if _props(node).get('data-ada-integrated-operations-tool') == 'integrated_operations'
+    )
+
+    assert _props(root)['style']['--ada-io-overview-indicator-count'] == '1'

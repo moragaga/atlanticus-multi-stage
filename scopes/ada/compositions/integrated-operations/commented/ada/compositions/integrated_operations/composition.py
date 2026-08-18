@@ -1,4 +1,3 @@
-# Espejo comentado: ensambla la herramienta IO completa sin reimplementar sus capabilities.
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -51,6 +50,7 @@ _SHARED_COMPONENT = 'carguio'
 _SHARED_SUBCOMPONENT = 'gestion_carguio_turno'
 
 
+# La composition mantiene un único árbol IO canónico; el zoom sólo cambia su presentación.
 @dataclass(frozen=True, slots=True)
 class IntegratedOperationsToolComposition:
     dashboard: DashboardDefinition
@@ -115,7 +115,10 @@ class IntegratedOperationsToolComposition:
             ),
             _build_alarm_surface(self.manifest, alarm_content),
             html.Main(
-                self.build_body(layout_id=layout_id),
+                [
+                    self.build_body(layout_id=layout_id),
+                    _build_zoom_controls(),
+                ],
                 className='ada-integrated-operations-tool__body',
             ),
             self.mount.runtime_host(),
@@ -124,6 +127,11 @@ class IntegratedOperationsToolComposition:
             content=html.Div(
                 children,
                 className=_join_classes('ada-integrated-operations-tool', class_name),
+                style={
+                    '--ada-io-overview-indicator-count': str(
+                        max(1, len(header_state.global_indicators))
+                    ),
+                },
                 **{
                     'data-ada-integrated-operations-tool': self.manifest.tool_key,
                     'data-ada-io-presentation': 'overview',
@@ -223,32 +231,102 @@ def _build_time_status(
     )
 
 
+# La superficie de alarmas siempre reserva su altura, incluso cuando no existen alarmas.
 def _build_alarm_surface(manifest: ToolManifest, content: Component | None) -> html.Section:
-    children: list[Component] = []
-    if content is not None:
-        children.append(
-            html.Div(
-                content,
-                className='ada-integrated-operations-tool__alarm-content',
-            )
-        )
     component_scopes = {
         component_key: manifest.section(component_key).scope.value
         for component_key in _COMPONENT_KEYS
     }
-    children.extend(
-        (
+    return html.Section(
+        [
+            html.Div(
+                [] if content is None else [content],
+                className='ada-integrated-operations-tool__alarm-content',
+            ),
             build_alarm_dashboard_route_layer(),
             build_integrated_operations_alarm_baseline(
                 _COMPONENT_KEYS,
                 component_scopes=component_scopes,
             ),
-        )
-    )
-    return html.Section(
-        children,
+            _build_overview_controls(),
+        ],
         className='ada-integrated-operations-tool__alarm-surface',
         **{'data-ada-integrated-operations-alarm-surface': 'true'},
+    )
+
+
+# Los controles de overview viven junto al baseline, pero no alteran su geometría.
+def _build_overview_controls() -> html.Div:
+    return html.Div(
+        [
+            _build_presentation_button(
+                'MINA',
+                target='mine',
+                class_name='ada-integrated-operations-tool__overview-control--mine',
+                aria_label='Ampliar Mina',
+            ),
+            _build_presentation_button(
+                'PLANTA',
+                target='plant',
+                class_name='ada-integrated-operations-tool__overview-control--plant',
+                aria_label='Ampliar Planta',
+            ),
+        ],
+        className='ada-integrated-operations-tool__overview-controls',
+    )
+
+
+# Los controles de zoom están fuera del layout canónico para no escalar ni mover las cards.
+def _build_zoom_controls() -> html.Div:
+    return html.Div(
+        [
+            _build_presentation_button(
+                '×',
+                target='overview',
+                class_name='ada-integrated-operations-tool__zoom-close',
+                aria_label='Volver a vista general',
+            ),
+            _build_presentation_button(
+                '‹ MINA',
+                target='mine',
+                class_name=(
+                    'ada-integrated-operations-tool__zoom-side '
+                    'ada-integrated-operations-tool__zoom-side--mine'
+                ),
+                aria_label='Cambiar a Mina',
+            ),
+            _build_presentation_button(
+                'PLANTA ›',
+                target='plant',
+                class_name=(
+                    'ada-integrated-operations-tool__zoom-side '
+                    'ada-integrated-operations-tool__zoom-side--plant'
+                ),
+                aria_label='Cambiar a Planta',
+            ),
+        ],
+        className='ada-integrated-operations-tool__zoom-controls',
+    )
+
+
+def _build_presentation_button(
+    label: str,
+    *,
+    target: str,
+    class_name: str,
+    aria_label: str,
+) -> html.Button:
+    return html.Button(
+        label,
+        type='button',
+        className=(
+            'ada-integrated-operations-tool__presentation-button '
+            f'{class_name}'
+        ),
+        **{
+            'aria-label': aria_label,
+            'data-ada-io-presentation-target': target,
+        },
     )
 
 

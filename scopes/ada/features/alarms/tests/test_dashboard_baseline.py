@@ -579,3 +579,31 @@ def test_process_baseline_remains_unscoped_and_keeps_original_structure() -> Non
     assert _props(props['children'][0])['className'] == 'ada-alarm-dashboard-baseline__line'
     assert _props(props['children'][1])['data-ada-alarm-target-key'] == 'center'
     assert 'data-ada-alarm-scope' not in _props(props['children'][1])
+
+
+def test_alarm_route_player_exposes_geometry_only_refresh_event() -> None:
+    from importlib.resources import files
+
+    routes = (
+        files('ada.features.alarms')
+        .joinpath('ui', 'resources', 'js', '20-dashboard-routes.js')
+        .read_text()
+    )
+
+    assert "const GEOMETRY_REFRESH_EVENT = 'ada:alarm-geometry-refresh';" in routes
+    assert "this.onGeometryRefresh = () => this.markGeometryDirty('external');" in routes
+
+
+def test_alarm_baseline_geometry_hides_offscreen_nodes_instead_of_clamping_to_viewport_edges() -> None:
+    from importlib.resources import files
+
+    geometry = (
+        files('ada.features.alarms')
+        .joinpath('ui', 'resources', 'js', '10-dashboard-geometry.js')
+        .read_text()
+    )
+
+    assert 'if (rawX < halfNode || rawX > rootRect.width - halfNode)' in geometry
+    assert "node.dataset.adaAlarmPositioned = 'false';" in geometry
+    assert 'node.style.left = `${rawX}px`;' in geometry
+    assert 'Math.min(\n                    Math.max(rawX, halfNode)' not in geometry

@@ -54,6 +54,8 @@ include = ["ada.compositions.integrated_operations*"]
     "py.typed",
     "resources/css/*.css",
     "resources/css/css.list",
+    "resources/js/*.js",
+    "resources/js/js.list",
 ]
 
 [dependency-groups]

@@ -88,11 +88,11 @@
                 const targetRect = target.getBoundingClientRect();
                 const rawX = targetRect.left + targetRect.width / 2 - rootRect.left;
                 const halfNode = nodeSize / 2;
-                const x = Math.min(
-                    Math.max(rawX, halfNode),
-                    Math.max(halfNode, rootRect.width - halfNode),
-                );
-                node.style.left = `${x}px`;
+                if (rawX < halfNode || rawX > rootRect.width - halfNode) {
+                    node.dataset.adaAlarmPositioned = 'false';
+                    return;
+                }
+                node.style.left = `${rawX}px`;
                 node.dataset.adaAlarmPositioned = 'true';
             });
         }

@@ -8,6 +8,7 @@
     const CARD_SELECTOR = '[data-ada-alarm-event-id]';
     const INTERACTIVE_SELECTOR = 'button, a, input, select, textarea, [role="button"], [data-ada-alarm-card-control]';
     const PLAYER_REFRESH_EVENT = 'ada:alarm-player-refresh';
+    const GEOMETRY_REFRESH_EVENT = 'ada:alarm-geometry-refresh';
     const MOTION_SCOPE_WIDTHS_PER_SECOND = 0.2;
     const MIN_MOTION_SPEED_PX_PER_SECOND = 160;
     const MAX_MOTION_SPEED_PX_PER_SECOND = 960;
@@ -46,6 +47,7 @@
             this.debugStartedAt = performance.now();
             this.onClick = (event) => this.handleClick(event);
             this.onRefresh = () => this.handleRefresh();
+            this.onGeometryRefresh = () => this.markGeometryDirty('external');
         }
 
         start() {
@@ -55,6 +57,7 @@
             this.started = true;
             this.scope.addEventListener('click', this.onClick);
             this.scope.addEventListener(PLAYER_REFRESH_EVENT, this.onRefresh);
+            this.scope.addEventListener(GEOMETRY_REFRESH_EVENT, this.onGeometryRefresh);
             if (typeof ResizeObserver === 'function') {
                 this.resizeObserver = new ResizeObserver((entries) => {
                     let changed = false;
@@ -109,6 +112,7 @@
             this.cancelMotion('disconnect');
             this.scope?.removeEventListener('click', this.onClick);
             this.scope?.removeEventListener(PLAYER_REFRESH_EVENT, this.onRefresh);
+            this.scope?.removeEventListener(GEOMETRY_REFRESH_EVENT, this.onGeometryRefresh);
             this.resizeObserver?.disconnect();
             this.geometrySizes.clear();
             this.clearActiveVisualState('disconnect');
