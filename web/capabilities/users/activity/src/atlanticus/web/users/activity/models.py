@@ -12,7 +12,7 @@ from atlanticus.web.users.activity.routes import ActivityRouteIdentity, normaliz
 from atlanticus.web.users.models import EffectiveUser
 
 USER_ACTIVITY_DOCUMENT_TYPE = 'user_activity_session'
-USER_ACTIVITY_SCHEMA_VERSION = 2
+USER_ACTIVITY_SCHEMA_VERSION = 3
 
 
 class UserActivityEventType(StrEnum):
@@ -182,6 +182,8 @@ class UserActivityDocument:
     page_views: int
     visibility_resumes: int
     visibility_state: str
+    initial_route_key: str
+    initial_pathname: str
     current_route_key: str
     current_pathname: str
     initial_viewport: Viewport
@@ -202,6 +204,7 @@ class UserActivityDocument:
             ('User id', self.user_id),
             ('Subject id', self.subject_id),
             ('Profile key', self.profile_key),
+            ('Initial route key', self.initial_route_key),
             ('Current route key', self.current_route_key),
         ):
             if not value.strip():
@@ -210,8 +213,11 @@ class UserActivityDocument:
             raise UsersActivityError('User activity timestamps must be timezone-aware')
         if self.active_seconds < 0 or self.page_views < 0 or self.visibility_resumes < 0:
             raise UsersActivityError('User activity counters must not be negative')
+        if self.last_sequence < 1 or not self.last_event_id.strip():
+            raise UsersActivityError('User activity event cursor is invalid')
         if self.visibility_state not in {'visible', 'hidden'}:
             raise UsersActivityError('User activity visibility state is invalid')
+        object.__setattr__(self, 'initial_pathname', normalize_pathname(self.initial_pathname))
         object.__setattr__(self, 'current_pathname', normalize_pathname(self.current_pathname))
         object.__setattr__(self, 'routes', MappingProxyType(dict(self.routes)))
 
@@ -225,10 +231,11 @@ class UserActivityDocument:
         route: ActivityRouteIdentity,
         now: datetime,
     ) -> UserActivityDocument:
-        visible = event.event_type not in {
+        visible = event.visibility_state == 'visible' and event.event_type not in {
             UserActivityEventType.HIDDEN,
             UserActivityEventType.PAGEHIDE,
         }
+        counts_view = event.event_type is UserActivityEventType.REGISTER
         return cls(
             id=build_activity_document_id(
                 application_key=application_key,
@@ -245,9 +252,11 @@ class UserActivityDocument:
             first_seen_at_utc=now.astimezone(UTC),
             last_seen_at_utc=now.astimezone(UTC),
             active_seconds=0,
-            page_views=1 if visible else 0,
+            page_views=1 if counts_view else 0,
             visibility_resumes=0,
             visibility_state='visible' if visible else 'hidden',
+            initial_route_key=route.route_key,
+            initial_pathname=route.pathname,
             current_route_key=route.route_key,
             current_pathname=route.pathname,
             initial_viewport=event.viewport,
@@ -257,7 +266,7 @@ class UserActivityDocument:
             routes={
                 route.route_key: RouteActivity(
                     pathname=route.pathname,
-                    views=1 if visible else 0,
+                    views=1 if counts_view else 0,
                     is_application_home=route.is_application_home,
                 )
             },
@@ -356,6 +365,52 @@ class UserActivityDocument:
             last_event_id=event.event_id,
         )
 
+    @classmethod
+    def from_document(cls, value: Mapping[str, Any]) -> UserActivityDocument:
+        if value.get('type') != USER_ACTIVITY_DOCUMENT_TYPE:
+            raise UsersActivityError('User activity document type is invalid')
+        if value.get('schema_version') != USER_ACTIVITY_SCHEMA_VERSION:
+            raise UsersActivityError('User activity document schema is invalid')
+        routes_value = value.get('routes')
+        if not isinstance(routes_value, Mapping):
+            raise UsersActivityError('User activity routes are invalid')
+        routes: dict[str, RouteActivity] = {}
+        for key, route_value in routes_value.items():
+            route_key = str(key).strip()
+            if not route_key:
+                raise UsersActivityError('User activity route key must not be empty')
+            routes[route_key] = RouteActivity.from_value(route_value)
+        try:
+            return cls(
+                id=str(value['id']),
+                application_key=str(value['application_key']),
+                client_session_id=str(value['client_session_id']),
+                user_id=str(value['user_id']),
+                subject_id=str(value['subject_id']),
+                email=str(value.get('email') or ''),
+                display_name=str(value.get('display_name') or ''),
+                profile_key=str(value['profile_key']),
+                first_seen_at_utc=_required_datetime(value['first_seen_at_utc']),
+                last_seen_at_utc=_required_datetime(value['last_seen_at_utc']),
+                active_seconds=_safe_non_negative_int(value.get('active_seconds')),
+                page_views=_safe_non_negative_int(value.get('page_views')),
+                visibility_resumes=_safe_non_negative_int(value.get('visibility_resumes')),
+                visibility_state=str(value['visibility_state']),
+                initial_route_key=str(value['initial_route_key']),
+                initial_pathname=str(value['initial_pathname']),
+                current_route_key=str(value['current_route_key']),
+                current_pathname=str(value['current_pathname']),
+                initial_viewport=Viewport.from_value(value.get('initial_viewport')),
+                last_viewport=Viewport.from_value(value.get('last_viewport')),
+                initial_screen=Screen.from_value(value.get('initial_screen')),
+                last_screen=Screen.from_value(value.get('last_screen')),
+                routes=routes,
+                last_sequence=int(value['last_sequence']),
+                last_event_id=str(value['last_event_id']),
+            )
+        except (KeyError, TypeError, ValueError) as error:
+            raise UsersActivityError('User activity document is invalid') from error
+
     def to_document(self) -> dict[str, object]:
         return {
             'id': self.id,
@@ -374,6 +429,8 @@ class UserActivityDocument:
             'page_views': self.page_views,
             'visibility_resumes': self.visibility_resumes,
             'visibility_state': self.visibility_state,
+            'initial_route_key': self.initial_route_key,
+            'initial_pathname': self.initial_pathname,
             'current_route_key': self.current_route_key,
             'current_pathname': self.current_pathname,
             'initial_viewport': self.initial_viewport.to_document(),
@@ -419,7 +476,7 @@ def _limit_routes(
 def _safe_dimension(value: object) -> int:
     try:
         return max(0, int(value or 0))
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         return 0
 
 
@@ -430,7 +487,7 @@ def _safe_non_negative_int(value: object) -> int:
 def _safe_ratio(value: object) -> float:
     try:
         ratio = float(value or 1)
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         return 1.0
     return ratio if ratio > 0 else 1.0
 
@@ -445,3 +502,10 @@ def _parse_optional_datetime(value: object) -> datetime | None:
     if parsed.tzinfo is None:
         return parsed.replace(tzinfo=UTC)
     return parsed.astimezone(UTC)
+
+
+def _required_datetime(value: object) -> datetime:
+    parsed = _parse_optional_datetime(value)
+    if parsed is None:
+        raise UsersActivityError('User activity timestamp is invalid')
+    return parsed

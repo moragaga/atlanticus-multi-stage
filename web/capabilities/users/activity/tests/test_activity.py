@@ -94,6 +94,8 @@ def test_activity_preserves_profile_resolution_and_home_route_identity() -> None
 
     document = repository.value
     assert document.profile_key == 'operator'
+    assert document.initial_route_key == 'dashboard'
+    assert document.initial_pathname == '/'
     assert document.initial_viewport.width == 1440
     assert document.initial_screen.width == 1920
     assert document.routes['dashboard'].is_application_home is True

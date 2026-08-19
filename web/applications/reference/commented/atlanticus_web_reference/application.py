@@ -1,14 +1,17 @@
-# Espejo pedagógico: la aplicación compone módulos autónomos mediante el adapter opcional
-# Users-Navigation.
 from __future__ import annotations
+# Espejo pedagógico: la Reference compone Activity con memoria y Navigation sin infraestructura institucional.
 
 from pathlib import Path
 
 from atlanticus.web.application import create_web_application
+from atlanticus.web.compositions.navigation_activity import (
+    create_navigation_activity_route_resolver,
+)
 from atlanticus.web.compositions.users_navigation import (
     create_users_navigation_module,
     validate_users_navigation_profiles,
 )
+from atlanticus.web.identity.access import ACCESS_RUNTIME_SERVICE_KEY, AccessRuntime
 from atlanticus.web.identity.module import create_identity_module
 from atlanticus.web.index import IndexPageDefinition
 from atlanticus.web.models import ApplicationMetadata, WebApplicationDefinition
@@ -16,11 +19,15 @@ from atlanticus.web.navigation.api import (
     create_navigation_authorization_module,
     create_navigation_module,
 )
+from atlanticus.web.users.activity import (
+    InMemoryUserActivityRepository,
+    create_user_activity_module,
+)
 from atlanticus.web.users.local import create_local_users_source
 from atlanticus.web.users.module import create_users_module
 from atlanticus.web.users.profiles import ProfileCatalog
 from atlanticus.web.users.resolver import UsersAccessResolver
-from atlanticus.web.users.runtime import UsersRuntime
+from atlanticus.web.users.runtime import USERS_RUNTIME_SERVICE_KEY, UsersRuntime
 from atlanticus_web_reference.identity import build_reference_identity_provider
 from atlanticus_web_reference.layout import build_layout
 from atlanticus_web_reference.modules import create_reference_module
@@ -55,6 +62,12 @@ def build_definition() -> WebApplicationDefinition:
             create_navigation_module(navigation),
             create_users_navigation_module(),
             create_navigation_authorization_module(),
+            create_user_activity_module(
+                repository=InMemoryUserActivityRepository(),
+                application_key='atlanticus-web-reference',
+                user_provider=_current_activity_user,
+                route_resolver_factory=create_navigation_activity_route_resolver,
+            ),
             create_reference_module(),
         ),
         index=IndexPageDefinition(
@@ -68,3 +81,8 @@ def build_definition() -> WebApplicationDefinition:
 
 def create_app():
     return create_web_application(build_definition())
+
+
+def _current_activity_user(services):
+    access = services.require(ACCESS_RUNTIME_SERVICE_KEY, AccessRuntime).current()
+    return services.require(USERS_RUNTIME_SERVICE_KEY, UsersRuntime).current(access)

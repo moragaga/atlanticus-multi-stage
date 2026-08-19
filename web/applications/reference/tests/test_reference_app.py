@@ -16,6 +16,7 @@ def test_reference_definition_composes_users_identity_navigation_and_dynamic_pag
     identity = modules['identity']
     navigation = modules['navigation']
     authorization = modules['navigation-authorization']
+    activity = modules['user-activity']
     reference = modules['reference']
 
     assert definition.metadata.application_id == 'atlanticus-web-reference'
@@ -27,6 +28,9 @@ def test_reference_definition_composes_users_identity_navigation_and_dynamic_pag
     assert navigation.register_callbacks is None
     assert navigation.asset_layers == ()
     assert authorization.register_middlewares is not None
+    assert activity.register_services is not None
+    assert activity.register_routes is not None
+    assert activity.asset_layers[0].load_order == 650
     assert reference.page_packages == ('atlanticus_web_reference.pages',)
     assert reference.register_services is not None
     assert reference.register_health_checks is not None
