@@ -1,4 +1,4 @@
-from atlanticus.web.navigation import (
+from atlanticus.web.navigation.api import (
     NavigationDefinition,
     NavigationGroupDefinition,
     NavigationLinkDefinition,

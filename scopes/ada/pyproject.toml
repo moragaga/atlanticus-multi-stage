@@ -45,7 +45,7 @@ ada-ui-shell-time-status = { workspace = true }
 atlanticus-web = { path = "../../web/framework/core", editable = true }
 atlanticus-web-manager = { path = "../../web/capabilities/manager", editable = true }
 atlanticus-web-observability = { path = "../../web/framework/observability", editable = true }
-atlanticus-web-navigation = { path = "../../web/capabilities/navigation", editable = true }
+atlanticus-web-navigation = { path = "../../web/capabilities/navigation/core", editable = true }
 atlanticus-web-composition-users-navigation = { path = "../../web/compositions/users-navigation", editable = true }
 atlanticus-web-identity = { path = "../../web/capabilities/identity/core", editable = true }
 atlanticus-web-identity-local = { path = "../../web/capabilities/identity/local", editable = true }

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from atlanticus.web.errors import WebDefinitionError
 from atlanticus.web.identity.access import AccessRuntime
-from atlanticus.web.navigation import (
+from atlanticus.web.navigation.api import (
     NavigationDefinition,
     NavigationPrincipal,
     NavigationPrincipalProvider,

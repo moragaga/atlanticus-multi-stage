@@ -6,7 +6,7 @@ from atlanticus.web.assets import AssetLayer
 from atlanticus.web.identity.app_service import AppServiceIdentityProvider
 from atlanticus.web.identity.local import LocalIdentityProvider
 from atlanticus.web.identity.models import AuthenticatedIdentity
-from atlanticus.web.navigation import NavigationDefinition, NavigationMenu
+from atlanticus.web.navigation.api import NavigationDefinition, NavigationMenu
 from atlanticus.web.observability import WebObservability
 from atlanticus.web.users.local import LocalUsersSource
 from atlanticus.web.users.models import EffectiveUser

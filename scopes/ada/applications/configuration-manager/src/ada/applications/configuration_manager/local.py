@@ -14,6 +14,13 @@ from ada.configuration.tools.adapters.file import (
     FileToolProjectionRepository,
     FileToolProjectionSettings,
 )
+from atlanticus.web.navigation.configuration import compose_navigation_configuration_services
+from atlanticus.web.navigation.configuration.adapters.file import (
+    FileNavigationConfigurationSettings,
+    FileNavigationConfigurationStore,
+    FileNavigationProjectionRepository,
+    FileNavigationProjectionSettings,
+)
 from atlanticus.web.users.configuration import (
     DiscoveredUser,
     build_user_key,
@@ -58,14 +65,29 @@ def build_local_dependencies(
         discovered=users_discovered,
         audit_actor_provider=lambda: 'Administrador local',
     )
+    navigation_source = FileNavigationConfigurationStore(
+        FileNavigationConfigurationSettings(root=resolved_root / 'source' / 'navigation')
+    )
+    navigation_projection = FileNavigationProjectionRepository(
+        FileNavigationProjectionSettings(root=resolved_root / 'projection' / 'navigation')
+    )
+    navigation = compose_navigation_configuration_services(
+        source=navigation_source,
+        publisher=navigation_source,
+        projection=navigation_projection,
+        audit_actor_provider=lambda: 'Administrador local',
+    )
     return ConfigurationManagerDependencies(
         tools=tools,
         users=users,
+        navigation=navigation,
         principal_provider=local_manager_principal,
         tools_source_name='Archivo local',
         tools_projection_name='Archivo local',
         users_source_name='Archivo local',
         users_projection_name='Archivo local',
+        navigation_source_name='Archivo local',
+        navigation_projection_name='Archivo local',
     )
 
 

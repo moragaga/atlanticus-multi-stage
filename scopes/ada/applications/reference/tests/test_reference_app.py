@@ -14,7 +14,7 @@ from ada.ui.layouts.process import ADA_PROCESS_LAYOUT_ASSET_LAYER
 from ada.ui.shell.header import ADA_HEADER_ASSET_LAYER
 from ada.ui.shell.navigation import ADA_NAVIGATION_ASSET_LAYER
 from ada.ui.shell.time_status import ADA_TIME_STATUS_ASSET_LAYER
-from atlanticus.web.navigation import NavigationDefinition
+from atlanticus.web.navigation.api import NavigationDefinition
 from atlanticus.web.services import ServiceRegistry
 
 

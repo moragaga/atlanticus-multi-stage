@@ -2,6 +2,7 @@ from dataclasses import replace
 
 from ada.applications.configuration_manager.local import build_local_dependencies
 from ada.applications.configuration_manager.workflows import (
+    NavigationManagerWorkflowAdapter,
     ToolManagerWorkflowAdapter,
     UsersManagerWorkflowAdapter,
 )
@@ -11,6 +12,10 @@ from ada.configuration.tools import (
 )
 from ada.contracts.tool_manifest import INTEGRATED_OPERATIONS_MANIFEST
 from atlanticus.web.manager import ProjectionState, resolve_projection_state
+from atlanticus.web.navigation.configuration import (
+    NavigationConfigurationCatalog,
+    NavigationLinkConfiguration,
+)
 from atlanticus.web.users.configuration import (
     UserConfiguration,
     UserProfileConfiguration,
@@ -44,6 +49,19 @@ def _users_catalog() -> UsersConfigurationCatalog:
                 display_name='Usuario Configurado',
                 email='configured@example.com',
                 profile_key='operador_planta',
+            ),
+        ),
+    )
+
+
+def _navigation_catalog() -> NavigationConfigurationCatalog:
+    return NavigationConfigurationCatalog(
+        links=(
+            NavigationLinkConfiguration(
+                key='home',
+                label='Inicio',
+                href='/',
+                allowed_profiles=('guest',),
             ),
         ),
     )
@@ -120,3 +138,24 @@ def test_local_dependencies_start_without_manifest_or_users_bootstrap(tmp_path) 
     assert dependencies.tools.projection.load() is None
     assert dependencies.users.administration.load_catalog() is None
     assert dependencies.users.projection.load_state() is None
+    assert dependencies.navigation.administration.load_catalog() is None
+    assert dependencies.navigation.projection.load() is None
+
+
+def test_navigation_adapter_exposes_draft_publish_projection_and_history(tmp_path) -> None:
+    dependencies = build_local_dependencies(runtime_root=tmp_path)
+    adapter = NavigationManagerWorkflowAdapter(dependencies.navigation)
+    payload = _navigation_catalog().to_document()
+
+    assert resolve_projection_state(adapter.get_status()) is ProjectionState.NO_SOURCE
+    validation = adapter.validate_draft(payload)
+    assert validation.valid
+
+    publication = adapter.publish_draft(payload, None)
+    assert publication.published
+    assert resolve_projection_state(adapter.get_status()) is ProjectionState.READY
+
+    projection = adapter.project(publication.source_revision)
+    assert projection.projected
+    assert resolve_projection_state(adapter.get_status()) is ProjectionState.SYNCHRONIZED
+    assert adapter.list_history()[0].revision == publication.source_revision

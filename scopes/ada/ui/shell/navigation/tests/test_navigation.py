@@ -8,7 +8,7 @@ from ada.ui.shell.navigation import (
     build_ada_navigation_offcanvas,
     create_ada_navigation_module,
 )
-from atlanticus.web.navigation import (
+from atlanticus.web.navigation.api import (
     NavigationGroup,
     NavigationLink,
     NavigationMenu,

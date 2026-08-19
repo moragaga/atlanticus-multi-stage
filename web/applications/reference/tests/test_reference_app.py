@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from atlanticus.web.navigation import NavigationDefinition
+from atlanticus.web.navigation.api import NavigationDefinition
 from atlanticus.web.services import ServiceRegistry
 from atlanticus_web_reference.application import build_definition
 from atlanticus_web_reference.navigation import build_reference_navigation

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dash import html, page_container
 
-from atlanticus.web.navigation import resolve_navigation_from_services
+from atlanticus.web.navigation.api import resolve_navigation_from_services
 from atlanticus.web.services import ServiceRegistry
 
 

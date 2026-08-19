@@ -1,5 +1,5 @@
 # Espejo comentado: definición de rutas de referencia para ADA.
-from atlanticus.web.navigation import (
+from atlanticus.web.navigation.api import (
     NavigationDefinition,
     NavigationGroupDefinition,
     NavigationLinkDefinition,

@@ -11,6 +11,7 @@ members = [
     "atlanticus-web-identity-local",
     "atlanticus-web-manager",
     "atlanticus-web-navigation",
+    "atlanticus-web-navigation-configuration",
     "atlanticus-web-observability",
     "atlanticus-web-reference",
     "atlanticus-web-users",
@@ -60,7 +61,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "atlanticus-web-identity", editable = "capabilities/identity/core" },
-    { name = "atlanticus-web-navigation", editable = "capabilities/navigation" },
+    { name = "atlanticus-web-navigation", editable = "capabilities/navigation/core" },
     { name = "atlanticus-web-users", editable = "capabilities/users/core" },
 ]
 
@@ -127,13 +128,35 @@ requires-dist = [
 [[package]]
 name = "atlanticus-web-navigation"
 version = "0.1.0"
-source = { editable = "capabilities/navigation" }
+source = { editable = "capabilities/navigation/core" }
 dependencies = [
     { name = "atlanticus-web" },
 ]
 
 [package.metadata]
 requires-dist = [{ name = "atlanticus-web", editable = "framework/core" }]
+
+[[package]]
+name = "atlanticus-web-navigation-configuration"
+version = "0.1.0"
+source = { editable = "capabilities/navigation/configuration" }
+dependencies = [
+    { name = "atlanticus-web-navigation" },
+]
+
+[package.optional-dependencies]
+web = [
+    { name = "atlanticus-web" },
+    { name = "dash" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "atlanticus-web", marker = "extra == 'web'", editable = "framework/core" },
+    { name = "atlanticus-web-navigation", editable = "capabilities/navigation/core" },
+    { name = "dash", marker = "extra == 'web'", specifier = "==4.4.1" },
+]
+provides-extras = ["web"]
 
 [[package]]
 name = "atlanticus-web-observability"
@@ -166,7 +189,7 @@ requires-dist = [
     { name = "atlanticus-web-composition-users-navigation", editable = "compositions/users-navigation" },
     { name = "atlanticus-web-identity-app-service", editable = "capabilities/identity/app-service" },
     { name = "atlanticus-web-identity-local", editable = "capabilities/identity/local" },
-    { name = "atlanticus-web-navigation", editable = "capabilities/navigation" },
+    { name = "atlanticus-web-navigation", editable = "capabilities/navigation/core" },
     { name = "atlanticus-web-users-local", editable = "capabilities/users/local" },
     { name = "gunicorn", specifier = "==26.0.0" },
 ]
@@ -258,6 +281,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "atlanticus-web-manager" },
+    { name = "atlanticus-web-navigation-configuration" },
     { name = "atlanticus-web-users-activity" },
     { name = "atlanticus-web-users-configuration" },
     { name = "atlanticus-web-users-cosmos" },
@@ -271,6 +295,7 @@ requires-dist = [{ name = "atlanticus-web-reference", editable = "applications/r
 [package.metadata.requires-dev]
 dev = [
     { name = "atlanticus-web-manager", editable = "capabilities/manager" },
+    { name = "atlanticus-web-navigation-configuration", editable = "capabilities/navigation/configuration" },
     { name = "atlanticus-web-users-activity", editable = "capabilities/users/activity" },
     { name = "atlanticus-web-users-configuration", editable = "capabilities/users/configuration" },
     { name = "atlanticus-web-users-cosmos", editable = "capabilities/users/cosmos" },

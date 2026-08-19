@@ -10,7 +10,7 @@ from atlanticus.web.compositions.users_navigation import (
 from atlanticus.web.identity.module import create_identity_module
 from atlanticus.web.index import IndexPageDefinition
 from atlanticus.web.models import ApplicationMetadata, WebApplicationDefinition
-from atlanticus.web.navigation import create_navigation_module
+from atlanticus.web.navigation.api import create_navigation_module
 from atlanticus.web.users.local import create_local_users_source
 from atlanticus.web.users.module import create_users_module
 from atlanticus.web.users.profiles import ProfileCatalog

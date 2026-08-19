@@ -9,7 +9,7 @@ from atlanticus.web.health import HealthRegistry
 from atlanticus.web.identity.access import ACCESS_RUNTIME_SERVICE_KEY, AccessRuntime
 from atlanticus.web.index import IndexContribution
 from atlanticus.web.modules import WebModule
-from atlanticus.web.navigation import resolve_navigation_from_services
+from atlanticus.web.navigation.api import resolve_navigation_from_services
 from atlanticus.web.services import ServiceRegistry
 from atlanticus.web.users.runtime import USERS_RUNTIME_SERVICE_KEY, UsersRuntime
 

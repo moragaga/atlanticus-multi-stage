@@ -1,5 +1,5 @@
 # Espejo comentado: definición global de navegación independiente del usuario.
-from atlanticus.web.navigation import (
+from atlanticus.web.navigation.api import (
     NavigationDefinition,
     NavigationGroupDefinition,
     NavigationLinkDefinition,

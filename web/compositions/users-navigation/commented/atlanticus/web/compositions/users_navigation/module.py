@@ -4,7 +4,7 @@ from __future__ import annotations
 from atlanticus.web.compositions.users_navigation.adapter import principal_from_effective_user
 from atlanticus.web.identity.access import ACCESS_RUNTIME_SERVICE_KEY, AccessRuntime
 from atlanticus.web.modules import WebModule
-from atlanticus.web.navigation import (
+from atlanticus.web.navigation.api import (
     NAVIGATION_PRINCIPAL_PROVIDER_SERVICE_KEY,
     NavigationPrincipalProvider,
 )

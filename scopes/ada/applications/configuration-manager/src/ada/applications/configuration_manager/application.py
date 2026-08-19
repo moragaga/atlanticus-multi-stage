@@ -8,6 +8,7 @@ from ada.applications.configuration_manager.dependencies import (
     ConfigurationManagerDependencies,
 )
 from ada.applications.configuration_manager.workflows import (
+    NavigationManagerWorkflowAdapter,
     ToolManagerWorkflowAdapter,
     UsersManagerWorkflowAdapter,
 )
@@ -41,7 +42,13 @@ from atlanticus.web.manager.web.ids import (
 )
 from atlanticus.web.models import ApplicationMetadata, DashSettings, WebApplicationRuntime
 from atlanticus.web.modules import WebModule
-from atlanticus.web.navigation import NavigationLink, NavigationMenu, NavigationUser
+from atlanticus.web.navigation.api import NavigationLink, NavigationMenu, NavigationUser
+from atlanticus.web.navigation.configuration import NavigationProfileOption
+from atlanticus.web.navigation.configuration.web import (
+    NavigationAdminWebContext,
+    build_navigation_admin_configuration,
+    create_navigation_admin_web_module,
+)
 from atlanticus.web.services import ServiceRegistry
 from atlanticus.web.users.configuration.web import (
     UsersAdminWebContext,
@@ -51,6 +58,7 @@ from atlanticus.web.users.configuration.web import (
 
 TOOLS_WORKFLOW_SERVICE = 'ada.configuration-manager.tools.workflow'
 USERS_WORKFLOW_SERVICE = 'ada.configuration-manager.users.workflow'
+NAVIGATION_WORKFLOW_SERVICE = 'ada.configuration-manager.navigation.workflow'
 CONFIGURATION_MANAGER_ASSET_LAYER = AssetLayer(
     name='ada_configuration_manager',
     load_order=900,
@@ -98,6 +106,17 @@ def build_configuration_manager_definition(
         can_manage=lambda: _can_manage_users(dependencies.principal_provider()),
         source_name=dependencies.users_source_name,
         projection_name=dependencies.users_projection_name,
+    )
+    navigation_context = NavigationAdminWebContext(
+        services=dependencies.navigation,
+        draft_store_id=workflow_draft_id('navigation'),
+        draft_save_action_id=workflow_action_id('navigation', 'save-draft'),
+        workflow_refresh_signal_id=workflow_refresh_signal_id('navigation'),
+        draft_owner_provider=lambda: dependencies.principal_provider().subject_id,
+        can_manage=lambda: _can_manage_navigation(dependencies.principal_provider()),
+        source_name=dependencies.navigation_source_name,
+        projection_name=dependencies.navigation_projection_name,
+        profile_options_provider=lambda: _navigation_profile_options(dependencies),
     )
     return ManagerApplicationDefinition(
         import_name='ada.applications.configuration_manager',
@@ -158,6 +177,27 @@ def build_configuration_manager_definition(
                 source_name=dependencies.users_source_name,
                 projection_name=dependencies.users_projection_name,
             ),
+            ManagerModule(
+                key='navigation',
+                group_key='configuration',
+                title='Navegación',
+                route='/navigation',
+                order=30,
+                description='Rutas, secciones y políticas de acceso de Navigation.',
+                layout=lambda _services: build_navigation_admin_configuration(navigation_context),
+                workflow_service=NAVIGATION_WORKFLOW_SERVICE,
+                access=ManagerModuleAccess(
+                    view='navigation.manage',
+                    validate='navigation.manage',
+                    project='navigation.manage',
+                    publish='navigation.manage',
+                ),
+                web_module=create_navigation_admin_web_module(navigation_context),
+                workflow_section_title='Estado y trazabilidad',
+                content_section_title='Navegación',
+                source_name=dependencies.navigation_source_name,
+                projection_name=dependencies.navigation_projection_name,
+            ),
         ),
         subtitle=(
             'Asistente de decisiones ágiles · '
@@ -196,6 +236,10 @@ def _register_services(
     services.add(
         USERS_WORKFLOW_SERVICE,
         UsersManagerWorkflowAdapter(dependencies.users),
+    )
+    services.add(
+        NAVIGATION_WORKFLOW_SERVICE,
+        NavigationManagerWorkflowAdapter(dependencies.navigation),
     )
 
 
@@ -277,4 +321,34 @@ def _can_manage_users(principal: ManagerPrincipal) -> bool:
         principal.is_local
         or 'administrator' in principal.profile_keys
         or 'users.manage' in principal.access_keys
+    )
+
+
+def _can_manage_navigation(principal: ManagerPrincipal) -> bool:
+    return (
+        principal.is_local
+        or 'administrator' in principal.profile_keys
+        or 'navigation.manage' in principal.access_keys
+    )
+
+
+def _navigation_profile_options(
+    dependencies: ConfigurationManagerDependencies,
+) -> tuple[NavigationProfileOption, ...]:
+    try:
+        users_catalog = dependencies.users.administration.load_catalog()
+        profile_catalog = users_catalog.profile_catalog() if users_catalog is not None else None
+    except Exception:
+        profile_catalog = None
+    if profile_catalog is None:
+        return ()
+    return tuple(
+        NavigationProfileOption(
+            key=profile.key,
+            label=profile.label,
+            unrestricted=profile.key in {'local', 'administrator'},
+            background_color=profile.background_color,
+            text_color=profile.text_color,
+        )
+        for profile in profile_catalog.all()
     )

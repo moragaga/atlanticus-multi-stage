@@ -4,7 +4,7 @@ from flask import Flask
 
 from atlanticus.web.assets import AssetLayer
 from atlanticus.web.modules import WebModule
-from atlanticus.web.navigation import resolve_navigation_from_services
+from atlanticus.web.navigation.api import resolve_navigation_from_services
 from atlanticus.web.services import ServiceRegistry
 
 

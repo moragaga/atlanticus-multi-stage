@@ -1,4 +1,3 @@
-# Construye adapters locales descartables para certificar Source, Projection y discovery.
 from __future__ import annotations
 
 import os
@@ -15,10 +14,17 @@ from ada.configuration.tools.adapters.file import (
     FileToolProjectionRepository,
     FileToolProjectionSettings,
 )
+from atlanticus.web.navigation.configuration import compose_navigation_configuration_services
+from atlanticus.web.navigation.configuration.adapters.file import (
+    FileNavigationConfigurationSettings,
+    FileNavigationConfigurationStore,
+    FileNavigationProjectionRepository,
+    FileNavigationProjectionSettings,
+)
 from atlanticus.web.users.configuration import (
-    DiscoveredUser,
     build_user_key,
     compose_users_configuration_services,
+    DiscoveredUser,
 )
 from atlanticus.web.users.configuration.adapters.file import (
     FileUsersConfigurationSettings,
@@ -28,7 +34,7 @@ from atlanticus.web.users.configuration.adapters.file import (
 from atlanticus.web.users.configuration.adapters.memory import MemoryDiscoveredUsersSource
 
 
-# build_local_dependencies: mantiene esta operación aislada y verificable.
+# Resuelve `build local dependencies` manteniendo validación y estado explícitos.
 def build_local_dependencies(
     *,
     runtime_root: str | Path | None = None,
@@ -60,18 +66,33 @@ def build_local_dependencies(
         discovered=users_discovered,
         audit_actor_provider=lambda: 'Administrador local',
     )
+    navigation_source = FileNavigationConfigurationStore(
+        FileNavigationConfigurationSettings(root=resolved_root / 'source' / 'navigation')
+    )
+    navigation_projection = FileNavigationProjectionRepository(
+        FileNavigationProjectionSettings(root=resolved_root / 'projection' / 'navigation')
+    )
+    navigation = compose_navigation_configuration_services(
+        source=navigation_source,
+        publisher=navigation_source,
+        projection=navigation_projection,
+        audit_actor_provider=lambda: 'Administrador local',
+    )
     return ConfigurationManagerDependencies(
         tools=tools,
         users=users,
+        navigation=navigation,
         principal_provider=local_manager_principal,
         tools_source_name='Archivo local',
         tools_projection_name='Archivo local',
         users_source_name='Archivo local',
         users_projection_name='Archivo local',
+        navigation_source_name='Archivo local',
+        navigation_projection_name='Archivo local',
     )
 
 
-# _preview_discovered_users: mantiene esta operación aislada y verificable.
+# Resuelve `preview discovered users` manteniendo validación y estado explícitos.
 def _preview_discovered_users() -> tuple[DiscoveredUser, ...]:
     identities = (
         (
@@ -101,7 +122,7 @@ def _preview_discovered_users() -> tuple[DiscoveredUser, ...]:
     )
 
 
-# _runtime_root: mantiene esta operación aislada y verificable.
+# Resuelve `runtime root` manteniendo validación y estado explícitos.
 def _runtime_root() -> Path:
     configured = os.environ.get('CONFIGURATION_RUNTIME_PATH')
     if configured:

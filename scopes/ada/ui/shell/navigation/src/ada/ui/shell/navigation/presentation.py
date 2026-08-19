@@ -10,7 +10,7 @@ from ada.ui.shell.navigation.constants import (
     ADA_PROJECTS_URL,
 )
 from ada.ui.shell.navigation.ids import AdaNavigationIds
-from atlanticus.web.navigation import (
+from atlanticus.web.navigation.api import (
     NavigationGroup,
     NavigationLink,
     NavigationMenu,

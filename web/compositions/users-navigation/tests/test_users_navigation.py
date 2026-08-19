@@ -5,7 +5,7 @@ from atlanticus.web.compositions.users_navigation import (
     validate_users_navigation_profiles,
 )
 from atlanticus.web.errors import WebDefinitionError
-from atlanticus.web.navigation import NavigationDefinition, NavigationLinkDefinition
+from atlanticus.web.navigation.api import NavigationDefinition, NavigationLinkDefinition
 from atlanticus.web.users.models import EffectiveUser
 from atlanticus.web.users.profiles import ProfileCatalog, ProfileDefinition
 

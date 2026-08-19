@@ -1,5 +1,3 @@
-# Espejo pedagógico del módulo productivo.
-# Los comentarios explican responsabilidades sin alterar estructura ni comportamiento.
 from __future__ import annotations
 
 from pathlib import Path
@@ -10,13 +8,14 @@ from ada.applications.configuration_manager.dependencies import (
     ConfigurationManagerDependencies,
 )
 from ada.applications.configuration_manager.workflows import (
+    NavigationManagerWorkflowAdapter,
     ToolManagerWorkflowAdapter,
     UsersManagerWorkflowAdapter,
 )
 from ada.configuration.tools.web import (
-    ToolAdminWebContext,
     build_tool_admin_configuration,
     create_tool_admin_web_module,
+    ToolAdminWebContext,
 )
 from ada.ui.framework.core import create_ada_ui_module
 from ada.ui.shell.navigation import (
@@ -43,16 +42,23 @@ from atlanticus.web.manager.web.ids import (
 )
 from atlanticus.web.models import ApplicationMetadata, DashSettings, WebApplicationRuntime
 from atlanticus.web.modules import WebModule
-from atlanticus.web.navigation import NavigationLink, NavigationMenu, NavigationUser
+from atlanticus.web.navigation.api import NavigationLink, NavigationMenu, NavigationUser
+from atlanticus.web.navigation.configuration import NavigationProfileOption
+from atlanticus.web.navigation.configuration.web import (
+    build_navigation_admin_configuration,
+    create_navigation_admin_web_module,
+    NavigationAdminWebContext,
+)
 from atlanticus.web.services import ServiceRegistry
 from atlanticus.web.users.configuration.web import (
-    UsersAdminWebContext,
     build_users_admin_configuration,
     create_users_admin_web_module,
+    UsersAdminWebContext,
 )
 
 TOOLS_WORKFLOW_SERVICE = 'ada.configuration-manager.tools.workflow'
 USERS_WORKFLOW_SERVICE = 'ada.configuration-manager.users.workflow'
+NAVIGATION_WORKFLOW_SERVICE = 'ada.configuration-manager.navigation.workflow'
 CONFIGURATION_MANAGER_ASSET_LAYER = AssetLayer(
     name='ada_configuration_manager',
     load_order=900,
@@ -63,7 +69,7 @@ ATLANTICUS_CINZEL_STYLESHEET = (
 )
 
 
-# Encapsula la operación create configuration manager application para mantener esta responsabilidad aislada.
+# Resuelve `create configuration manager application` manteniendo validación y estado explícitos.
 def create_configuration_manager_application(
     *,
     dependencies: ConfigurationManagerDependencies,
@@ -77,7 +83,7 @@ def create_configuration_manager_application(
     )
 
 
-# Encapsula la operación build configuration manager definition para mantener esta responsabilidad aislada.
+# Resuelve `build configuration manager definition` manteniendo validación y estado explícitos.
 def build_configuration_manager_definition(
     *,
     dependencies: ConfigurationManagerDependencies,
@@ -102,6 +108,17 @@ def build_configuration_manager_definition(
         can_manage=lambda: _can_manage_users(dependencies.principal_provider()),
         source_name=dependencies.users_source_name,
         projection_name=dependencies.users_projection_name,
+    )
+    navigation_context = NavigationAdminWebContext(
+        services=dependencies.navigation,
+        draft_store_id=workflow_draft_id('navigation'),
+        draft_save_action_id=workflow_action_id('navigation', 'save-draft'),
+        workflow_refresh_signal_id=workflow_refresh_signal_id('navigation'),
+        draft_owner_provider=lambda: dependencies.principal_provider().subject_id,
+        can_manage=lambda: _can_manage_navigation(dependencies.principal_provider()),
+        source_name=dependencies.navigation_source_name,
+        projection_name=dependencies.navigation_projection_name,
+        profile_options_provider=lambda: _navigation_profile_options(dependencies),
     )
     return ManagerApplicationDefinition(
         import_name='ada.applications.configuration_manager',
@@ -162,6 +179,29 @@ def build_configuration_manager_definition(
                 source_name=dependencies.users_source_name,
                 projection_name=dependencies.users_projection_name,
             ),
+            ManagerModule(
+                key='navigation',
+                group_key='configuration',
+                title='Navegación',
+                route='/navigation',
+                order=30,
+                description='Rutas, secciones y políticas de acceso de Navigation.',
+                layout=lambda _services: build_navigation_admin_configuration(
+                    navigation_context
+                ),
+                workflow_service=NAVIGATION_WORKFLOW_SERVICE,
+                access=ManagerModuleAccess(
+                    view='navigation.manage',
+                    validate='navigation.manage',
+                    project='navigation.manage',
+                    publish='navigation.manage',
+                ),
+                web_module=create_navigation_admin_web_module(navigation_context),
+                workflow_section_title='Estado y trazabilidad',
+                content_section_title='Navegación',
+                source_name=dependencies.navigation_source_name,
+                projection_name=dependencies.navigation_projection_name,
+            ),
         ),
         subtitle=(
             'Asistente de decisiones ágiles · '
@@ -189,7 +229,7 @@ def build_configuration_manager_definition(
     )
 
 
-# Encapsula la operación register services para mantener esta responsabilidad aislada.
+# Resuelve `register services` manteniendo validación y estado explícitos.
 def _register_services(
     services: ServiceRegistry,
     dependencies: ConfigurationManagerDependencies,
@@ -202,9 +242,13 @@ def _register_services(
         USERS_WORKFLOW_SERVICE,
         UsersManagerWorkflowAdapter(dependencies.users),
     )
+    services.add(
+        NAVIGATION_WORKFLOW_SERVICE,
+        NavigationManagerWorkflowAdapter(dependencies.navigation),
+    )
 
 
-# Encapsula la operación build brand para mantener esta responsabilidad aislada.
+# Resuelve `build brand` manteniendo validación y estado explícitos.
 def _build_brand() -> ManagerBrand:
     root = f'/assets/{CONFIGURATION_MANAGER_ASSET_LAYER.target_name}/img'
     return ManagerBrand(
@@ -231,7 +275,7 @@ def _build_brand() -> ManagerBrand:
     )
 
 
-# Encapsula la operación build navigation triggers para mantener esta responsabilidad aislada.
+# Resuelve `build navigation triggers` manteniendo validación y estado explícitos.
 def _build_navigation_triggers() -> object:
     return html.Div(
         [
@@ -242,7 +286,7 @@ def _build_navigation_triggers() -> object:
     )
 
 
-# Encapsula la operación build navigation menu para mantener esta responsabilidad aislada.
+# Resuelve `build navigation menu` manteniendo validación y estado explícitos.
 def _build_navigation_menu(principal: ManagerPrincipal) -> NavigationMenu:
     return NavigationMenu(
         user=NavigationUser(
@@ -265,7 +309,7 @@ def _build_navigation_menu(principal: ManagerPrincipal) -> NavigationMenu:
     )
 
 
-# Encapsula la operación avatar text para mantener esta responsabilidad aislada.
+# Resuelve `avatar text` manteniendo validación y estado explícitos.
 def _avatar_text(display_name: str) -> str:
     words = [word for word in display_name.split() if word]
     if not words:
@@ -273,7 +317,7 @@ def _avatar_text(display_name: str) -> str:
     return ''.join(word[0].upper() for word in words[:2])
 
 
-# Encapsula la operación can manage tools para mantener esta responsabilidad aislada.
+# Resuelve `can manage tools` manteniendo validación y estado explícitos.
 def _can_manage_tools(principal: ManagerPrincipal) -> bool:
     return (
         principal.is_local
@@ -282,10 +326,46 @@ def _can_manage_tools(principal: ManagerPrincipal) -> bool:
     )
 
 
-# Encapsula la operación can manage users para mantener esta responsabilidad aislada.
+# Resuelve `can manage users` manteniendo validación y estado explícitos.
 def _can_manage_users(principal: ManagerPrincipal) -> bool:
     return (
         principal.is_local
         or 'administrator' in principal.profile_keys
         or 'users.manage' in principal.access_keys
+    )
+
+
+# Resuelve `can manage navigation` manteniendo validación y estado explícitos.
+def _can_manage_navigation(principal: ManagerPrincipal) -> bool:
+    return (
+        principal.is_local
+        or 'administrator' in principal.profile_keys
+        or 'navigation.manage' in principal.access_keys
+    )
+
+
+# Resuelve `navigation profile options` manteniendo validación y estado explícitos.
+def _navigation_profile_options(
+    dependencies: ConfigurationManagerDependencies,
+) -> tuple[NavigationProfileOption, ...]:
+    try:
+        users_catalog = dependencies.users.administration.load_catalog()
+        profile_catalog = (
+            users_catalog.profile_catalog()
+            if users_catalog is not None
+            else None
+        )
+    except Exception:
+        profile_catalog = None
+    if profile_catalog is None:
+        return ()
+    return tuple(
+        NavigationProfileOption(
+            key=profile.key,
+            label=profile.label,
+            unrestricted=profile.key in {'local', 'administrator'},
+            background_color=profile.background_color,
+            text_color=profile.text_color,
+        )
+        for profile in profile_catalog.all()
     )
