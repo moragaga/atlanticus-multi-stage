@@ -1,5 +1,9 @@
 from atlanticus.web.users.activity.adapters import (
+    COSMOS_USER_ACTIVITY_PAYLOAD_PATH,
+    COSMOS_USER_ACTIVITY_RECORD_TYPE,
+    COSMOS_USER_ACTIVITY_STORAGE_SCHEMA_VERSION,
     CosmosUserActivityClient,
+    CosmosUserActivityPatchOperationFactory,
     CosmosUserActivityRepository,
     CosmosUserActivitySettings,
     InMemoryUserActivityRepository,
@@ -34,7 +38,11 @@ from atlanticus.web.users.activity.services import UserActivityService
 
 __all__ = [
     'ActivityRouteIdentity',
+    'COSMOS_USER_ACTIVITY_PAYLOAD_PATH',
+    'COSMOS_USER_ACTIVITY_RECORD_TYPE',
+    'COSMOS_USER_ACTIVITY_STORAGE_SCHEMA_VERSION',
     'CosmosUserActivityClient',
+    'CosmosUserActivityPatchOperationFactory',
     'CosmosUserActivityRepository',
     'CosmosUserActivitySettings',
     'InMemoryUserActivityRepository',

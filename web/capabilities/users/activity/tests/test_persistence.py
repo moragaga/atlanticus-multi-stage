@@ -1,8 +1,13 @@
+from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any
 
 import pytest
 
 from atlanticus.web.users.activity import (
+    COSMOS_USER_ACTIVITY_PAYLOAD_PATH,
+    COSMOS_USER_ACTIVITY_RECORD_TYPE,
+    COSMOS_USER_ACTIVITY_STORAGE_SCHEMA_VERSION,
     ActivityRouteIdentity,
     CosmosUserActivityRepository,
     InMemoryUserActivityRepository,
@@ -12,7 +17,7 @@ from atlanticus.web.users.activity import (
     UserActivityEventType,
     Viewport,
 )
-from atlanticus.web.users.activity.errors import UsersActivityConflictError
+from atlanticus.web.users.activity.errors import UsersActivityConflictError, UsersActivityError
 from atlanticus.web.users.models import EffectiveUser
 from atlanticus.web.users.profiles import ProfileDefinition
 
@@ -21,12 +26,24 @@ class CosmosConflictError(Exception):
     pass
 
 
+class CosmosPreconditionFailedError(Exception):
+    pass
+
+
+@dataclass(frozen=True, slots=True)
+class CosmosPatchOperation:
+    operation: str
+    path: str
+    value: Any = None
+
+
 class CosmosClient:
     def __init__(self) -> None:
         self.document = None
         self.etag = '1'
         self.fail_create = False
-        self.fail_replace = False
+        self.fail_patch = False
+        self.last_operations = ()
 
     def find_item(
         self,
@@ -52,24 +69,30 @@ class CosmosClient:
         self.document = dict(item)
         return dict(item)
 
-    def replace_item(
+    def patch_item(
         self,
         *,
         container_name,
         item_id,
         partition_key,
-        item,
+        operations,
         if_match_etag=None,
         include_metadata=False,
     ):
         assert container_name == 'user_activity'
-        assert item_id == partition_key == item['id']
+        assert item_id == partition_key == self.document['id']
         assert if_match_etag == self.etag
-        if self.fail_replace:
-            raise CosmosConflictError()
-        self.document = dict(item)
+        if self.fail_patch:
+            raise CosmosPreconditionFailedError()
+        self.last_operations = tuple(operations)
+        assert len(self.last_operations) == 1
+        operation = self.last_operations[0]
+        assert isinstance(operation, CosmosPatchOperation)
+        assert operation.operation == 'set'
+        assert operation.path == COSMOS_USER_ACTIVITY_PAYLOAD_PATH
+        self.document['payload'] = dict(operation.value)
         self.etag = str(int(self.etag) + 1)
-        return dict(item)
+        return dict(self.document)
 
 
 def _user() -> EffectiveUser:
@@ -109,6 +132,13 @@ def _document() -> UserActivityDocument:
     )
 
 
+def _cosmos_repository(client: CosmosClient) -> CosmosUserActivityRepository[CosmosPatchOperation]:
+    return CosmosUserActivityRepository(
+        client=client,
+        patch_operation_factory=CosmosPatchOperation,
+    )
+
+
 def test_activity_document_round_trips_persisted_schema() -> None:
     document = _document()
 
@@ -135,26 +165,70 @@ def test_memory_repository_uses_optimistic_concurrency() -> None:
         repository.replace(document, etag=etag)
 
 
-def test_cosmos_repository_uses_id_partition_and_etag() -> None:
+def test_cosmos_repository_uses_storage_envelope_id_partition_patch_and_etag() -> None:
     client = CosmosClient()
-    repository = CosmosUserActivityRepository(client=client)
+    repository = _cosmos_repository(client)
     document = _document()
 
     repository.create(document)
+
+    assert client.document['id'] == document.id
+    assert client.document['type'] == COSMOS_USER_ACTIVITY_RECORD_TYPE
+    assert client.document['storage_schema_version'] == COSMOS_USER_ACTIVITY_STORAGE_SCHEMA_VERSION
+    assert client.document['payload'] == document.to_document()
+    assert client.document['payload']['schema_version'] == 3
+
     found = repository.find(document.id)
 
     assert found is not None
     restored, etag = found
     assert restored == document
     assert etag == '1'
+
     repository.replace(restored, etag=etag)
+
     assert client.etag == '2'
+    assert len(client.last_operations) == 1
+    assert client.last_operations[0] == CosmosPatchOperation(
+        operation='set',
+        path='/payload',
+        value=document.to_document(),
+    )
+    assert client.document['id'] == document.id
+    assert client.document['type'] == COSMOS_USER_ACTIVITY_RECORD_TYPE
+    assert client.document['storage_schema_version'] == COSMOS_USER_ACTIVITY_STORAGE_SCHEMA_VERSION
 
 
-def test_cosmos_repository_maps_concurrency_errors() -> None:
+def test_cosmos_repository_maps_create_concurrency_errors() -> None:
     client = CosmosClient()
     client.fail_create = True
-    repository = CosmosUserActivityRepository(client=client)
+    repository = _cosmos_repository(client)
 
     with pytest.raises(UsersActivityConflictError):
         repository.create(_document())
+
+
+def test_cosmos_repository_maps_patch_concurrency_errors() -> None:
+    client = CosmosClient()
+    repository = _cosmos_repository(client)
+    document = _document()
+    repository.create(document)
+    client.fail_patch = True
+
+    with pytest.raises(UsersActivityConflictError):
+        repository.replace(document, etag='1')
+
+
+def test_cosmos_repository_rejects_invalid_storage_envelope() -> None:
+    client = CosmosClient()
+    repository = _cosmos_repository(client)
+    document = _document()
+    client.document = {
+        'id': document.id,
+        'type': 'invalid',
+        'storage_schema_version': COSMOS_USER_ACTIVITY_STORAGE_SCHEMA_VERSION,
+        'payload': document.to_document(),
+    }
+
+    with pytest.raises(UsersActivityError, match='record type is invalid'):
+        repository.find(document.id)
