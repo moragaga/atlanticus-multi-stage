@@ -22,6 +22,10 @@ from atlanticus.web.navigation.configuration.projection import (
     NavigationConfigurationProjection,
     NavigationProjectionIssue,
 )
+from atlanticus.web.navigation.configuration.runtime import (
+    create_projected_navigation_definition_provider,
+    create_projected_navigation_module,
+)
 from atlanticus.web.navigation.configuration.services import (
     NavigationAdministrationService,
     NavigationConfigurationServices,
@@ -48,6 +52,8 @@ __all__ = [
     'NavigationProjectionWorkflow',
     'build_navigation_configuration_digest',
     'compose_navigation_configuration_services',
+    'create_projected_navigation_definition_provider',
+    'create_projected_navigation_module',
     'decode_navigation_configuration_import',
     'decode_navigation_configuration_source',
     'encode_navigation_configuration_bundle',

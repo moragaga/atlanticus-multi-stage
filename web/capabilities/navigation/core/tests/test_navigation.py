@@ -4,9 +4,10 @@ import pytest
 
 from atlanticus.web.errors import ServiceRegistryError, WebDefinitionError
 from atlanticus.web.navigation.api import (
-    NAVIGATION_DEFINITION_SERVICE_KEY,
+    NAVIGATION_DEFINITION_PROVIDER_SERVICE_KEY,
     NAVIGATION_PRINCIPAL_PROVIDER_SERVICE_KEY,
     NavigationDefinition,
+    NavigationDefinitionProvider,
     NavigationGroupDefinition,
     NavigationLinkDefinition,
     NavigationPrincipal,
@@ -213,7 +214,11 @@ def test_navigation_module_registers_definition_without_principal_provider() -> 
     assert module.name == 'navigation'
     assert module.register_services is not None
     module.register_services(services)
-    assert services.require(NAVIGATION_DEFINITION_SERVICE_KEY, NavigationDefinition) is definition
+    provider = services.require(
+        NAVIGATION_DEFINITION_PROVIDER_SERVICE_KEY,
+        NavigationDefinitionProvider,
+    )
+    assert provider.current() is definition
     assert not services.contains(NAVIGATION_PRINCIPAL_PROVIDER_SERVICE_KEY)
 
 

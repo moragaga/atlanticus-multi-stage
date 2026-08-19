@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from atlanticus.web.navigation.definition import (
+    NAVIGATION_DEFINITION_PROVIDER_SERVICE_KEY,
+    NavigationDefinitionProvider,
+)
 from atlanticus.web.navigation.models import (
     NavigationDefinition,
     NavigationGroup,
@@ -13,8 +17,6 @@ from atlanticus.web.navigation.principal import (
     NavigationPrincipalProvider,
 )
 from atlanticus.web.services import ServiceRegistry
-
-NAVIGATION_DEFINITION_SERVICE_KEY = 'atlanticus.web.navigation.definition'
 
 
 def resolve_navigation(
@@ -46,12 +48,18 @@ def resolve_navigation(
 
 
 def resolve_navigation_from_services(services: ServiceRegistry) -> NavigationMenu:
-    definition = services.require(NAVIGATION_DEFINITION_SERVICE_KEY, NavigationDefinition)
-    provider = services.require(
+    definition_provider = services.require(
+        NAVIGATION_DEFINITION_PROVIDER_SERVICE_KEY,
+        NavigationDefinitionProvider,
+    )
+    principal_provider = services.require(
         NAVIGATION_PRINCIPAL_PROVIDER_SERVICE_KEY,
         NavigationPrincipalProvider,
     )
-    return resolve_navigation(definition, principal=provider.current())
+    return resolve_navigation(
+        definition_provider.current(),
+        principal=principal_provider.current(),
+    )
 
 
 def _can_open(

@@ -113,6 +113,10 @@ def _build_server(
     def callback():
         return {'ok': True}
 
+    @server.get('/.auth/logout')
+    def logout():
+        return 'logout'
+
     return server, services
 
 
@@ -153,7 +157,8 @@ def test_invalid_identity_returns_neutral_page_without_second_resolution(
     response = server.test_client().get('/', headers={'Accept': 'text/html'})
 
     assert response.status_code == 401
-    assert 'Credenciales no válidas' in response.get_data(as_text=True)
+    assert 'No fue posible iniciar sesión' in response.get_data(as_text=True)
+    assert 'Reintentar' in response.get_data(as_text=True)
     assert provider.calls == 1
 
 
@@ -165,7 +170,8 @@ def test_disabled_user_returns_neutral_page(monkeypatch, tmp_path: Path) -> None
     response = server.test_client().get('/', headers={'Accept': 'text/html'})
 
     assert response.status_code == 403
-    assert 'Usuario deshabilitado' in response.get_data(as_text=True)
+    assert 'Usuario desactivado' in response.get_data(as_text=True)
+    assert 'no tiene acceso a esta aplicación' in response.get_data(as_text=True)
     assert provider.calls == 1
     assert resolver.calls == 1
 
@@ -180,8 +186,9 @@ def test_provider_unavailable_is_not_reported_as_invalid_credentials(
     response = server.test_client().get('/', headers={'Accept': 'text/html'})
 
     assert response.status_code == 503
-    assert 'Servicio no disponible' in response.get_data(as_text=True)
-    assert 'Credenciales no válidas' not in response.get_data(as_text=True)
+    assert 'No fue posible iniciar sesión' in response.get_data(as_text=True)
+    assert 'servicio de identidad no está disponible' in response.get_data(as_text=True)
+    assert 'Reintentar' in response.get_data(as_text=True)
 
 
 def test_rejected_access_short_circuits_later_middlewares(monkeypatch, tmp_path: Path) -> None:
@@ -198,7 +205,8 @@ def test_rejected_access_short_circuits_later_middlewares(monkeypatch, tmp_path:
     response = server.test_client().get('/', headers={'Accept': 'text/html'})
 
     assert response.status_code == 401
-    assert 'Credenciales no válidas' in response.get_data(as_text=True)
+    assert 'No fue posible iniciar sesión' in response.get_data(as_text=True)
+    assert 'Reintentar' in response.get_data(as_text=True)
     assert provider.calls == 1
     assert later_middleware_calls == 0
 
@@ -268,4 +276,69 @@ def test_access_resolver_unavailable_returns_service_unavailable(
     response = server.test_client().get('/', headers={'Accept': 'text/html'})
 
     assert response.status_code == 503
-    assert 'Servicio no disponible' in response.get_data(as_text=True)
+    assert 'No fue posible iniciar sesión' in response.get_data(as_text=True)
+    assert 'Reintentar' in response.get_data(as_text=True)
+
+
+def test_disabled_user_short_circuits_later_middlewares(monkeypatch, tmp_path: Path) -> None:
+    server, _ = _build_server(
+        monkeypatch,
+        tmp_path,
+        CountingProvider(),
+        CountingResolver(disabled=True),
+    )
+    later_middleware_calls = 0
+
+    @server.before_request
+    def operational_middleware():
+        nonlocal later_middleware_calls
+        later_middleware_calls += 1
+        raise AssertionError('Operational middleware must not run for disabled users')
+
+    response = server.test_client().get('/', headers={'Accept': 'text/html'})
+
+    assert response.status_code == 403
+    assert 'Usuario desactivado' in response.get_data(as_text=True)
+    assert later_middleware_calls == 0
+
+
+def test_disabled_snapshot_blocks_follow_up_api_without_second_resolution(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    provider = CountingProvider()
+    resolver = CountingResolver(disabled=True)
+    server, _ = _build_server(monkeypatch, tmp_path, provider, resolver)
+    client = server.test_client()
+
+    page_response = client.get('/', headers={'Accept': 'text/html'})
+    api_response = client.get('/api/snapshot')
+
+    assert page_response.status_code == 403
+    assert api_response.status_code == 403
+    assert 'Usuario desactivado' in api_response.get_data(as_text=True)
+    assert provider.calls == 1
+    assert resolver.calls == 1
+
+
+def test_invalid_identity_blocks_direct_api_request(monkeypatch, tmp_path: Path) -> None:
+    provider = CountingProvider(mode='invalid')
+    server, _ = _build_server(monkeypatch, tmp_path, provider, CountingResolver())
+
+    response = server.test_client().get('/api/snapshot')
+
+    assert response.status_code == 401
+    assert 'No fue posible iniciar sesión' in response.get_data(as_text=True)
+    assert 'Reintentar' in response.get_data(as_text=True)
+    assert provider.calls == 1
+
+
+def test_platform_auth_route_is_not_intercepted(monkeypatch, tmp_path: Path) -> None:
+    provider = CountingProvider(mode='invalid')
+    server, _ = _build_server(monkeypatch, tmp_path, provider, CountingResolver())
+
+    response = server.test_client().get('/.auth/logout')
+
+    assert response.status_code == 200
+    assert response.get_data(as_text=True) == 'logout'
+    assert provider.calls == 0

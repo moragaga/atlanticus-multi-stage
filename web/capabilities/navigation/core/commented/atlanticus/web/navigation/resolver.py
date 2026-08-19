@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from atlanticus.web.navigation.definition import (
+    NAVIGATION_DEFINITION_PROVIDER_SERVICE_KEY,
+    NavigationDefinitionProvider,
+)
 from atlanticus.web.navigation.models import (
     NavigationDefinition,
     NavigationGroup,
@@ -14,10 +18,8 @@ from atlanticus.web.navigation.principal import (
 )
 from atlanticus.web.services import ServiceRegistry
 
-NAVIGATION_DEFINITION_SERVICE_KEY = 'atlanticus.web.navigation.definition'
 
-
-# Resuelve `resolve navigation` manteniendo validación y estado explícitos.
+# Filtra la definición completa según el principal efectivo y produce el menú visible.
 def resolve_navigation(
     definition: NavigationDefinition,
     *,
@@ -46,17 +48,22 @@ def resolve_navigation(
     )
 
 
-# Resuelve `resolve navigation from services` manteniendo validación y estado explícitos.
+# Resuelve definición y principal desde servicios para permitir fuentes manuales o proyectadas.
 def resolve_navigation_from_services(services: ServiceRegistry) -> NavigationMenu:
-    definition = services.require(NAVIGATION_DEFINITION_SERVICE_KEY, NavigationDefinition)
-    provider = services.require(
+    definition_provider = services.require(
+        NAVIGATION_DEFINITION_PROVIDER_SERVICE_KEY,
+        NavigationDefinitionProvider,
+    )
+    principal_provider = services.require(
         NAVIGATION_PRINCIPAL_PROVIDER_SERVICE_KEY,
         NavigationPrincipalProvider,
     )
-    return resolve_navigation(definition, principal=provider.current())
+    return resolve_navigation(
+        definition_provider.current(),
+        principal=principal_provider.current(),
+    )
 
 
-# Resuelve `can open` manteniendo validación y estado explícitos.
 def _can_open(
     allowed_profiles: tuple[str, ...],
     principal: NavigationPrincipal,
@@ -66,11 +73,9 @@ def _can_open(
     return principal.access_key in allowed_profiles
 
 
-# Resuelve `link sort key` manteniendo validación y estado explícitos.
 def _link_sort_key(link: NavigationLinkDefinition) -> tuple[int, str, str]:
     return (link.order, link.label, link.key)
 
 
-# Resuelve `group sort key` manteniendo validación y estado explícitos.
 def _group_sort_key(group: NavigationGroupDefinition) -> tuple[int, str, str]:
     return (group.order, group.label, group.key)

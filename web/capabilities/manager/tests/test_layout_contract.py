@@ -51,7 +51,7 @@ def test_header_keeps_atlanticus_identity_without_duplicate_user_identity() -> N
     assert "for role in ('framework', 'organization')" in layout
     assert 'principal.display_name' not in layout
     assert '.atlanticus-manager__brand-supporting' in css
-    assert 'font-family: var(--atlanticus-manager-font-brand)' in css
+    assert 'font-family: var(--atlanticus-manager-font-brand) !important' in css
 
 
 def test_traceability_is_grouped_as_a_four_stage_pipeline() -> None:
