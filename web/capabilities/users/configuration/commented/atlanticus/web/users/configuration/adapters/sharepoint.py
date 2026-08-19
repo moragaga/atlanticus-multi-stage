@@ -1,10 +1,9 @@
 from __future__ import annotations
-
-# Espejo pedagógico: Implementa el dominio administrativo genérico de Users: draft validable, Source versionado, proyección y adapters.
+# El store conoce operaciones de archivo SharePoint, no el POST físico de Power Automate.
 
 import base64
-from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from typing import Protocol
 
 from atlanticus.web.users.configuration.bundle import (
     UsersConfigurationBundle,
@@ -17,7 +16,12 @@ from atlanticus.web.users.configuration.errors import (
     UsersConfigurationSourceError,
 )
 
-JsonPostOperation = Callable[[dict[str, object]], object]
+
+# Contrato estructural local para mantener la capability independiente de la composition HTTP.
+class SharePointFileGateway(Protocol):
+    def read(self, *, filename: str, relative_path: str) -> str | None: ...
+
+    def write(self, *, filename: str, relative_path: str, content: str) -> None: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,10 +40,10 @@ class SharePointUsersConfigurationStore:
     def __init__(
         self,
         *,
-        post_json: JsonPostOperation,
+        gateway: SharePointFileGateway,
         settings: SharePointUsersConfigurationSettings,
     ) -> None:
-        self._post_json = post_json
+        self._gateway = gateway
         self._settings = settings
 
     def fetch_bundle(self) -> UsersConfigurationBundle | None:
@@ -85,39 +89,25 @@ class SharePointUsersConfigurationStore:
                 'SharePoint users configuration content is invalid'
             ) from error
 
+    # La lectura delega la semántica SharePoint al gateway inyectado.
     def _fetch_content(self) -> str | None:
         try:
-            response = self._post_json(
-                {
-                    'filename': self._settings.filename,
-                    'relative_path': self._settings.relative_path,
-                }
+            return self._gateway.read(
+                filename=self._settings.filename,
+                relative_path=self._settings.relative_path,
             )
         except Exception as error:
             raise UsersConfigurationSourceError(
                 'Could not load users configuration from SharePoint'
             ) from error
-        if not isinstance(response, Mapping):
-            raise UsersConfigurationSourceError(
-                'SharePoint users configuration response must be an object'
-            )
-        content = response.get('content')
-        if content is None:
-            return None
-        if not isinstance(content, str):
-            raise UsersConfigurationSourceError(
-                'SharePoint users configuration content must be text'
-            )
-        return content.strip() or None
 
+    # La escritura no conoce método HTTP, endpoint ni autenticación.
     def _write_content(self, content: str) -> None:
         try:
-            self._post_json(
-                {
-                    'filename': self._settings.filename,
-                    'relative_path': self._settings.relative_path,
-                    'content': content,
-                }
+            self._gateway.write(
+                filename=self._settings.filename,
+                relative_path=self._settings.relative_path,
+                content=content,
             )
         except Exception as error:
             raise UsersConfigurationPublisherError(

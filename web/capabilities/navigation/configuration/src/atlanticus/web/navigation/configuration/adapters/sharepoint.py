@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import base64
-from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from typing import Protocol
 
 from atlanticus.web.navigation.configuration.bundle import (
     NavigationConfigurationBundle,
@@ -15,7 +15,11 @@ from atlanticus.web.navigation.configuration.errors import (
     NavigationConfigurationSourceError,
 )
 
-JsonPostOperation = Callable[[dict[str, object]], object]
+
+class SharePointFileGateway(Protocol):
+    def read(self, *, filename: str, relative_path: str) -> str | None: ...
+
+    def write(self, *, filename: str, relative_path: str, content: str) -> None: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,10 +38,10 @@ class SharePointNavigationConfigurationStore:
     def __init__(
         self,
         *,
-        post_json: JsonPostOperation,
+        gateway: SharePointFileGateway,
         settings: SharePointNavigationConfigurationSettings,
     ) -> None:
-        self._post_json = post_json
+        self._gateway = gateway
         self._settings = settings
 
     def fetch_bundle(self) -> NavigationConfigurationBundle | None:
@@ -87,37 +91,21 @@ class SharePointNavigationConfigurationStore:
 
     def _fetch_content(self) -> str | None:
         try:
-            response = self._post_json(
-                {
-                    'filename': self._settings.filename,
-                    'relative_path': self._settings.relative_path,
-                }
+            return self._gateway.read(
+                filename=self._settings.filename,
+                relative_path=self._settings.relative_path,
             )
         except Exception as error:
             raise NavigationConfigurationSourceError(
                 'Could not load navigation configuration from SharePoint'
             ) from error
-        if not isinstance(response, Mapping):
-            raise NavigationConfigurationSourceError(
-                'SharePoint navigation configuration response must be an object'
-            )
-        content = response.get('content')
-        if content is None:
-            return None
-        if not isinstance(content, str):
-            raise NavigationConfigurationSourceError(
-                'SharePoint navigation configuration content must be text'
-            )
-        return content.strip() or None
 
     def _write_content(self, content: str) -> None:
         try:
-            self._post_json(
-                {
-                    'filename': self._settings.filename,
-                    'relative_path': self._settings.relative_path,
-                    'content': content,
-                }
+            self._gateway.write(
+                filename=self._settings.filename,
+                relative_path=self._settings.relative_path,
+                content=content,
             )
         except Exception as error:
             raise NavigationConfigurationPublisherError(

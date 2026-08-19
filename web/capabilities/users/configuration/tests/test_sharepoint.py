@@ -7,19 +7,25 @@ from atlanticus.web.users.configuration.adapters import (
 )
 
 
-def test_sharepoint_uses_same_generic_read_write_operation() -> None:
-    stored = {'content': None}
-    calls = []
+class FakeSharePointGateway:
+    def __init__(self) -> None:
+        self.files: dict[tuple[str, str], str] = {}
+        self.reads: list[tuple[str, str]] = []
+        self.writes: list[tuple[str, str, str]] = []
 
-    def post_json(payload: dict[str, object]):
-        calls.append(dict(payload))
-        if 'content' in payload:
-            stored['content'] = payload['content']
-            return {'ok': True}
-        return {'content': stored['content']}
+    def read(self, *, filename: str, relative_path: str) -> str | None:
+        self.reads.append((relative_path, filename))
+        return self.files.get((relative_path, filename))
 
+    def write(self, *, filename: str, relative_path: str, content: str) -> None:
+        self.writes.append((relative_path, filename, content))
+        self.files[(relative_path, filename)] = content
+
+
+def test_sharepoint_store_uses_semantic_read_write_gateway() -> None:
+    gateway = FakeSharePointGateway()
     store = SharePointUsersConfigurationStore(
-        post_json=post_json,
+        gateway=gateway,
         settings=SharePointUsersConfigurationSettings(),
     )
     bundle = UsersConfigurationBundle.create(
@@ -34,6 +40,8 @@ def test_sharepoint_uses_same_generic_read_write_operation() -> None:
     loaded = store.fetch_bundle()
 
     assert loaded.revision == bundle.revision
-    assert base64.b64decode(stored['content'])[:2] == b'\x1f\x8b'
-    assert {call['relative_path'] for call in calls} == {'users'}
-    assert {call['filename'] for call in calls} == {'users_configuration.json.gz'}
+    assert base64.b64decode(gateway.writes[0][2])[:2] == b'\x1f\x8b'
+    assert set(gateway.reads) == {('users', 'users_configuration.json.gz')}
+    assert {(path, filename) for path, filename, _ in gateway.writes} == {
+        ('users', 'users_configuration.json.gz')
+    }

@@ -13,6 +13,7 @@ dependencies = [
 dev = [
     "atlanticus-web-navigation-configuration==0.1.0",
     "atlanticus-web-composition-navigation-activity==0.1.0",
+    "atlanticus-web-composition-sharepoint-http==0.1.0",
     "atlanticus-web-users-cosmos==0.1.0",
     "atlanticus-web-users-configuration==0.1.0",
     "atlanticus-web-users-activity==0.1.0",
@@ -39,6 +40,7 @@ atlanticus-web-users-activity = { workspace = true }
 atlanticus-web-navigation = { workspace = true }
 atlanticus-web-navigation-configuration = { workspace = true }
 atlanticus-web-composition-navigation-activity = { workspace = true }
+atlanticus-web-composition-sharepoint-http = { workspace = true }
 atlanticus-web-composition-users-navigation = { workspace = true }
 atlanticus-web-manager = { workspace = true }
 
@@ -49,6 +51,7 @@ members = [
     "capabilities/navigation/core",
     "capabilities/navigation/configuration",
     "compositions/navigation-activity",
+    "compositions/sharepoint-http",
     "compositions/users-navigation",
     "capabilities/manager",
     "capabilities/identity/core",
@@ -92,6 +95,7 @@ testpaths = [
     "capabilities/navigation/core/tests",
     "capabilities/navigation/configuration/tests",
     "compositions/navigation-activity/tests",
+    "compositions/sharepoint-http/tests",
     "compositions/users-navigation/tests",
     "capabilities/manager/tests",
     "capabilities/identity/core/tests",

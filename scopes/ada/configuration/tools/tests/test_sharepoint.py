@@ -12,18 +12,19 @@ from ada.configuration.tools.adapters.sharepoint import (
 from ada.contracts.tool_manifest import INTEGRATED_OPERATIONS_MANIFEST
 
 
-class FakeSharePointOperation:
+class FakeSharePointGateway:
     def __init__(self) -> None:
         self.files: dict[tuple[str, str], str] = {}
-        self.requests: list[dict[str, object]] = []
+        self.reads: list[tuple[str, str]] = []
+        self.writes: list[tuple[str, str, str]] = []
 
-    def __call__(self, payload: dict[str, object]) -> dict[str, object]:
-        self.requests.append(dict(payload))
-        key = (str(payload['relative_path']), str(payload['filename']))
-        if 'content' in payload:
-            self.files[key] = str(payload['content'])
-            return {'ok': True}
-        return {'content': self.files.get(key)}
+    def read(self, *, filename: str, relative_path: str) -> str | None:
+        self.reads.append((relative_path, filename))
+        return self.files.get((relative_path, filename))
+
+    def write(self, *, filename: str, relative_path: str, content: str) -> None:
+        self.writes.append((relative_path, filename, content))
+        self.files[(relative_path, filename)] = content
 
 
 def _catalog() -> ToolConfigurationCatalog:
@@ -32,10 +33,10 @@ def _catalog() -> ToolConfigurationCatalog:
     )
 
 
-def test_sharepoint_uses_one_get_post_location_for_current_and_versions() -> None:
-    operation = FakeSharePointOperation()
+def test_sharepoint_uses_one_read_write_location_for_current_and_versions() -> None:
+    gateway = FakeSharePointGateway()
     settings = SharePointToolConfigurationSettings()
-    store = SharePointToolConfigurationStore(post_json=operation, settings=settings)
+    store = SharePointToolConfigurationStore(gateway=gateway, settings=settings)
     first = ToolConfigurationBundle.create(catalog=_catalog(), saved_by='Admin A')
     changed = replace(first.catalog.tools[0], display_name='Operaciones Integradas MLP')
     second = ToolConfigurationBundle.create(
@@ -47,27 +48,27 @@ def test_sharepoint_uses_one_get_post_location_for_current_and_versions() -> Non
     store.publish_bundle(second)
 
     expected_key = (settings.relative_path, settings.filename)
-    assert set(operation.files) == {expected_key}
+    assert set(gateway.files) == {expected_key}
     assert [bundle.revision for bundle in store.list_history()] == [
         second.revision,
         first.revision,
     ]
     assert store.fetch_revision(first.revision).catalog == first.catalog
-    assert all(request['relative_path'] == settings.relative_path for request in operation.requests)
-    assert all(request['filename'] == settings.filename for request in operation.requests)
+    assert all(read == expected_key for read in gateway.reads)
+    assert all(write[:2] == expected_key for write in gateway.writes)
 
 
 def test_sharepoint_does_not_duplicate_identical_published_content() -> None:
-    operation = FakeSharePointOperation()
+    gateway = FakeSharePointGateway()
     settings = SharePointToolConfigurationSettings()
-    store = SharePointToolConfigurationStore(post_json=operation, settings=settings)
+    store = SharePointToolConfigurationStore(gateway=gateway, settings=settings)
     first = ToolConfigurationBundle.create(catalog=_catalog(), saved_by='Admin A')
     same_content = ToolConfigurationBundle.create(catalog=_catalog(), saved_by='Admin B')
 
     store.publish_bundle(first)
-    writes_before = sum('content' in request for request in operation.requests)
+    writes_before = len(gateway.writes)
     store.publish_bundle(same_content)
-    writes_after = sum('content' in request for request in operation.requests)
+    writes_after = len(gateway.writes)
 
     assert writes_after == writes_before
     assert store.list_history() == (first,)

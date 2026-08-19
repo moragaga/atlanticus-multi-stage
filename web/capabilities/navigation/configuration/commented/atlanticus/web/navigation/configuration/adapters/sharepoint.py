@@ -1,9 +1,9 @@
-# Espejo pedagógico: Source SharePoint mediante la operación POST genérica de Power Automate.
 from __future__ import annotations
+# El store conoce operaciones de archivo SharePoint, no el POST físico de Power Automate.
 
 import base64
-from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from typing import Protocol
 
 from atlanticus.web.navigation.configuration.bundle import (
     NavigationConfigurationBundle,
@@ -16,7 +16,12 @@ from atlanticus.web.navigation.configuration.errors import (
     NavigationConfigurationSourceError,
 )
 
-JsonPostOperation = Callable[[dict[str, object]], object]
+
+# Contrato estructural local para mantener la capability independiente de la composition HTTP.
+class SharePointFileGateway(Protocol):
+    def read(self, *, filename: str, relative_path: str) -> str | None: ...
+
+    def write(self, *, filename: str, relative_path: str, content: str) -> None: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,10 +40,10 @@ class SharePointNavigationConfigurationStore:
     def __init__(
         self,
         *,
-        post_json: JsonPostOperation,
+        gateway: SharePointFileGateway,
         settings: SharePointNavigationConfigurationSettings,
     ) -> None:
-        self._post_json = post_json
+        self._gateway = gateway
         self._settings = settings
 
     def fetch_bundle(self) -> NavigationConfigurationBundle | None:
@@ -55,9 +60,9 @@ class SharePointNavigationConfigurationStore:
             )
             if current == updated:
                 return
-            content = base64.b64encode(
-                encode_navigation_configuration_source(updated)
-            ).decode('ascii')
+            content = base64.b64encode(encode_navigation_configuration_source(updated)).decode(
+                'ascii'
+            )
             self._write_content(content)
         except (NavigationConfigurationPublisherError, NavigationConfigurationSourceError):
             raise
@@ -86,39 +91,25 @@ class SharePointNavigationConfigurationStore:
                 'SharePoint navigation configuration content is invalid'
             ) from error
 
+    # La lectura delega la semántica SharePoint al gateway inyectado.
     def _fetch_content(self) -> str | None:
         try:
-            response = self._post_json(
-                {
-                    'filename': self._settings.filename,
-                    'relative_path': self._settings.relative_path,
-                }
+            return self._gateway.read(
+                filename=self._settings.filename,
+                relative_path=self._settings.relative_path,
             )
         except Exception as error:
             raise NavigationConfigurationSourceError(
                 'Could not load navigation configuration from SharePoint'
             ) from error
-        if not isinstance(response, Mapping):
-            raise NavigationConfigurationSourceError(
-                'SharePoint navigation configuration response must be an object'
-            )
-        content = response.get('content')
-        if content is None:
-            return None
-        if not isinstance(content, str):
-            raise NavigationConfigurationSourceError(
-                'SharePoint navigation configuration content must be text'
-            )
-        return content.strip() or None
 
+    # La escritura no conoce método HTTP, endpoint ni autenticación.
     def _write_content(self, content: str) -> None:
         try:
-            self._post_json(
-                {
-                    'filename': self._settings.filename,
-                    'relative_path': self._settings.relative_path,
-                    'content': content,
-                }
+            self._gateway.write(
+                filename=self._settings.filename,
+                relative_path=self._settings.relative_path,
+                content=content,
             )
         except Exception as error:
             raise NavigationConfigurationPublisherError(
