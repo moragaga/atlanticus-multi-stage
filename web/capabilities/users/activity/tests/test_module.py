@@ -7,6 +7,7 @@ from atlanticus.web.users.activity import (
     USER_ACTIVITY_ASSET_LAYER,
     USER_ACTIVITY_COSMOS_REQUIREMENTS,
     InMemoryUserActivityRepository,
+    UserActivityEvent,
     create_user_activity_module,
 )
 from atlanticus.web.users.models import EffectiveUser
@@ -108,4 +109,11 @@ def test_browser_collector_captures_navigation_visibility_and_screen() -> None:
     assert "wrapHistory('pushState')" in script
     assert "wrapHistory('replaceState')" in script
     assert 'window.devicePixelRatio' in script
-    assert 'client_timestamp_utc' in script
+    assert 'client_timestamp_utc' not in script
+
+
+def test_user_activity_event_ignores_legacy_client_timestamp() -> None:
+    event = UserActivityEvent.from_payload(_payload())
+
+    assert event.event_id == 'event-1'
+    assert not hasattr(event, 'client_timestamp_utc')

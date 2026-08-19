@@ -157,3 +157,52 @@ def test_activity_refreshes_profile_without_resetting_session_state() -> None:
     assert document.initial_pathname == initial_document.initial_pathname
     assert document.page_views == initial_document.page_views
     assert document.active_seconds == 10
+
+
+def test_activity_uses_backend_time_and_ignores_legacy_client_timestamp() -> None:
+    repository = Repository()
+    service = UserActivityService(
+        repository=repository,
+        application_key='ada',
+        route_resolver=RouteResolver(),
+    )
+    started = datetime(2026, 8, 18, 12, 0, tzinfo=UTC)
+
+    register = UserActivityEvent.from_payload(
+        {
+            'event_id': 'event-1',
+            'client_session_id': 'session-1',
+            'sequence': 1,
+            'event_type': 'register',
+            'pathname': '/',
+            'visibility_state': 'visible',
+            'viewport': {'width': 1440, 'height': 900},
+            'screen': {'width': 1920, 'height': 1080, 'pixel_ratio': 1},
+            'client_timestamp_utc': '1999-01-01T00:00:00Z',
+        }
+    )
+    heartbeat = UserActivityEvent.from_payload(
+        {
+            'event_id': 'event-2',
+            'client_session_id': 'session-1',
+            'sequence': 2,
+            'event_type': 'heartbeat',
+            'pathname': '/',
+            'visibility_state': 'visible',
+            'viewport': {'width': 1440, 'height': 900},
+            'screen': {'width': 1920, 'height': 1080, 'pixel_ratio': 1},
+            'client_timestamp_utc': '2099-01-01T00:00:00Z',
+        }
+    )
+
+    service.track(user=_user(), event=register, now=started)
+    service.track(
+        user=_user(),
+        event=heartbeat,
+        now=started + timedelta(seconds=10),
+    )
+
+    document = repository.value
+    assert document.first_seen_at_utc == started
+    assert document.last_seen_at_utc == started + timedelta(seconds=10)
+    assert document.active_seconds == 10

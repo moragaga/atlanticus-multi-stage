@@ -123,7 +123,6 @@ class UserActivityEvent:
     visibility_state: str
     viewport: Viewport
     screen: Screen
-    client_timestamp_utc: datetime | None = None
 
     def __post_init__(self) -> None:
         if not self.event_id.strip():
@@ -163,7 +162,6 @@ class UserActivityEvent:
             visibility_state=str(payload.get('visibility_state') or 'visible'),
             viewport=Viewport.from_value(payload.get('viewport')),
             screen=Screen.from_value(payload.get('screen')),
-            client_timestamp_utc=_parse_optional_datetime(payload.get('client_timestamp_utc')),
         )
 
 

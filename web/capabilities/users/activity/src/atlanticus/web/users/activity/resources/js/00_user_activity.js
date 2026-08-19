@@ -68,8 +68,7 @@
         previous_pathname: previousPathname,
         visibility_state: document.visibilityState === 'hidden' ? 'hidden' : 'visible',
         viewport: getViewport(),
-        screen: getScreen(),
-        client_timestamp_utc: new Date().toISOString()
+        screen: getScreen()
     });
 
     const sendBeacon = (payload) => {
