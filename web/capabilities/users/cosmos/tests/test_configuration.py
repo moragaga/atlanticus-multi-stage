@@ -13,6 +13,7 @@ from atlanticus.web.users.cosmos import (
 class Client:
     def __init__(self) -> None:
         self.items = {}
+        self.query_calls = []
 
     def health_check(self) -> bool:
         return True
@@ -25,17 +26,32 @@ class Client:
         self.items[key] = dict(item)
         return dict(item)
 
-    def query_items(self, *, container_name, query, parameters):
-        values = {item['name']: item['value'] for item in parameters}
+    def query_items(
+        self,
+        *,
+        container_name,
+        query,
+        parameters=None,
+        cross_partition=False,
+    ):
+        self.query_calls.append(
+            {
+                'container_name': container_name,
+                'query': query,
+                'parameters': parameters,
+                'cross_partition': cross_partition,
+            }
+        )
+        values = {item['name']: item['value'] for item in parameters or ()}
         origin = values.get('@origin')
-        return [
+        return tuple(
             item
             for (container, _, _), item in self.items.items()
             if container == container_name
             and item.get('type') == values.get('@type')
             and item.get('origin') == origin
             and (origin != 'identity' or item.get('pending') is True)
-        ]
+        )
 
 
 def test_cosmos_projection_writes_profiles_users_lookups_and_state() -> None:
@@ -116,6 +132,7 @@ def test_discovered_source_reads_identity_pending_users() -> None:
     assert len(users) == 1
     assert users[0].user_id == 'user:pending'
     assert users[0].email == 'pending@example.com'
+    assert client.query_calls[-1]['cross_partition'] is True
 
 
 def test_cosmos_projection_disables_users_removed_from_source() -> None:
@@ -153,3 +170,4 @@ def test_cosmos_projection_disables_users_removed_from_source() -> None:
     )
     assert old['enabled'] is False
     assert old['source_revision'] == second.revision
+    assert client.query_calls[-1]['cross_partition'] is True

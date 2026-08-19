@@ -2,6 +2,7 @@
 # Los comentarios explican responsabilidades sin alterar estructura ni comportamiento.
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Protocol
@@ -15,14 +16,15 @@ from atlanticus.web.users.cosmos.keys import (
     identity_lookup_key,
 )
 from atlanticus.web.users.cosmos.models import (
+    USERS_COSMOS_SCHEMA_VERSION,
     ProfileCatalogDocument,
     UserDocument,
     UserLookupDocument,
-    USERS_COSMOS_SCHEMA_VERSION,
 )
 
 
 # Define CosmosUsersConfigurationClient como frontera explícita del módulo y valida su contrato.
+# Replica el subconjunto estable de CosmosClient usado por proyección/configuración.
 class CosmosUsersConfigurationClient(Protocol):
     def health_check(self) -> bool: ...
 
@@ -38,7 +40,7 @@ class CosmosUsersConfigurationClient(Protocol):
         self,
         *,
         container_name: str,
-        item: dict[str, Any],
+        item: Mapping[str, Any],
     ) -> dict[str, Any]: ...
 
     def query_items(
@@ -46,8 +48,9 @@ class CosmosUsersConfigurationClient(Protocol):
         *,
         container_name: str,
         query: str,
-        parameters: list[dict[str, object]],
-    ) -> list[dict[str, Any]]: ...
+        parameters: Sequence[Mapping[str, Any]] | None = None,
+        cross_partition: bool = False,
+    ) -> tuple[dict[str, Any], ...]: ...
 
 
 # Define CosmosUsersConfigurationSettings como frontera explícita del módulo y valida su contrato.
@@ -141,6 +144,7 @@ class CosmosUsersProjectionRepository:
         bundle: UsersConfigurationBundle,
         configured_ids: set[str],
     ) -> None:
+        # Los usuarios viven en múltiples particiones; el scope debe declararse explícitamente.
         documents = self._client.query_items(
             container_name=self._settings.users_container,
             query='SELECT * FROM c WHERE c.type = @type AND c.origin = @origin',
@@ -148,6 +152,7 @@ class CosmosUsersProjectionRepository:
                 {'name': '@type', 'value': 'user'},
                 {'name': '@origin', 'value': 'projection'},
             ],
+            cross_partition=True,
         )
         for document in documents:
             user_id = str(document.get('user_id') or '')
@@ -270,6 +275,7 @@ class CosmosDiscoveredUsersSource:
 
     def list_discovered(self) -> tuple[DiscoveredUser, ...]:
         try:
+            # Los usuarios descubiertos también requieren lectura cross-partition explícita.
             documents = self._client.query_items(
                 container_name=self._settings.users_container,
                 query=(
@@ -280,6 +286,7 @@ class CosmosDiscoveredUsersSource:
                     {'name': '@type', 'value': 'user'},
                     {'name': '@origin', 'value': 'identity'},
                 ],
+                cross_partition=True,
             )
         except Exception as error:
             raise UsersConfigurationProjectionError(

@@ -1,3 +1,4 @@
+from atlanticus.web.users.cosmos.adapter import CosmosUsersGatewayAdapter
 from atlanticus.web.users.cosmos.configuration import (
     CosmosDiscoveredUsersSource,
     CosmosUsersConfigurationSettings,
@@ -12,6 +13,7 @@ __all__ = [
     'CosmosDiscoveredUsersSource',
     'CosmosProfileCatalog',
     'CosmosUsersConfigurationSettings',
+    'CosmosUsersGatewayAdapter',
     'CosmosUsersProjectionRepository',
     'USERS_COSMOS_REQUIREMENTS',
     'UsersCosmosGateway',

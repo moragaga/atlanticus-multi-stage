@@ -1,3 +1,4 @@
+from atlanticus.web.users.cosmos.adapter import CosmosUsersGatewayAdapter
 # Espejo pedagógico: Expone la fuente runtime Cosmos y los adapters de proyección/configuración sin acoplar consumidores a detalles internos.
 
 from atlanticus.web.users.cosmos.configuration import (
@@ -14,6 +15,7 @@ __all__ = [
     'CosmosDiscoveredUsersSource',
     'CosmosProfileCatalog',
     'CosmosUsersConfigurationSettings',
+    'CosmosUsersGatewayAdapter',
     'CosmosUsersProjectionRepository',
     'USERS_COSMOS_REQUIREMENTS',
     'UsersCosmosGateway',

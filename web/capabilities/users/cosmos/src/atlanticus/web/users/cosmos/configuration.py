@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Protocol
@@ -35,7 +36,7 @@ class CosmosUsersConfigurationClient(Protocol):
         self,
         *,
         container_name: str,
-        item: dict[str, Any],
+        item: Mapping[str, Any],
     ) -> dict[str, Any]: ...
 
     def query_items(
@@ -43,8 +44,9 @@ class CosmosUsersConfigurationClient(Protocol):
         *,
         container_name: str,
         query: str,
-        parameters: list[dict[str, object]],
-    ) -> list[dict[str, Any]]: ...
+        parameters: Sequence[Mapping[str, Any]] | None = None,
+        cross_partition: bool = False,
+    ) -> tuple[dict[str, Any], ...]: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -143,6 +145,7 @@ class CosmosUsersProjectionRepository:
                 {'name': '@type', 'value': 'user'},
                 {'name': '@origin', 'value': 'projection'},
             ],
+            cross_partition=True,
         )
         for document in documents:
             user_id = str(document.get('user_id') or '')
@@ -274,6 +277,7 @@ class CosmosDiscoveredUsersSource:
                     {'name': '@type', 'value': 'user'},
                     {'name': '@origin', 'value': 'identity'},
                 ],
+                cross_partition=True,
             )
         except Exception as error:
             raise UsersConfigurationProjectionError(
