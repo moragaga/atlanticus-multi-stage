@@ -28,6 +28,10 @@ from ada.configuration.tools.projection import (
     ToolProjectionSummaryItem,
     ToolSourcePublicationResult,
 )
+from ada.configuration.tools.requirements import (
+    TOOL_COSMOS_REQUIREMENTS,
+    ToolCosmosContainerRequirement,
+)
 from ada.configuration.tools.services import (
     ToolAdministrationService,
     ToolConfigurationServices,
@@ -44,7 +48,9 @@ __all__ = [
     'ToolConfigurationKind',
     'ToolConfigurationProjection',
     'ToolConfigurationServices',
+    'TOOL_COSMOS_REQUIREMENTS',
     'ToolConfigurationSourceDocument',
+    'ToolCosmosContainerRequirement',
     'ToolDraftValidationResult',
     'ToolProjectionAuditRecord',
     'ToolProjectionExecutionResult',

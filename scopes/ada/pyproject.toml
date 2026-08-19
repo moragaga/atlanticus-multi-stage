@@ -8,6 +8,7 @@ classifiers = [
 dependencies = [
     "ada-application-reference==0.1.0",
     "ada-composition-web-application==0.1.0",
+    "ada-composition-web-bootstrap==0.1.0",
     "ada-application-configuration-manager==0.1.0",
     "ada-composition-process==0.1.0",
     "ada-composition-integrated-operations==0.1.0",
@@ -24,6 +25,7 @@ package = false
 
 [tool.uv.sources]
 ada-composition-web-application = { workspace = true }
+ada-composition-web-bootstrap = { workspace = true }
 ada-composition-integrated-operations = { workspace = true }
 ada-composition-process = { workspace = true }
 ada-application-reference = { workspace = true }
@@ -56,6 +58,15 @@ atlanticus-web-users = { path = "../../web/capabilities/users/core", editable = 
 atlanticus-web-users-activity = { path = "../../web/capabilities/users/activity", editable = true }
 atlanticus-web-users-local = { path = "../../web/capabilities/users/local", editable = true }
 atlanticus-web-users-configuration = { path = "../../web/capabilities/users/configuration", editable = true }
+atlanticus-web-composition-runtime-infrastructure = { path = "../../web/compositions/runtime-infrastructure", editable = true }
+atlanticus-web-composition-sharepoint-http = { path = "../../web/compositions/sharepoint-http", editable = true }
+atlanticus-web-users-cosmos = { path = "../../web/capabilities/users/cosmos", editable = true }
+atlanticus-web-navigation-configuration = { path = "../../web/capabilities/navigation/configuration", editable = true }
+atlanticus-kernel = { path = "../../backend/kernel", editable = true }
+atlanticus-observability = { path = "../../backend/observability", editable = true }
+atlanticus-configuration = { path = "../../backend/configuration", editable = true }
+atlanticus-cosmos = { path = "../../connectivity/cosmos", editable = true }
+atlanticus-http = { path = "../../connectivity/http-client", editable = true }
 
 [tool.uv.workspace]
 members = [
@@ -63,6 +74,7 @@ members = [
     "configuration/tools",
     "runtime/web",
     "compositions/web-application",
+    "compositions/web-bootstrap",
     "compositions/process",
     "compositions/integrated-operations",
     "ui/framework/core",
@@ -113,6 +125,7 @@ testpaths = [
     "configuration/tools/tests",
     "runtime/web/tests",
     "compositions/web-application/tests",
+    "compositions/web-bootstrap/tests",
     "compositions/process/tests",
     "compositions/integrated-operations/tests",
     "ui/framework/core/tests",

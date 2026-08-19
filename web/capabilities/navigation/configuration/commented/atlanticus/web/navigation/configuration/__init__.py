@@ -22,6 +22,10 @@ from atlanticus.web.navigation.configuration.projection import (
     NavigationConfigurationProjection,
     NavigationProjectionIssue,
 )
+from atlanticus.web.navigation.configuration.requirements import (
+    NAVIGATION_COSMOS_REQUIREMENTS,
+    NavigationCosmosContainerRequirement,
+)
 from atlanticus.web.navigation.configuration.runtime import (
     create_projected_navigation_definition_provider,
     create_projected_navigation_module,
@@ -39,10 +43,12 @@ __all__ = [
     'NavigationConfigurationBundle',
     'NavigationConfigurationCatalog',
     'NavigationConfigurationProjection',
+    'NAVIGATION_COSMOS_REQUIREMENTS',
     'NavigationConfigurationPublisher',
     'NavigationConfigurationServices',
     'NavigationConfigurationSource',
     'NavigationConfigurationSourceDocument',
+    'NavigationCosmosContainerRequirement',
     'NavigationConfigurationValidator',
     'NavigationGroupConfiguration',
     'NavigationLinkConfiguration',
