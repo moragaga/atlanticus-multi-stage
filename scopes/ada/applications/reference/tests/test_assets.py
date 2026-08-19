@@ -19,9 +19,13 @@ def test_reference_assets_are_gallery_only() -> None:
     assert '.reference-ada__header' not in stylesheet
 
 
-def test_reference_does_not_depend_on_tool_compositions() -> None:
+def test_reference_depends_only_on_transversal_ada_composition() -> None:
     pyproject_path = Path(__file__).parents[1] / 'pyproject.toml'
     pyproject = tomllib.loads(pyproject_path.read_text())
     dependencies = pyproject['project']['dependencies']
 
-    assert not any(dependency.startswith('ada-composition-') for dependency in dependencies)
+    composition_dependencies = [
+        dependency for dependency in dependencies if dependency.startswith('ada-composition-')
+    ]
+
+    assert composition_dependencies == ['ada-composition-web-application==0.1.0']

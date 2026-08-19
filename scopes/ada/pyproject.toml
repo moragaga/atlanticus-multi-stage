@@ -7,6 +7,7 @@ classifiers = [
 ]
 dependencies = [
     "ada-application-reference==0.1.0",
+    "ada-composition-web-application==0.1.0",
     "ada-application-configuration-manager==0.1.0",
     "ada-composition-process==0.1.0",
     "ada-composition-integrated-operations==0.1.0",
@@ -22,6 +23,7 @@ dev = [
 package = false
 
 [tool.uv.sources]
+ada-composition-web-application = { workspace = true }
 ada-composition-integrated-operations = { workspace = true }
 ada-composition-process = { workspace = true }
 ada-application-reference = { workspace = true }
@@ -46,10 +48,12 @@ atlanticus-web = { path = "../../web/framework/core", editable = true }
 atlanticus-web-manager = { path = "../../web/capabilities/manager", editable = true }
 atlanticus-web-observability = { path = "../../web/framework/observability", editable = true }
 atlanticus-web-navigation = { path = "../../web/capabilities/navigation/core", editable = true }
+atlanticus-web-composition-navigation-activity = { path = "../../web/compositions/navigation-activity", editable = true }
 atlanticus-web-composition-users-navigation = { path = "../../web/compositions/users-navigation", editable = true }
 atlanticus-web-identity = { path = "../../web/capabilities/identity/core", editable = true }
 atlanticus-web-identity-local = { path = "../../web/capabilities/identity/local", editable = true }
 atlanticus-web-users = { path = "../../web/capabilities/users/core", editable = true }
+atlanticus-web-users-activity = { path = "../../web/capabilities/users/activity", editable = true }
 atlanticus-web-users-local = { path = "../../web/capabilities/users/local", editable = true }
 atlanticus-web-users-configuration = { path = "../../web/capabilities/users/configuration", editable = true }
 
@@ -58,6 +62,7 @@ members = [
     "contracts/tool-manifest",
     "configuration/tools",
     "runtime/web",
+    "compositions/web-application",
     "compositions/process",
     "compositions/integrated-operations",
     "ui/framework/core",
@@ -107,6 +112,7 @@ testpaths = [
     "contracts/tool-manifest/tests",
     "configuration/tools/tests",
     "runtime/web/tests",
+    "compositions/web-application/tests",
     "compositions/process/tests",
     "compositions/integrated-operations/tests",
     "ui/framework/core/tests",

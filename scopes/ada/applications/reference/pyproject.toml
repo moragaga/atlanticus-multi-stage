@@ -10,6 +10,7 @@ classifiers = [
     "Private :: Do Not Upload",
 ]
 dependencies = [
+    "ada-composition-web-application==0.1.0",
     "ada-contracts-tool-manifest==0.1.0",
     "ada-runtime-web==0.1.0",
     "ada-ui-component-branding==0.1.0",
@@ -27,13 +28,15 @@ dependencies = [
     "ada-ui-shell-time-status==0.1.0",
     "atlanticus-web==0.1.0",
     "atlanticus-web-navigation==0.1.0",
-    "atlanticus-web-composition-users-navigation==0.1.0",
     "atlanticus-web-identity-local==0.1.0",
+    "atlanticus-web-users==0.1.0",
+    "atlanticus-web-users-activity==0.1.0",
     "atlanticus-web-users-local==0.1.0",
     "gunicorn==26.0.0",
 ]
 
 [tool.uv.sources]
+ada-composition-web-application = { workspace = true }
 ada-runtime-web = { workspace = true }
 ada-contracts-tool-manifest = { workspace = true }
 ada-ui-component-branding = { workspace = true }

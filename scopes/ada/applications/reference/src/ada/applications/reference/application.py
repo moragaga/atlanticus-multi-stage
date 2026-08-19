@@ -12,6 +12,7 @@ from ada.applications.reference.layout import build_layout
 from ada.applications.reference.module import create_reference_module
 from ada.applications.reference.navigation import build_reference_navigation
 from ada.applications.reference.runtime import create_reference_runtime_module
+from ada.compositions.web_application import create_ada_application_modules
 from ada.contracts.tool_manifest import ToolManifestResolution
 from ada.features.alarms import create_ada_alarms_module
 from ada.ui.components.component_card import create_ada_component_card_module
@@ -27,22 +28,13 @@ from ada.ui.shell.header import create_ada_header_module
 from ada.ui.shell.navigation import create_ada_navigation_module
 from ada.ui.shell.time_status import create_ada_time_status_module
 from atlanticus.web.application import create_web_application
-from atlanticus.web.compositions.users_navigation import (
-    create_users_navigation_module,
-    validate_users_navigation_profiles,
-)
 from atlanticus.web.identity.local import create_local_identity_provider
-from atlanticus.web.identity.module import create_identity_module
 from atlanticus.web.index import IndexPageDefinition
 from atlanticus.web.models import ApplicationMetadata, WebApplicationDefinition
-from atlanticus.web.navigation.api import (
-    create_navigation_authorization_module,
-    create_navigation_module,
-)
+from atlanticus.web.navigation.api import NavigationDefinitionProvider
+from atlanticus.web.users.activity import InMemoryUserActivityRepository
 from atlanticus.web.users.local import create_local_users_source
-from atlanticus.web.users.module import create_users_module
 from atlanticus.web.users.profiles import ProfileCatalog
-from atlanticus.web.users.resolver import UsersAccessResolver
 from atlanticus.web.users.runtime import UsersRuntime
 
 
@@ -55,26 +47,24 @@ def build_definition(
         if tool_manifest_resolution is None
         else tool_manifest_resolution
     )
+    metadata = ApplicationMetadata(
+        application_id='ada-ui-reference',
+        display_name='ADA UI',
+        version='0.1.0',
+    )
     dashboard_catalog = build_reference_dashboard_catalog()
     profiles = ProfileCatalog()
-    users_runtime = UsersRuntime()
-    users_resolver = UsersAccessResolver(
-        source=create_local_users_source(),
-        runtime=users_runtime,
-        profiles=profiles,
+    modules = list(
+        create_ada_application_modules(
+            metadata=metadata,
+            identity_provider=create_local_identity_provider(),
+            users_source=create_local_users_source(),
+            users_runtime=UsersRuntime(),
+            profiles=profiles,
+            navigation_provider=NavigationDefinitionProvider(build_reference_navigation),
+            activity_repository=InMemoryUserActivityRepository(),
+        )
     )
-    navigation = build_reference_navigation()
-    validate_users_navigation_profiles(navigation, profiles)
-    modules = [
-        create_users_module(users_runtime, profiles),
-        create_identity_module(
-            create_local_identity_provider(),
-            access_resolver=users_resolver,
-        ),
-        create_navigation_module(navigation),
-        create_users_navigation_module(),
-        create_navigation_authorization_module(),
-    ]
     if resolution.ready:
         modules.extend(
             [
@@ -104,11 +94,7 @@ def build_definition(
 
     return WebApplicationDefinition(
         import_name='ada.applications.reference',
-        metadata=ApplicationMetadata(
-            application_id='ada-ui-reference',
-            display_name='ADA UI',
-            version='0.1.0',
-        ),
+        metadata=metadata,
         publications_root=Path.cwd() / '.runtime' / 'assets',
         layout=partial(build_layout, tool_manifest_resolution=resolution),
         modules=tuple(modules),

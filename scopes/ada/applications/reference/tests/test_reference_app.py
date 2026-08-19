@@ -16,6 +16,7 @@ from ada.ui.shell.navigation import ADA_NAVIGATION_ASSET_LAYER
 from ada.ui.shell.time_status import ADA_TIME_STATUS_ASSET_LAYER
 from atlanticus.web.navigation.api import NavigationDefinition
 from atlanticus.web.services import ServiceRegistry
+from atlanticus.web.users.activity import USER_ACTIVITY_ASSET_LAYER
 
 
 def test_reference_composes_runtime_and_transversal_components_in_order() -> None:
@@ -30,6 +31,7 @@ def test_reference_composes_runtime_and_transversal_components_in_order() -> Non
         'navigation',
         'users-navigation',
         'navigation-authorization',
+        'user-activity',
         'ada-runtime',
         'ada-ui',
         'ada-navigation',
@@ -47,6 +49,7 @@ def test_reference_composes_runtime_and_transversal_components_in_order() -> Non
     )
     assert modules['navigation'].asset_layers == ()
     assert modules['users-navigation'].asset_layers == ()
+    assert modules['user-activity'].asset_layers == (USER_ACTIVITY_ASSET_LAYER,)
     assert modules['ada-runtime'].asset_layers == ()
     assert modules['ada-ui'].asset_layers == (ADA_UI_ASSET_LAYER,)
     assert modules['ada-navigation'].asset_layers == (ADA_NAVIGATION_ASSET_LAYER,)
@@ -114,6 +117,7 @@ def test_reference_degrades_to_ready_configuration_wrapper(resolution, cover, me
         'navigation',
         'users-navigation',
         'navigation-authorization',
+        'user-activity',
         'ada-ui',
         'ada-state-wrapper',
         'reference',

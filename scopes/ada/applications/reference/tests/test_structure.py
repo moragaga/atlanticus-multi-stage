@@ -37,3 +37,7 @@ def test_integrated_operations_layout_no_longer_owns_full_tool_view() -> None:
         except ModuleNotFoundError:
             spec = None
         assert spec is None
+
+
+def test_web_application_composition_is_exposed_outside_tools() -> None:
+    assert find_spec('ada.compositions.web_application') is not None
