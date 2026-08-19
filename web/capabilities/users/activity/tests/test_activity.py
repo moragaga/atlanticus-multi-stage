@@ -43,15 +43,19 @@ class Repository:
         self.etag = str(int(self.etag) + 1)
 
 
-def _user(*, is_local: bool = False) -> EffectiveUser:
-    profile = ProfileDefinition(key='operator', label='Operador', background_color='#123456')
+def _user(*, profile_key: str = 'operator', is_local: bool = False) -> EffectiveUser:
+    profile = ProfileDefinition(
+        key=profile_key,
+        label=profile_key.title(),
+        background_color='#123456',
+    )
     return EffectiveUser(
         user_id='user:1',
         subject_id='entra:1',
         display_name='User One',
         email='one@example.com',
         enabled=True,
-        pending=False,
+        pending=profile_key == 'guest',
         avatar_text='UO',
         profile=profile,
         is_local=is_local,
@@ -120,7 +124,7 @@ def test_local_users_are_not_tracked() -> None:
     assert repository.value is None
 
 
-def test_activity_keeps_profile_resolution_that_started_the_session() -> None:
+def test_activity_refreshes_profile_without_resetting_session_state() -> None:
     repository = Repository()
     service = UserActivityService(
         repository=repository,
@@ -128,31 +132,28 @@ def test_activity_keeps_profile_resolution_that_started_the_session() -> None:
         route_resolver=RouteResolver(),
     )
     started = datetime(2026, 8, 18, 12, 0, tzinfo=UTC)
-    initial = _user()
-    changed = EffectiveUser(
-        user_id=initial.user_id,
-        subject_id=initial.subject_id,
-        display_name=initial.display_name,
-        email=initial.email,
-        enabled=True,
-        pending=False,
-        avatar_text=initial.avatar_text,
-        profile=ProfileDefinition(
-            key='supervisor',
-            label='Supervisor',
-            background_color='#654321',
-        ),
-    )
+    initial = _user(profile_key='guest')
+    changed = _user(profile_key='supervisor')
 
     service.track(
         user=initial,
         event=_event(1, UserActivityEventType.REGISTER, '/'),
         now=started,
     )
+    initial_document = repository.value
+
     service.track(
         user=changed,
         event=_event(2, UserActivityEventType.HEARTBEAT, '/'),
         now=started + timedelta(seconds=10),
     )
 
-    assert repository.value.profile_key == 'operator'
+    document = repository.value
+    assert document.id == initial_document.id
+    assert document.client_session_id == initial_document.client_session_id
+    assert document.profile_key == 'supervisor'
+    assert document.first_seen_at_utc == initial_document.first_seen_at_utc
+    assert document.initial_route_key == initial_document.initial_route_key
+    assert document.initial_pathname == initial_document.initial_pathname
+    assert document.page_views == initial_document.page_views
+    assert document.active_seconds == 10

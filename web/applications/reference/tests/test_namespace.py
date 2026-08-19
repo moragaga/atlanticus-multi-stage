@@ -3,8 +3,8 @@ import atlanticus.web.identity
 import atlanticus.web.users
 import atlanticus.web.users.activity
 from atlanticus.web.application import create_web_application
-from atlanticus.web.compositions.navigation_activity import NavigationActivityRouteResolver
 from atlanticus.web.assets import AssetLayer
+from atlanticus.web.compositions.navigation_activity import NavigationActivityRouteResolver
 from atlanticus.web.identity.app_service import AppServiceIdentityProvider
 from atlanticus.web.identity.local import LocalIdentityProvider
 from atlanticus.web.identity.models import AuthenticatedIdentity

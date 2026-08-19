@@ -152,3 +152,4 @@ app/volumen/*
 app/volume/*
 
 .runtime
+.DS_Store

@@ -347,11 +347,13 @@ class UserActivityDocument:
                 is_application_home=route.is_application_home,
             ),
         )
+        # Los datos efectivos evolucionan con Users sin alterar la identidad de la sesión.
         return replace(
             self,
             subject_id=user.subject_id,
             email=user.email or '',
             display_name=user.display_name,
+            profile_key=user.profile.key,
             last_seen_at_utc=now.astimezone(UTC),
             active_seconds=active_seconds,
             page_views=page_views,
