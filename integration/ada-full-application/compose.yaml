@@ -1,0 +1,39 @@
+name: atlanticus-ada-full-application-integration
+
+services:
+  cosmos-emulator:
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-latest
+    hostname: cosmos-emulator
+    environment:
+      PROTOCOL: "http"
+      GATEWAY_PUBLIC_ENDPOINT: "cosmos-emulator"
+      ENABLE_EXPLORER: "true"
+      ENABLE_TELEMETRY: "false"
+      LOG_LEVEL: "warn"
+    restart: "no"
+    mem_limit: 2g
+    cpus: 1.00
+
+  ada-full-application-integration:
+    image: atlanticus-ada-full-application-integration:local
+    build:
+      context: ../..
+      dockerfile: integration/ada-full-application/Dockerfile
+    init: true
+    depends_on:
+      - cosmos-emulator
+    environment:
+      ENVIRONMENT: "local"
+      ATLANTICUS_ENVIRONMENT: "local"
+      ATLANTICUS_IDENTITY_PROVIDER: "app_service"
+      ATLANTICUS_COSMOS_READY_URL: "http://cosmos-emulator:8080/ready"
+      ATLANTICUS_COSMOS_ENDPOINT: "http://cosmos-emulator:8081"
+      ATLANTICUS_COSMOS_KEY: "${ATLANTICUS_COSMOS_KEY:-C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==}"
+      ATLANTICUS_SHAREPOINT_READ_ENDPOINT: "${ATLANTICUS_SHAREPOINT_READ_ENDPOINT:?ATLANTICUS_SHAREPOINT_READ_ENDPOINT is required}"
+      ATLANTICUS_SHAREPOINT_WRITE_ENDPOINT: "${ATLANTICUS_SHAREPOINT_WRITE_ENDPOINT:?ATLANTICUS_SHAREPOINT_WRITE_ENDPOINT is required}"
+      ATLANTICUS_SHAREPOINT_ROOT_PATH: "${ATLANTICUS_SHAREPOINT_ROOT_PATH:-conciencia_situacional}"
+      ATLANTICUS_SHAREPOINT_TOOL_PATH: "${ATLANTICUS_SHAREPOINT_TOOL_PATH:-operaciones_integradas}"
+      ATLANTICUS_AZURE_OBSERVABILITY_MODE: "off"
+    restart: "no"
+    mem_limit: 768m
+    cpus: 0.75
