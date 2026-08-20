@@ -53,7 +53,6 @@ def test_valid_unknown_identity_becomes_guest_and_direct_url_is_authorized_by_na
 ) -> None:
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv('ATLANTICUS_ENVIRONMENT', 'local')
-    monkeypatch.setenv('ATLANTICUS_IDENTITY_PROVIDER', 'test')
     profiles = ProfileCatalog()
     users_runtime = UsersRuntime()
     modules = (

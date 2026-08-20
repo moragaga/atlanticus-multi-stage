@@ -1,12 +1,19 @@
 from __future__ import annotations
 
+import secrets
+
 from flask import Request
 
 from atlanticus.web.identity.models import AuthenticatedIdentity
 from atlanticus.web.identity.provider import IdentityProvider
 
+_LOCAL_SUBJECT_IDS = ('local:john-doe', 'local:jane-doe')
+
 
 class LocalIdentityProvider(IdentityProvider):
+    def __init__(self) -> None:
+        self._subject_id = secrets.choice(_LOCAL_SUBJECT_IDS)
+
     @property
     def key(self) -> str:
         return 'local'
@@ -23,5 +30,5 @@ class LocalIdentityProvider(IdentityProvider):
         return AuthenticatedIdentity(
             provider_key='local',
             issuer='atlanticus-local',
-            subject_id='local:john-doe',
+            subject_id=self._subject_id,
         )

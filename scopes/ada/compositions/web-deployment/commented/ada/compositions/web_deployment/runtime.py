@@ -1,6 +1,11 @@
+# Abre infraestructura y delega al bootstrap la selección coordinada de Identity y Users.
 from __future__ import annotations
 
 from ada.compositions.web_bootstrap import create_ada_web_bootstrap
+from ada.compositions.web_deployment.access import (
+    resolve_bootstrap_admin_principal,
+    resolve_deployment_environment,
+)
 from ada.compositions.web_deployment.models import (
     AdaWebDeploymentDefinition,
     AdaWebDeploymentRuntime,
@@ -10,31 +15,30 @@ from atlanticus.web.compositions.runtime_infrastructure import (
     resolve_cosmos_connections,
 )
 from atlanticus.web.environment import EnvironmentReader
-from atlanticus.web.identity.provider import IdentityProvider
 from atlanticus.web.models import ApplicationMetadata
 from atlanticus.web.users.runtime import UsersRuntime
 
 
-# Abre los recursos de un worker y construye R17A exclusivamente sobre Cosmos ya proyectado.
-# Deliberadamente no resuelve ni abre SharePoint durante el runtime normal de la aplicación.
 def open_ada_web_deployment_runtime(
     *,
     definition: AdaWebDeploymentDefinition,
     metadata: ApplicationMetadata,
-    identity_provider: IdentityProvider,
     environment: EnvironmentReader | None = None,
     users_runtime: UsersRuntime | None = None,
 ) -> AdaWebDeploymentRuntime:
     if not isinstance(definition, AdaWebDeploymentDefinition):
         raise TypeError('definition must be AdaWebDeploymentDefinition')
     reader = _environment_reader(environment)
+    web_environment = resolve_deployment_environment(reader)
+    bootstrap_admin_principal = resolve_bootstrap_admin_principal(reader, web_environment)
     connections = resolve_cosmos_connections(reader, definition.cosmos_connections)
     infrastructure = WebRuntimeInfrastructure(cosmos_connections=connections)
     infrastructure.open()
     try:
         bootstrap = create_ada_web_bootstrap(
             metadata=metadata,
-            identity_provider=identity_provider,
+            environment=web_environment,
+            bootstrap_admin_principal=bootstrap_admin_principal,
             infrastructure=infrastructure,
             bindings=definition.bindings,
             users_runtime=users_runtime,
@@ -48,7 +52,6 @@ def open_ada_web_deployment_runtime(
         raise
 
 
-# Misma estrategia de lectura para todos los ambientes; no existe branching local/productivo aquí.
 def _environment_reader(environment: EnvironmentReader | None) -> EnvironmentReader:
     if environment is None:
         return EnvironmentReader()
@@ -57,8 +60,6 @@ def _environment_reader(environment: EnvironmentReader | None) -> EnvironmentRea
     return environment
 
 
-# Si la construcción del bootstrap falla, se intenta liberar el cliente sin ocultar el error
-# original.
 def _close_quietly(infrastructure: WebRuntimeInfrastructure) -> None:
     try:
         infrastructure.close()

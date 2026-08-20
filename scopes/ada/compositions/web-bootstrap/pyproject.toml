@@ -15,12 +15,15 @@ dependencies = [
     "atlanticus-web==0.1.0",
     "atlanticus-web-composition-runtime-infrastructure==0.1.0",
     "atlanticus-web-identity==0.1.0",
+    "atlanticus-web-identity-app-service==0.1.0",
+    "atlanticus-web-identity-local==0.1.0",
     "atlanticus-web-navigation==0.1.0",
     "atlanticus-web-navigation-configuration==0.1.0",
     "atlanticus-web-users==0.1.0",
     "atlanticus-web-users-activity==0.1.0",
     "atlanticus-web-users-configuration==0.1.0",
     "atlanticus-web-users-cosmos==0.1.0",
+    "atlanticus-web-users-local==0.1.0",
 ]
 
 [tool.uv.sources]
@@ -34,12 +37,15 @@ atlanticus-web = { path = "../../../../web/framework/core", editable = true }
 atlanticus-web-composition-runtime-infrastructure = { path = "../../../../web/compositions/runtime-infrastructure", editable = true }
 atlanticus-web-composition-sharepoint-http = { path = "../../../../web/compositions/sharepoint-http", editable = true }
 atlanticus-web-identity = { path = "../../../../web/capabilities/identity/core", editable = true }
+atlanticus-web-identity-app-service = { path = "../../../../web/capabilities/identity/app-service", editable = true }
+atlanticus-web-identity-local = { path = "../../../../web/capabilities/identity/local", editable = true }
 atlanticus-web-navigation = { path = "../../../../web/capabilities/navigation/core", editable = true }
 atlanticus-web-navigation-configuration = { path = "../../../../web/capabilities/navigation/configuration", editable = true }
 atlanticus-web-users = { path = "../../../../web/capabilities/users/core", editable = true }
 atlanticus-web-users-activity = { path = "../../../../web/capabilities/users/activity", editable = true }
 atlanticus-web-users-configuration = { path = "../../../../web/capabilities/users/configuration", editable = true }
 atlanticus-web-users-cosmos = { path = "../../../../web/capabilities/users/cosmos", editable = true }
+atlanticus-web-users-local = { path = "../../../../web/capabilities/users/local", editable = true }
 
 [tool.setuptools]
 package-dir = {"" = "src"}

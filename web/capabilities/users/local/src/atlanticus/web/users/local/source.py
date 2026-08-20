@@ -3,7 +3,6 @@ from __future__ import annotations
 from atlanticus.web.identity.models import AuthenticatedIdentity
 from atlanticus.web.users.models import ResolvedUserRecord
 from atlanticus.web.users.profiles import (
-    ADMINISTRATOR_PROFILE_KEY,
     LOCAL_JANE_BACKGROUND_COLOR,
     LOCAL_JANE_TEXT_COLOR,
     LOCAL_JOHN_BACKGROUND_COLOR,
@@ -33,7 +32,7 @@ class LocalUsersSource(UsersSource):
                 display_name='Jane Doe',
                 email='jane.doe@local.atlanticus',
                 enabled=True,
-                profile_key=ADMINISTRATOR_PROFILE_KEY,
+                profile_key=LOCAL_PROFILE_KEY,
                 avatar_background_color=LOCAL_JANE_BACKGROUND_COLOR,
                 avatar_text_color=LOCAL_JANE_TEXT_COLOR,
                 is_local=True,

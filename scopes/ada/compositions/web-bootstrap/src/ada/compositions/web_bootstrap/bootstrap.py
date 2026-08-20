@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from ada.compositions.web_application import create_ada_application_modules
+from ada.compositions.web_bootstrap.access import create_ada_access_components
 from ada.compositions.web_bootstrap.models import (
     AdaConfigurationBackends,
     AdaConfigurationFilenames,
@@ -17,7 +18,7 @@ from ada.configuration.tools.adapters import (
 )
 from atlanticus.connectivity.cosmos import CosmosPatchOperation
 from atlanticus.web.compositions.runtime_infrastructure import WebRuntimeInfrastructure
-from atlanticus.web.identity.provider import IdentityProvider
+from atlanticus.web.environment import WebEnvironment
 from atlanticus.web.models import ApplicationMetadata
 from atlanticus.web.navigation.configuration import (
     NAVIGATION_COSMOS_REQUIREMENTS,
@@ -36,11 +37,7 @@ from atlanticus.web.users.configuration.adapters import (
 )
 from atlanticus.web.users.cosmos import (
     CosmosDiscoveredUsersSource,
-    CosmosProfileCatalog,
-    CosmosUsersGatewayAdapter,
     CosmosUsersProjectionRepository,
-    UsersCosmosProfileCache,
-    UsersCosmosSource,
 )
 from atlanticus.web.users.runtime import UsersRuntime
 
@@ -48,15 +45,16 @@ from atlanticus.web.users.runtime import UsersRuntime
 def create_ada_web_bootstrap(
     *,
     metadata: ApplicationMetadata,
-    identity_provider: IdentityProvider,
+    environment: WebEnvironment,
+    bootstrap_admin_principal: str | None = None,
     infrastructure: WebRuntimeInfrastructure,
     bindings: AdaCosmosBindings,
     users_runtime: UsersRuntime | None = None,
 ) -> AdaWebBootstrap:
     if not isinstance(metadata, ApplicationMetadata):
         raise TypeError('metadata must be ApplicationMetadata')
-    if not isinstance(identity_provider, IdentityProvider):
-        raise TypeError('identity_provider must be IdentityProvider')
+    if not isinstance(environment, WebEnvironment):
+        raise TypeError('environment must be WebEnvironment')
     if not isinstance(infrastructure, WebRuntimeInfrastructure):
         raise TypeError('infrastructure must be WebRuntimeInfrastructure')
     if not isinstance(bindings, AdaCosmosBindings):
@@ -69,10 +67,13 @@ def create_ada_web_bootstrap(
     activity_client = infrastructure.cosmos(bindings.activity)
     navigation_client = infrastructure.cosmos(bindings.navigation)
 
-    users_gateway = CosmosUsersGatewayAdapter(client=users_client)
-    profile_cache = UsersCosmosProfileCache(users_gateway)
-    profiles = CosmosProfileCatalog(profile_cache)
-    users_source = UsersCosmosSource(gateway=users_gateway, profiles=profile_cache)
+    access = create_ada_access_components(
+        environment=environment,
+        users_client=users_client,
+        bootstrap_admin_principal=(
+            bootstrap_admin_principal if environment.is_production else None
+        ),
+    )
     navigation_projection = CosmosNavigationProjectionRepository(
         client=navigation_client,
         settings=CosmosNavigationProjectionSettings(
@@ -89,10 +90,10 @@ def create_ada_web_bootstrap(
     )
     modules = create_ada_application_modules(
         metadata=metadata,
-        identity_provider=identity_provider,
-        users_source=users_source,
+        identity_provider=access.identity_provider,
+        users_source=access.users_source,
         users_runtime=runtime,
-        profiles=profiles,
+        profiles=access.profiles,
         navigation_provider=navigation_provider,
         activity_repository=activity_repository,
     )
@@ -101,8 +102,9 @@ def create_ada_web_bootstrap(
         bindings=bindings,
         modules=modules,
         users_runtime=runtime,
-        users_source=users_source,
-        profiles=profiles,
+        identity_provider=access.identity_provider,
+        users_source=access.users_source,
+        profiles=access.profiles,
         navigation_provider=navigation_provider,
         activity_repository=activity_repository,
     )

@@ -1,5 +1,4 @@
-# Modelos del bootstrap ADA.
-# Los nombres físicos de archivos pertenecen al runtime/composición, no al environment.
+# Modelos del bootstrap ADA con contratos genéricos de Identity y Users.
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -9,6 +8,7 @@ from ada.configuration.tools.adapters import (
     SharePointToolConfigurationStore,
 )
 from atlanticus.web.compositions.runtime_infrastructure import WebRuntimeInfrastructure
+from atlanticus.web.identity.provider import IdentityProvider
 from atlanticus.web.modules import WebModule
 from atlanticus.web.navigation.api import NavigationDefinitionProvider
 from atlanticus.web.navigation.configuration.adapters import (
@@ -19,11 +19,11 @@ from atlanticus.web.users.activity import UserActivityRepository
 from atlanticus.web.users.configuration.adapters import SharePointUsersConfigurationStore
 from atlanticus.web.users.cosmos import (
     CosmosDiscoveredUsersSource,
-    CosmosProfileCatalog,
     CosmosUsersProjectionRepository,
-    UsersCosmosSource,
 )
+from atlanticus.web.users.profiles import ProfileCatalog
 from atlanticus.web.users.runtime import UsersRuntime
+from atlanticus.web.users.source import UsersSource
 
 
 class AdaWebBootstrapError(RuntimeError):
@@ -45,6 +45,8 @@ class AdaCosmosBindings:
             object.__setattr__(self, field_name, value.strip())
 
 
+# Agrupa los nombres físicos de los archivos proyectados desde SharePoint.
+# El deployment puede reemplazarlos, por ejemplo en pruebas E2E, sin cambiar el bootstrap.
 @dataclass(frozen=True, slots=True)
 class AdaConfigurationFilenames:
     users: str = 'users_configuration.json.gz'
@@ -52,11 +54,13 @@ class AdaConfigurationFilenames:
     tools: str = 'tools_configuration.json.gz'
 
     def __post_init__(self) -> None:
+        # Los tres nombres son contratos obligatorios: no aceptamos valores vacíos ni no textuales.
         for field_name in ('users', 'navigation', 'tools'):
             value = getattr(self, field_name)
             if not isinstance(value, str) or not value.strip():
                 raise TypeError(f'{field_name} configuration filename must be non-empty text')
             normalized = value.strip()
+            # Rechazamos espacios exteriores en vez de corregirlos silenciosamente para detectar errores.
             if normalized != value:
                 raise ValueError(
                     f'{field_name} configuration filename must not contain surrounding whitespace'
@@ -81,7 +85,8 @@ class AdaWebBootstrap:
     bindings: AdaCosmosBindings
     modules: tuple[WebModule, ...]
     users_runtime: UsersRuntime
-    users_source: UsersCosmosSource
-    profiles: CosmosProfileCatalog
+    identity_provider: IdentityProvider
+    users_source: UsersSource
+    profiles: ProfileCatalog
     navigation_provider: NavigationDefinitionProvider
     activity_repository: UserActivityRepository

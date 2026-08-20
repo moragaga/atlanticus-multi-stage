@@ -7,6 +7,7 @@ from ada.configuration.tools.adapters import (
     SharePointToolConfigurationStore,
 )
 from atlanticus.web.compositions.runtime_infrastructure import WebRuntimeInfrastructure
+from atlanticus.web.identity.provider import IdentityProvider
 from atlanticus.web.modules import WebModule
 from atlanticus.web.navigation.api import NavigationDefinitionProvider
 from atlanticus.web.navigation.configuration.adapters import (
@@ -17,11 +18,11 @@ from atlanticus.web.users.activity import UserActivityRepository
 from atlanticus.web.users.configuration.adapters import SharePointUsersConfigurationStore
 from atlanticus.web.users.cosmos import (
     CosmosDiscoveredUsersSource,
-    CosmosProfileCatalog,
     CosmosUsersProjectionRepository,
-    UsersCosmosSource,
 )
+from atlanticus.web.users.profiles import ProfileCatalog
 from atlanticus.web.users.runtime import UsersRuntime
+from atlanticus.web.users.source import UsersSource
 
 
 class AdaWebBootstrapError(RuntimeError):
@@ -79,7 +80,8 @@ class AdaWebBootstrap:
     bindings: AdaCosmosBindings
     modules: tuple[WebModule, ...]
     users_runtime: UsersRuntime
-    users_source: UsersCosmosSource
-    profiles: CosmosProfileCatalog
+    identity_provider: IdentityProvider
+    users_source: UsersSource
+    profiles: ProfileCatalog
     navigation_provider: NavigationDefinitionProvider
     activity_repository: UserActivityRepository

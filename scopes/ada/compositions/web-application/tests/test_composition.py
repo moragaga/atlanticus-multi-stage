@@ -158,7 +158,6 @@ def _compose_and_register(
     activity_repository: InMemoryUserActivityRepository | None = None,
 ):
     monkeypatch.setenv('ATLANTICUS_ENVIRONMENT', 'local')
-    monkeypatch.setenv('ATLANTICUS_IDENTITY_PROVIDER', 'test')
     modules = create_ada_application_modules(
         metadata=ApplicationMetadata(
             application_id='ada-test',

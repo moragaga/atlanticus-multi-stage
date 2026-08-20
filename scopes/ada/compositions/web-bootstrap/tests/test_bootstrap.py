@@ -1,13 +1,11 @@
 from datetime import UTC, datetime
 
 from ada.compositions.web_bootstrap import (
-    AdaConfigurationFilenames,
     AdaCosmosBindings,
     create_ada_configuration_backends,
     create_ada_web_bootstrap,
 )
-from atlanticus.web.identity.models import AuthenticatedIdentity
-from atlanticus.web.identity.provider import IdentityProvider
+from atlanticus.web.environment import WebEnvironment
 from atlanticus.web.models import ApplicationMetadata
 from atlanticus.web.navigation.configuration import (
     NavigationConfigurationCatalog,
@@ -15,29 +13,6 @@ from atlanticus.web.navigation.configuration import (
 )
 from atlanticus.web.navigation.configuration.projection import NavigationConfigurationProjection
 from atlanticus.web.users.profiles import ProfileDefinition
-
-
-class FakeIdentityProvider(IdentityProvider):
-    @property
-    def key(self) -> str:
-        return 'fake'
-
-    @property
-    def production_ready(self) -> bool:
-        return True
-
-    def validate_configuration(self) -> None:
-        return None
-
-    def resolve(self, request) -> AuthenticatedIdentity:
-        del request
-        return AuthenticatedIdentity(
-            provider_key='fake',
-            issuer='fake',
-            subject_id='subject',
-            display_name='Test',
-            email='test@example.com',
-        )
 
 
 class FakeCosmosClient:
@@ -174,7 +149,7 @@ def test_runtime_bootstrap_builds_projected_dependencies_without_sharepoint(monk
             display_name='ADA Test',
             version='0.1.0',
         ),
-        identity_provider=FakeIdentityProvider(),
+        environment=WebEnvironment.PRODUCTION,
         infrastructure=infrastructure,
         bindings=_bindings(),
     )
@@ -217,9 +192,6 @@ def test_configuration_backends_bind_sharepoint_paths_and_cosmos_projections(mon
     assert configuration.tools_source._settings.relative_path == (
         'conciencia_situacional/operaciones_integradas/tool'
     )
-    assert configuration.users_source._settings.filename == 'users_configuration.json.gz'
-    assert configuration.navigation_source._settings.filename == 'navigation_configuration.json.gz'
-    assert configuration.tools_source._settings.filename == 'tools_configuration.json.gz'
     assert configuration.users_projection._client is client
     assert configuration.navigation_projection._client is client
     assert configuration.tools_projection._client is client
@@ -237,7 +209,7 @@ def test_runtime_bootstrap_reuses_same_cosmos_client_when_bindings_share_connect
 
     bootstrap = create_ada_web_bootstrap(
         metadata=ApplicationMetadata('ada-test', 'ADA Test', '0.1.0'),
-        identity_provider=FakeIdentityProvider(),
+        environment=WebEnvironment.PRODUCTION,
         infrastructure=infrastructure,
         bindings=_bindings('shared'),
     )
@@ -276,7 +248,7 @@ def test_bootstrap_uses_solution_binding_for_each_cosmos_capability(monkeypatch)
     )
     runtime = create_ada_web_bootstrap(
         metadata=ApplicationMetadata('ada-test', 'ADA Test', '0.1.0'),
-        identity_provider=FakeIdentityProvider(),
+        environment=WebEnvironment.PRODUCTION,
         infrastructure=infrastructure,
         bindings=bindings,
     )
@@ -287,24 +259,23 @@ def test_bootstrap_uses_solution_binding_for_each_cosmos_capability(monkeypatch)
     assert runtime.activity_repository._client is activity_client
 
 
-def test_configuration_backends_accept_runtime_selected_filenames(monkeypatch) -> None:
+def test_runtime_bootstrap_local_uses_local_identity_and_users_with_projected_profiles(
+    monkeypatch,
+) -> None:
     client = _configuration_client()
-    infrastructure = FakeInfrastructure({'configuration': client})
+    infrastructure = FakeInfrastructure({'configuration': client}, sharepoint_enabled=False)
     monkeypatch.setattr(
         'ada.compositions.web_bootstrap.bootstrap.WebRuntimeInfrastructure',
         FakeInfrastructure,
     )
 
-    configuration = create_ada_configuration_backends(
+    bootstrap = create_ada_web_bootstrap(
+        metadata=ApplicationMetadata('ada-test', 'ADA Test', '0.1.0'),
+        environment=WebEnvironment.LOCAL,
         infrastructure=infrastructure,
         bindings=_bindings(),
-        filenames=AdaConfigurationFilenames(
-            users='__e2e_users.json.gz',
-            navigation='__e2e_navigation.json.gz',
-            tools='__e2e_tools.json.gz',
-        ),
     )
 
-    assert configuration.users_source._settings.filename == '__e2e_users.json.gz'
-    assert configuration.navigation_source._settings.filename == '__e2e_navigation.json.gz'
-    assert configuration.tools_source._settings.filename == '__e2e_tools.json.gz'
+    assert bootstrap.identity_provider.key == 'local'
+    assert bootstrap.users_source.__class__.__name__ == 'LocalUsersSource'
+    assert bootstrap.profiles.require('operator').key == 'operator'

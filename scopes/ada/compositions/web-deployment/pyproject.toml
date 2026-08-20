@@ -12,14 +12,12 @@ dependencies = [
     "ada-composition-web-bootstrap==0.1.0",
     "atlanticus-web==0.1.0",
     "atlanticus-web-composition-runtime-infrastructure==0.1.0",
-    "atlanticus-web-identity==0.1.0",
 ]
 
 [tool.uv.sources]
 ada-composition-web-bootstrap = { workspace = true }
 atlanticus-web = { path = "../../../../web/framework/core", editable = true }
 atlanticus-web-composition-runtime-infrastructure = { path = "../../../../web/compositions/runtime-infrastructure", editable = true }
-atlanticus-web-identity = { path = "../../../../web/capabilities/identity/core", editable = true }
 
 [tool.setuptools]
 package-dir = {"" = "src"}

@@ -9,7 +9,7 @@ from atlanticus_web_reference.navigation import build_reference_navigation
 def test_reference_definition_composes_users_identity_navigation_and_dynamic_pages(
     monkeypatch,
 ) -> None:
-    monkeypatch.setenv('ATLANTICUS_IDENTITY_PROVIDER', 'local')
+    monkeypatch.setenv('ATLANTICUS_ENVIRONMENT', 'local')
     definition = build_definition()
     modules = {module.name: module for module in definition.modules}
     users = modules['users']
@@ -57,7 +57,7 @@ def test_reference_entrypoints_live_inside_the_application_package() -> None:
 
 
 def test_reference_application_selects_app_service_provider(monkeypatch) -> None:
-    monkeypatch.setenv('ATLANTICUS_IDENTITY_PROVIDER', 'app_service')
+    monkeypatch.setenv('ATLANTICUS_ENVIRONMENT', 'production')
 
     definition = build_definition()
     identity = {module.name: module for module in definition.modules}['identity']

@@ -12,7 +12,6 @@ from atlanticus.web.identity.access import (
     AuthenticatedAccessResolver,
 )
 from atlanticus.web.identity.bootstrap import AccessBootstrap
-from atlanticus.web.identity.configuration import resolve_identity_provider_key
 from atlanticus.web.identity.errors import (
     AccessResolverUnavailableError,
     IdentityConfigurationError,
@@ -39,12 +38,6 @@ def create_identity_module(
     resolver = access_resolver or AuthenticatedAccessResolver()
 
     def register_services(services: ServiceRegistry) -> None:
-        selected_provider = resolve_identity_provider_key()
-        if selected_provider != provider.key:
-            raise IdentityConfigurationError(
-                f'Configured identity provider {selected_provider!r} does not match '
-                f'composed provider {provider.key!r}'
-            )
         if resolve_environment().is_production and not provider.production_ready:
             raise IdentityConfigurationError(
                 f'Identity provider {provider.key!r} is not allowed in production'

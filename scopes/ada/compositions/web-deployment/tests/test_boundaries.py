@@ -14,11 +14,10 @@ def test_package_dependencies_are_limited_to_existing_contract_layers() -> None:
         'ada-composition-web-bootstrap==0.1.0',
         'atlanticus-web==0.1.0',
         'atlanticus-web-composition-runtime-infrastructure==0.1.0',
-        'atlanticus-web-identity==0.1.0',
     ]
 
 
-def test_deployment_does_not_resolve_secrets_or_branch_on_environment_modes() -> None:
+def test_deployment_resolves_only_web_environment_and_bootstrap_access_policy() -> None:
     source = '\n'.join(path.read_text() for path in SOURCE_ROOT.rglob('*.py'))
 
     assert 'ConfigurationBootstrap' not in source
@@ -26,8 +25,9 @@ def test_deployment_does_not_resolve_secrets_or_branch_on_environment_modes() ->
     assert 'ResolvedConfiguration' not in source
     assert 'ATLANTICUS_COSMOS_' not in source
     assert 'ATLANTICUS_SHAREPOINT_' not in source
-    assert 'WebEnvironment' not in source
-    assert 'resolve_environment' not in source
+    assert 'ATLANTICUS_IDENTITY_PROVIDER' not in source
+    assert 'ATLANTICUS_ENVIRONMENT' in source
+    assert 'ATLANTICUS_BOOTSTRAP_ADMIN' in source
 
 
 def test_worker_runtime_does_not_include_sharepoint_or_provisioning() -> None:

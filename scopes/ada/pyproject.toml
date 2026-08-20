@@ -55,6 +55,7 @@ atlanticus-web-navigation = { path = "../../web/capabilities/navigation/core", e
 atlanticus-web-composition-navigation-activity = { path = "../../web/compositions/navigation-activity", editable = true }
 atlanticus-web-composition-users-navigation = { path = "../../web/compositions/users-navigation", editable = true }
 atlanticus-web-identity = { path = "../../web/capabilities/identity/core", editable = true }
+atlanticus-web-identity-app-service = { path = "../../web/capabilities/identity/app-service", editable = true }
 atlanticus-web-identity-local = { path = "../../web/capabilities/identity/local", editable = true }
 atlanticus-web-users = { path = "../../web/capabilities/users/core", editable = true }
 atlanticus-web-users-activity = { path = "../../web/capabilities/users/activity", editable = true }

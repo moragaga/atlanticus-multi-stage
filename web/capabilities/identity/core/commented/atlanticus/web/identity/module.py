@@ -1,3 +1,4 @@
+# Compone identidad y acceso sin un selector de proveedor redundante; producción solo acepta providers aptos.
 from __future__ import annotations
 
 from flask import Flask, request
@@ -12,7 +13,6 @@ from atlanticus.web.identity.access import (
     AuthenticatedAccessResolver,
 )
 from atlanticus.web.identity.bootstrap import AccessBootstrap
-from atlanticus.web.identity.configuration import resolve_identity_provider_key
 from atlanticus.web.identity.errors import (
     AccessResolverUnavailableError,
     IdentityConfigurationError,
@@ -31,7 +31,6 @@ from atlanticus.web.services import ServiceRegistry
 ACCESS_BOOTSTRAP_SERVICE_KEY = 'atlanticus.web.identity.bootstrap'
 
 
-# Compone el proveedor de identidad con una política de acceso opcional y reutilizable.
 def create_identity_module(
     provider: IdentityProvider,
     *,
@@ -40,12 +39,6 @@ def create_identity_module(
     resolver = access_resolver or AuthenticatedAccessResolver()
 
     def register_services(services: ServiceRegistry) -> None:
-        selected_provider = resolve_identity_provider_key()
-        if selected_provider != provider.key:
-            raise IdentityConfigurationError(
-                f'Configured identity provider {selected_provider!r} does not match '
-                f'composed provider {provider.key!r}'
-            )
         if resolve_environment().is_production and not provider.production_ready:
             raise IdentityConfigurationError(
                 f'Identity provider {provider.key!r} is not allowed in production'
@@ -70,7 +63,7 @@ def create_identity_module(
                 return None
             try:
                 snapshot = _resolve_request_snapshot(bootstrap, runtime)
-            except (IdentityProviderUnavailableError, AccessResolverUnavailableError):
+            except IdentityProviderUnavailableError, AccessResolverUnavailableError:
                 return identity_unavailable_response()
             if snapshot.status is AccessStatus.INVALID_IDENTITY:
                 return invalid_identity_response()
@@ -85,7 +78,6 @@ def create_identity_module(
     )
 
 
-# Una carga de página renueva identidad; callbacks y APIs reutilizan el snapshot de esa carga.
 def _resolve_request_snapshot(
     bootstrap: AccessBootstrap,
     runtime: AccessRuntime,
@@ -98,12 +90,10 @@ def _resolve_request_snapshot(
     return bootstrap.refresh(request)
 
 
-# Recursos técnicos y rutas de Easy Auth deben poder responder sin pasar por la aplicación.
 def _is_public_request() -> bool:
     return request.path.startswith(('/assets/', '/health/', '/.auth/'))
 
 
-# Identifica la navegación de documento que inicia una nueva carga lógica de la aplicación.
 def _is_page_document_request() -> bool:
     if request.method != 'GET':
         return False
