@@ -1,10 +1,13 @@
 from atlanticus.web.application import run_web_application
-
-from .application import create_app
+from integrated_operations.application.runtime import create_application_runtime
 
 
 def main() -> None:
-    run_web_application(create_app())
+    runtime = create_application_runtime()
+    try:
+        run_web_application(runtime.web)
+    finally:
+        runtime.close()
 
 
 if __name__ == '__main__':

@@ -5,13 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ada-integrated-operations-artifact"
 version = "0.1.0"
-description = "Artifact portable de certificación para Operaciones Integradas de ADA"
+description = "Aplicación deployable de Operaciones Integradas de ADA sobre Atlanticus Web"
 requires-python = "==3.14.2"
-classifiers = [
-    "Private :: Do Not Upload",
-]
+classifiers = ["Private :: Do Not Upload"]
 dependencies = [
     "ada-composition-integrated-operations==0.1.0",
+    "ada-composition-web-deployment==0.1.0",
     "ada-contracts-tool-manifest==0.1.0",
     "ada-feature-alarms==0.1.0",
     "ada-feature-dashboard==0.1.0",
@@ -21,6 +20,8 @@ dependencies = [
     "ada-ui-shell-header==0.1.0",
     "ada-ui-shell-time-status==0.1.0",
     "atlanticus-web==0.1.0",
+    "atlanticus-web-identity-app-service==0.1.0",
+    "atlanticus-web-identity-local==0.1.0",
     "dash==4.4.1",
     "gunicorn==26.0.0",
 ]
@@ -33,24 +34,7 @@ dev = [
 
 [project.scripts]
 ada-integrated-operations = "integrated_operations.__main__:main"
-
-[tool.uv.sources]
-ada-composition-integrated-operations = { path = "../../../scopes/ada/compositions/integrated-operations", editable = true }
-ada-contracts-tool-manifest = { path = "../../../scopes/ada/contracts/tool-manifest", editable = true }
-ada-feature-alarms = { path = "../../../scopes/ada/features/alarms", editable = true }
-ada-feature-dashboard = { path = "../../../scopes/ada/features/dashboard", editable = true }
-ada-runtime-web = { path = "../../../scopes/ada/runtime/web", editable = true }
-ada-ui-framework-core = { path = "../../../scopes/ada/ui/framework/core", editable = true }
-ada-ui-layout-integrated-operations = { path = "../../../scopes/ada/ui/layouts/integrated-operations", editable = true }
-ada-ui-component-branding = { path = "../../../scopes/ada/ui/components/branding", editable = true }
-ada-ui-component-component-card = { path = "../../../scopes/ada/ui/components/component-card", editable = true }
-ada-ui-component-component-container = { path = "../../../scopes/ada/ui/components/component-container", editable = true }
-ada-ui-component-global-indicator = { path = "../../../scopes/ada/ui/components/global-indicator", editable = true }
-ada-ui-component-state-wrapper = { path = "../../../scopes/ada/ui/components/state-wrapper", editable = true }
-ada-ui-shell-header = { path = "../../../scopes/ada/ui/shell/header", editable = true }
-ada-ui-shell-time-status = { path = "../../../scopes/ada/ui/shell/time-status", editable = true }
-atlanticus-web = { path = "../../../web/framework/core", editable = true }
-atlanticus-web-observability = { path = "../../../web/framework/observability", editable = true }
+ada-integrated-operations-prepare = "integrated_operations.deployment.prepare:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -61,19 +45,34 @@ include = ["integrated_operations*"]
 
 [tool.setuptools.package-data]
 "integrated_operations" = [
+    "py.typed",
     "resources/css/*.css",
-    "resources/css/css.list",
+    "resources/js/*.js",
 ]
+
+[tool.uv]
+find-links = ["wheels"]
+
+[tool.uv.sources]
+ada-composition-integrated-operations = { path = "wheels/ada_composition_integrated_operations-0.1.0-py3-none-any.whl" }
+ada-composition-web-deployment = { path = "wheels/ada_composition_web_deployment-0.1.0-py3-none-any.whl" }
+ada-contracts-tool-manifest = { path = "wheels/ada_contracts_tool_manifest-0.1.0-py3-none-any.whl" }
+ada-feature-alarms = { path = "wheels/ada_feature_alarms-0.1.0-py3-none-any.whl" }
+ada-feature-dashboard = { path = "wheels/ada_feature_dashboard-0.1.0-py3-none-any.whl" }
+ada-runtime-web = { path = "wheels/ada_runtime_web-0.1.0-py3-none-any.whl" }
+ada-ui-component-branding = { path = "wheels/ada_ui_component_branding-0.1.0-py3-none-any.whl" }
+ada-ui-component-global-indicator = { path = "wheels/ada_ui_component_global_indicator-0.1.0-py3-none-any.whl" }
+ada-ui-shell-header = { path = "wheels/ada_ui_shell_header-0.1.0-py3-none-any.whl" }
+ada-ui-shell-time-status = { path = "wheels/ada_ui_shell_time_status-0.1.0-py3-none-any.whl" }
+atlanticus-web = { path = "wheels/atlanticus_web-0.1.0-py3-none-any.whl" }
+atlanticus-web-identity-app-service = { path = "wheels/atlanticus_web_identity_app_service-0.1.0-py3-none-any.whl" }
+atlanticus-web-identity-local = { path = "wheels/atlanticus_web_identity_local-0.1.0-py3-none-any.whl" }
 
 [tool.ruff]
 line-length = 100
 indent-width = 4
 target-version = "py314"
-extend-exclude = [
-    "build",
-    "dist",
-    "commented",
-]
+extend-exclude = ["build", "dist", "commented", "wheels"]
 
 [tool.ruff.format]
 quote-style = "single"
@@ -90,4 +89,4 @@ combine-as-imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q --import-mode=importlib"
+addopts = "-q"

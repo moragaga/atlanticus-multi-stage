@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ada.compositions.web_bootstrap.models import AdaConfigurationBackends, AdaWebBootstrapError
+from ada.compositions.web_bootstrap.models import AdaConfigurationBackends
 from atlanticus.web.navigation.configuration import NavigationProjectionWorkflow
 from atlanticus.web.users.configuration import UsersProjectionWorkflow
 
 
 @dataclass(frozen=True, slots=True)
 class AdaAccessProjectionSynchronizationResult:
-    users_source_revision: str
-    navigation_source_revision: str
+    users_source_revision: str | None
+    navigation_source_revision: str | None
     users_projected: bool
     navigation_projected: bool
 
@@ -30,8 +30,10 @@ def synchronize_ada_access_projections(
         audit_actor_provider=lambda: normalized_actor,
     )
     users_status = users_workflow.get_status()
-    users_revision = _require_source_revision(users_status.source_revision, capability='Users')
-    users_projected = users_status.active_source_revision != users_revision
+    users_revision = _optional_source_revision(users_status.source_revision, capability='Users')
+    users_projected = (
+        users_revision is not None and users_status.active_source_revision != users_revision
+    )
     if users_projected:
         users_workflow.project(users_revision)
 
@@ -41,11 +43,14 @@ def synchronize_ada_access_projections(
         audit_actor_provider=lambda: normalized_actor,
     )
     navigation_status = navigation_workflow.get_status()
-    navigation_revision = _require_source_revision(
+    navigation_revision = _optional_source_revision(
         navigation_status.source_revision,
         capability='Navigation',
     )
-    navigation_projected = navigation_status.active_source_revision != navigation_revision
+    navigation_projected = (
+        navigation_revision is not None
+        and navigation_status.active_source_revision != navigation_revision
+    )
     if navigation_projected:
         navigation_workflow.project(navigation_revision)
 
@@ -63,10 +68,10 @@ def _require_actor(actor: str) -> str:
     return actor.strip()
 
 
-def _require_source_revision(revision: str | None, *, capability: str) -> str:
+def _optional_source_revision(revision: str | None, *, capability: str) -> str | None:
     if revision is None:
-        raise AdaWebBootstrapError(f'{capability} SharePoint configuration source does not exist')
+        return None
     normalized = revision.strip()
     if not normalized:
-        raise AdaWebBootstrapError(f'{capability} SharePoint configuration revision is empty')
+        raise ValueError(f'{capability} SharePoint configuration revision must be non-empty')
     return normalized

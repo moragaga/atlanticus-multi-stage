@@ -58,6 +58,20 @@ def test_profile_catalog_reloads_when_source_revision_changes() -> None:
     assert gateway.catalog_reads == 2
 
 
+def test_missing_state_uses_system_profile_catalog() -> None:
+    gateway = FakeUsersCosmosGateway(state=None, catalog=None)
+    cache = UsersCosmosProfileCache(gateway)
+    profiles = CosmosProfileCatalog(cache)
+
+    state = cache.ensure_current()
+
+    assert state is None
+    assert cache.source_revision is None
+    assert profiles.require('administrator').key == 'administrator'
+    assert profiles.require('guest').key == 'guest'
+    assert gateway.catalog_reads == 0
+
+
 def test_projection_must_be_ready() -> None:
     gateway = _gateway()
     gateway.state = UsersStateDocument(source_revision='revision-1', projection_status='updating')

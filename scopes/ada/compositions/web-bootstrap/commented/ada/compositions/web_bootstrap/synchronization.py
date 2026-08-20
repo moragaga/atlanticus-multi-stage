@@ -2,16 +2,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ada.compositions.web_bootstrap.models import AdaConfigurationBackends, AdaWebBootstrapError
+from ada.compositions.web_bootstrap.models import AdaConfigurationBackends
 from atlanticus.web.navigation.configuration import NavigationProjectionWorkflow
 from atlanticus.web.users.configuration import UsersProjectionWorkflow
 
 
 @dataclass(frozen=True, slots=True)
 class AdaAccessProjectionSynchronizationResult:
-    # Informa qué revisiones de SharePoint quedaron activas y si hubo una proyección nueva.
-    users_source_revision: str
-    navigation_source_revision: str
+    # None significa que la capability todavía no tiene configuración en SharePoint.
+    users_source_revision: str | None
+    navigation_source_revision: str | None
     users_projected: bool
     navigation_projected: bool
 
@@ -21,35 +21,39 @@ def synchronize_ada_access_projections(
     configuration: AdaConfigurationBackends,
     actor: str = 'ada-bootstrap',
 ) -> AdaAccessProjectionSynchronizationResult:
-    # Esta sincronización debe ejecutarse antes de componer R17A, no dentro de cada request.
+    # La sincronización ocurre antes del runtime, pero una fuente aún inexistente no bloquea el arranque.
     if not isinstance(configuration, AdaConfigurationBackends):
         raise TypeError('configuration must be AdaConfigurationBackends')
     normalized_actor = _require_actor(actor)
 
-    # Users se proyecta primero porque R17A necesita sus perfiles antes de validar Navigation.
     users_workflow = UsersProjectionWorkflow(
         source=configuration.users_source,
         projection=configuration.users_projection,
         audit_actor_provider=lambda: normalized_actor,
     )
     users_status = users_workflow.get_status()
-    users_revision = _require_source_revision(users_status.source_revision, capability='Users')
-    users_projected = users_status.active_source_revision != users_revision
+    users_revision = _optional_source_revision(users_status.source_revision, capability='Users')
+    # Solo se proyecta cuando SharePoint ya tiene una revisión materializable.
+    users_projected = (
+        users_revision is not None and users_status.active_source_revision != users_revision
+    )
     if users_projected:
         users_workflow.project(users_revision)
 
-    # Navigation se actualiza después de Users y queda lista para la validación cruzada de R17A.
     navigation_workflow = NavigationProjectionWorkflow(
         source=configuration.navigation_source,
         projection=configuration.navigation_projection,
         audit_actor_provider=lambda: normalized_actor,
     )
     navigation_status = navigation_workflow.get_status()
-    navigation_revision = _require_source_revision(
+    navigation_revision = _optional_source_revision(
         navigation_status.source_revision,
         capability='Navigation',
     )
-    navigation_projected = navigation_status.active_source_revision != navigation_revision
+    navigation_projected = (
+        navigation_revision is not None
+        and navigation_status.active_source_revision != navigation_revision
+    )
     if navigation_projected:
         navigation_workflow.project(navigation_revision)
 
@@ -67,11 +71,11 @@ def _require_actor(actor: str) -> str:
     return actor.strip()
 
 
-def _require_source_revision(revision: str | None, *, capability: str) -> str:
-    # Un source ausente no se confunde con una proyección vieja: el bootstrap no puede inventarlo.
+def _optional_source_revision(revision: str | None, *, capability: str) -> str | None:
+    # None es estado no configurado; una revisión presente pero vacía sigue siendo configuración inválida.
     if revision is None:
-        raise AdaWebBootstrapError(f'{capability} SharePoint configuration source does not exist')
+        return None
     normalized = revision.strip()
     if not normalized:
-        raise AdaWebBootstrapError(f'{capability} SharePoint configuration revision is empty')
+        raise ValueError(f'{capability} SharePoint configuration revision must be non-empty')
     return normalized

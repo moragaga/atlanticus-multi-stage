@@ -1,4 +1,4 @@
-/* El artifact solo define viewport y contenido de ejemplo; la composition posee las superficies. */
+/* CSS local de la aplicación; Atlanticus lo publica/minifica en assets runtime. */
 html,
 body,
 #react-entry-point,

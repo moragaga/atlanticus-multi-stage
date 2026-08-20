@@ -17,12 +17,16 @@ class UsersCosmosProfileCache:
     def source_revision(self) -> str | None:
         return self._source_revision
 
-    def ensure_current(self) -> UsersStateDocument:
+    def ensure_current(self) -> UsersStateDocument | None:
         try:
             state = self._gateway.read_state()
         except UsersCosmosGatewayError as error:
             raise UsersSourceUnavailableError('Users Cosmos state is unavailable') from error
-        if state is None or state.projection_status != 'ready':
+        if state is None:
+            self._catalog = ProfileCatalog()
+            self._source_revision = None
+            return None
+        if state.projection_status != 'ready':
             raise UsersSourceUnavailableError('Users projection is not ready')
         if self._catalog is None or self._source_revision != state.source_revision:
             self._reload(state.source_revision)

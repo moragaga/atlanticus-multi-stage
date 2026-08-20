@@ -4,7 +4,6 @@ import pytest
 
 from ada.compositions.web_bootstrap import (
     AdaConfigurationBackends,
-    AdaWebBootstrapError,
     synchronize_ada_access_projections,
 )
 
@@ -104,14 +103,58 @@ def test_synchronization_is_noop_when_active_projections_match_sources(monkeypat
     assert result.navigation_projected is False
 
 
-def test_synchronization_rejects_missing_users_source(monkeypatch) -> None:
+def test_synchronization_accepts_missing_sources(monkeypatch) -> None:
     users = FakeWorkflow(source_revision=None, active_source_revision=None)
+    navigation = FakeWorkflow(source_revision=None, active_source_revision=None)
+    monkeypatch.setattr(
+        'ada.compositions.web_bootstrap.synchronization.UsersProjectionWorkflow',
+        lambda **kwargs: users,
+    )
+    monkeypatch.setattr(
+        'ada.compositions.web_bootstrap.synchronization.NavigationProjectionWorkflow',
+        lambda **kwargs: navigation,
+    )
+
+    result = synchronize_ada_access_projections(configuration=_configuration())
+
+    assert result.users_source_revision is None
+    assert result.navigation_source_revision is None
+    assert result.users_projected is False
+    assert result.navigation_projected is False
+    assert users.projected == []
+    assert navigation.projected == []
+
+
+def test_synchronization_projects_available_source_when_other_is_missing(monkeypatch) -> None:
+    users = FakeWorkflow(source_revision=None, active_source_revision=None)
+    navigation = FakeWorkflow(source_revision='nav-r1', active_source_revision=None)
+    monkeypatch.setattr(
+        'ada.compositions.web_bootstrap.synchronization.UsersProjectionWorkflow',
+        lambda **kwargs: users,
+    )
+    monkeypatch.setattr(
+        'ada.compositions.web_bootstrap.synchronization.NavigationProjectionWorkflow',
+        lambda **kwargs: navigation,
+    )
+
+    result = synchronize_ada_access_projections(configuration=_configuration())
+
+    assert result.users_source_revision is None
+    assert result.navigation_source_revision == 'nav-r1'
+    assert result.users_projected is False
+    assert result.navigation_projected is True
+    assert users.projected == []
+    assert navigation.projected == ['nav-r1']
+
+
+def test_synchronization_rejects_empty_source_revision(monkeypatch) -> None:
+    users = FakeWorkflow(source_revision=' ', active_source_revision=None)
     monkeypatch.setattr(
         'ada.compositions.web_bootstrap.synchronization.UsersProjectionWorkflow',
         lambda **kwargs: users,
     )
 
-    with pytest.raises(AdaWebBootstrapError, match='Users SharePoint configuration source'):
+    with pytest.raises(ValueError, match='Users SharePoint configuration revision'):
         synchronize_ada_access_projections(configuration=_configuration())
 
 

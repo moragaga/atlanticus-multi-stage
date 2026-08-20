@@ -1,11 +1,14 @@
-# Espejo comentado: superficie pública del artifact IO.
-from .application import build_definition, create_app
-from .tool import COMPOSITION, MANIFEST, build_integrated_operations_tool
+# Espejo comentado de código productivo.
+from integrated_operations.application.runtime import (
+    IntegratedOperationsApplicationRuntime,
+    create_application_runtime,
+)
+from integrated_operations.tool import COMPOSITION, MANIFEST, build_integrated_operations_tool
 
 __all__ = [
     'COMPOSITION',
     'MANIFEST',
-    'build_definition',
+    'IntegratedOperationsApplicationRuntime',
     'build_integrated_operations_tool',
-    'create_app',
+    'create_application_runtime',
 ]

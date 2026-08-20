@@ -140,6 +140,23 @@ def test_unknown_identity_is_persisted_as_pending_guest(
     assert gateway.users[user_id].pending is True
 
 
+def test_unknown_identity_is_pending_guest_without_users_projection(
+    identity: AuthenticatedIdentity,
+) -> None:
+    gateway = FakeUsersCosmosGateway(state=None, catalog=None)
+    cache = UsersCosmosProfileCache(gateway)
+    source = UsersCosmosSource(gateway=gateway, profiles=cache)
+
+    resolved = source.resolve(identity)
+    user_id = pending_user_id(identity)
+
+    assert resolved.user_id == user_id
+    assert resolved.profile_key == 'guest'
+    assert resolved.pending is True
+    assert gateway.users[user_id].origin == 'identity'
+    assert gateway.catalog_reads == 0
+
+
 def test_pending_guest_registration_is_idempotent(identity: AuthenticatedIdentity) -> None:
     source, gateway = _source()
 
