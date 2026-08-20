@@ -1,0 +1,16 @@
+[project]
+name = "atlanticus-web-build-smoke"
+version = "0.1.0"
+requires-python = "==3.14.2"
+dependencies = [
+    "atlanticus-web==0.1.0",
+    "atlanticus-web-observability==0.1.0",
+    "gunicorn==26.0.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+atlanticus-web = { path = "wheels/atlanticus_web-0.1.0-py3-none-any.whl" }
+atlanticus-web-observability = { path = "wheels/atlanticus_web_observability-0.1.0-py3-none-any.whl" }

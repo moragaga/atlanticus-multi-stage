@@ -1,0 +1,10 @@
+:root {
+    --atlanticus-web-background: #ffffff;
+}
+
+.smoke-application {
+    display: flex;
+    min-height: 100vh;
+    align-items: center;
+    justify-content: center;
+}
