@@ -70,3 +70,31 @@ def test_asset_list_must_be_exhaustive(tmp_path):
 
     with pytest.raises(WebAssetError, match='declare every packaged css file exactly once'):
         publish_asset_layers(layers=(layer,), publications_root=tmp_path / 'published')
+
+
+def test_asset_publication_tolerates_equivalent_concurrent_publish(tmp_path, monkeypatch):
+    import shutil
+
+    import atlanticus.web.assets as assets_module
+
+    layer = _layer(tmp_path, 'base', 100, ('a.css',), ('a.js',))
+    original_replace = assets_module.os.replace
+    raced = False
+
+    def replace_with_race(source, target):
+        nonlocal raced
+        if raced:
+            return original_replace(source, target)
+        raced = True
+        shutil.copytree(source, target)
+        raise FileExistsError
+
+    monkeypatch.setattr(assets_module.os, 'replace', replace_with_race)
+
+    publication = publish_asset_layers(
+        layers=(layer,),
+        publications_root=tmp_path / 'published',
+    )
+
+    assert publication.assets_root.is_dir()
+    assert publication.css_entries == ('0100_base/css/0000__a.css',)

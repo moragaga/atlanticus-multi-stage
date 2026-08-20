@@ -80,9 +80,11 @@ def _compose_web_application(
             module.register_services(services)
     services.freeze()
 
+    # Local conserva assets legibles; producción publica el snapshot CSS/JS optimizado.
     assets = publish_asset_layers(
         layers=_collect_asset_layers(definition),
         publications_root=definition.publications_root,
+        optimize=environment.is_production,
     )
 
     # Flask no puede inferir de forma segura el instance path cuando la raíz usa

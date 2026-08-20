@@ -1,0 +1,19 @@
+# El contexto de cada aplicación no debe incorporar ambientes virtuales ni secretos locales.
+.venv
+.env
+.env.*
+.git
+.gitignore
+
+# QA y artefactos de desarrollo quedan fuera de la imagen productiva.
+.pytest_cache
+.ruff_cache
+.coverage
+htmlcov
+build
+dist
+commented
+tests
+**/__pycache__
+**/*.pyc
+**/*.pyo

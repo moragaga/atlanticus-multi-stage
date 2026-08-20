@@ -81,6 +81,7 @@ def _compose_web_application(
     assets = publish_asset_layers(
         layers=_collect_asset_layers(definition),
         publications_root=definition.publications_root,
+        optimize=environment.is_production,
     )
 
     flask_paths = _resolve_namespace_flask_paths(definition.import_name)

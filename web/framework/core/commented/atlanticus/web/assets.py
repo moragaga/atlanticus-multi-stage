@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-# Publica assets en snapshots inmutables cuyo orden físico coincide con load_order y css.list/js.list.
+# Publica snapshots de assets manteniendo el orden declarado entre wheels y aplicación.
 
 import hashlib
 import json
@@ -12,9 +12,11 @@ from importlib.resources import files
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from atlanticus.web.asset_optimization import optimize_staged_assets
 from atlanticus.web.errors import WebAssetError, WebDefinitionError
 
 _LAYER_NAME_PATTERN = re.compile(r'^[a-z0-9][a-z0-9._-]*$')
+_FILENAME_ORDER_PATTERN = re.compile(r'^\d{2,4}[-_][a-zA-Z0-9][a-zA-Z0-9._-]*$')
 _LIST_FILES = {'css': 'css.list', 'js': 'js.list'}
 _LOADABLE_KINDS = ('css', 'js')
 _COPY_KINDS = ('img',)
@@ -29,6 +31,8 @@ class AssetLayer:
     package: str | None = None
     resource_directory: str = 'resources'
     source_directory: Path | None = None
+    # Solo las capas locales pueden ordenar por nomenclatura; los wheels conservan css.list/js.list.
+    filename_ordered: bool = False
 
     def __post_init__(self) -> None:
         if not _LAYER_NAME_PATTERN.fullmatch(self.name):
@@ -39,6 +43,8 @@ class AssetLayer:
             raise WebDefinitionError(
                 'Asset layer must define exactly one source: package or source_directory'
             )
+        if self.package is not None and self.filename_ordered:
+            raise WebDefinitionError('Packaged asset layer must use css.list/js.list ordering')
         _validate_relative_path(self.resource_directory, label='Asset resource directory')
 
     @property
@@ -60,16 +66,21 @@ def publish_asset_layers(
     *,
     layers: tuple[AssetLayer, ...],
     publications_root: str | Path,
+    optimize: bool = False,
 ) -> AssetPublication:
-    # load_order define el orden entre capas y debe ser único para evitar cascadas ambiguas.
     ordered_layers = _validate_layers(layers)
     root = Path(publications_root).resolve()
     root.mkdir(parents=True, exist_ok=True)
 
     with tempfile.TemporaryDirectory(prefix='.atlanticus-assets-', dir=root) as temporary:
         staging = Path(temporary)
-        # Construimos toda la revisión fuera de la ruta activa; una revisión parcial nunca se publica.
+        # Primero materializamos el orden real; recién después optimizamos el snapshot productivo.
         manifest = _stage_layers(ordered_layers, staging)
+        if optimize:
+            # CSS se concatena en el orden final y JS se minifica sin concatenarse.
+            optimize_staged_assets(staging, manifest)
+        manifest['optimized'] = optimize
+        manifest['files'] = _hash_staged_files(staging)
         revision = _revision_for_manifest(manifest)
         manifest['schema_version'] = _SCHEMA_VERSION
         manifest['revision'] = revision
@@ -80,11 +91,16 @@ def publish_asset_layers(
         )
 
         target = root / revision
-        # Una revisión idéntica se reutiliza; si es nueva, el rename del directorio la publica de una vez.
         if target.exists():
             validate_asset_publication(target)
         else:
-            os.replace(staging, target)
+            try:
+                os.replace(staging, target)
+            except OSError:
+                # Otro worker Gunicorn puede haber publicado la misma revisión en paralelo.
+                if not target.exists():
+                    raise
+                validate_asset_publication(target)
 
     return validate_asset_publication(root / revision)
 
@@ -140,6 +156,15 @@ def _validate_layers(layers: tuple[AssetLayer, ...]) -> tuple[AssetLayer, ...]:
             raise WebDefinitionError(f'Asset layer load order is duplicated: {layer.load_order}')
         seen_names.add(layer.name)
         seen_orders.add(layer.load_order)
+
+    # Las capas locales de aplicación siempre quedan después de los assets empaquetados.
+    packaged_orders = [layer.load_order for layer in layers if layer.package is not None]
+    local_orders = [layer.load_order for layer in layers if layer.filename_ordered]
+    if packaged_orders and local_orders and min(local_orders) <= max(packaged_orders):
+        raise WebDefinitionError(
+            'Filename-ordered application assets must load after packaged assets'
+        )
+
     return tuple(sorted(layers, key=lambda item: item.load_order))
 
 
@@ -157,12 +182,15 @@ def _stage_layers(layers: tuple[AssetLayer, ...], staging: Path) -> dict[str, An
 
         for kind in _LOADABLE_KINDS:
             source_kind = _join_source(source_root, kind)
-            entries = _resolve_declared_files(source_kind, kind=kind)
+            entries = _resolve_declared_files(
+                source_kind,
+                kind=kind,
+                filename_ordered=layer.filename_ordered,
+            )
             declared[kind] = tuple(entry for entry, _ in entries)
             target_kind = target_root / kind
             target_kind.mkdir(parents=True, exist_ok=True)
 
-            # El prefijo generado convierte el orden del .list en orden alfanumérico real para Dash.
             for index, (entry, resource) in enumerate(entries):
                 target_name = f'{index:04d}__{Path(entry).name}'
                 destination = target_kind / target_name
@@ -175,7 +203,7 @@ def _stage_layers(layers: tuple[AssetLayer, ...], staging: Path) -> dict[str, An
                     js_entries.append(relative)
 
             list_resource = _join_source(source_kind, _LIST_FILES[kind])
-            if _source_is_file(list_resource):
+            if not layer.filename_ordered and _source_is_file(list_resource):
                 list_destination = target_kind / _LIST_FILES[kind]
                 list_destination.write_text(
                     '\n'.join(declared[kind]) + '\n',
@@ -213,6 +241,14 @@ def _stage_layers(layers: tuple[AssetLayer, ...], staging: Path) -> dict[str, An
     }
 
 
+def _hash_staged_files(staging: Path) -> dict[str, str]:
+    return {
+        path.relative_to(staging).as_posix(): _sha256(path)
+        for path in sorted(staging.rglob('*'))
+        if path.is_file() and path.name != _MANIFEST_NAME
+    }
+
+
 def _resolve_source_root(layer: AssetLayer):
     if layer.package is not None:
         root = files(layer.package).joinpath(layer.resource_directory)
@@ -224,7 +260,12 @@ def _resolve_source_root(layer: AssetLayer):
     return root
 
 
-def _resolve_declared_files(source: Any, *, kind: str) -> tuple[tuple[str, Any], ...]:
+def _resolve_declared_files(
+    source: Any,
+    *,
+    kind: str,
+    filename_ordered: bool,
+) -> tuple[tuple[str, Any], ...]:
     if not _source_is_dir(source):
         return ()
 
@@ -237,6 +278,24 @@ def _resolve_declared_files(source: Any, *, kind: str) -> tuple[tuple[str, Any],
         return ()
 
     list_resource = _join_source(source, _LIST_FILES[kind])
+    if filename_ordered:
+        # La aplicación final no necesita un .list: el prefijo numérico define un orden estable.
+        if _source_is_file(list_resource):
+            raise WebAssetError(f'Filename-ordered {kind} assets must not define a list file')
+        # La aplicación final usa archivos planos con prefijo numérico para ordenar sin ambigüedad.
+        entries = tuple(sorted(resources))
+        for entry in entries:
+            if (
+                '/' in entry
+                or not entry.endswith(f'.{kind}')
+                or not _FILENAME_ORDER_PATTERN.fullmatch(Path(entry).name)
+            ):
+                raise WebAssetError(
+                    f'Filename-ordered {kind} asset must be a root file with a numeric prefix: '
+                    f'{entry}'
+                )
+        return tuple((entry, resources[entry]) for entry in entries)
+
     if not _source_is_file(list_resource):
         raise WebAssetError(f'Asset layer {kind} list does not exist')
 

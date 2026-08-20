@@ -169,3 +169,34 @@ def test_application_supports_concrete_package_below_namespace_root(
 
     assert Path(runtime.server.root_path) == package_path.resolve()
     assert Path(runtime.server.instance_path) == package_path.resolve().parent / 'instance'
+
+
+def test_application_optimizes_published_assets_in_production(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    package_name = _build_page_package(tmp_path, 'test_production_pages')
+    monkeypatch.syspath_prepend(str(tmp_path))
+    monkeypatch.setenv('ATLANTICUS_ENVIRONMENT', 'production')
+
+    runtime = create_web_application(
+        WebApplicationDefinition(
+            import_name='test_production_web',
+            metadata=ApplicationMetadata(
+                application_id='test-production-web',
+                display_name='Test Production Web',
+                version='0.1.0',
+            ),
+            publications_root=tmp_path / 'published',
+            layout=lambda _services: html.Main(page_container),
+            page_packages=(package_name,),
+            asset_layers=(_build_layer(tmp_path),),
+        ),
+    )
+
+    assert runtime.assets.css_entries == ('app.min.css',)
+    assert (runtime.assets.assets_root / 'app.min.css').is_file()
+    assert runtime.assets.js_entries
+    assert all(
+        (runtime.assets.assets_root / entry).is_file() for entry in runtime.assets.js_entries
+    )
