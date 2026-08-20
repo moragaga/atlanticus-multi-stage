@@ -12,46 +12,30 @@ from urllib.request import urlopen
 from dash import html
 from flask import Flask
 
-from ada.compositions.web_bootstrap import (
-    AdaConfigurationBackends,
-    AdaCosmosBindings,
-    create_ada_web_bootstrap,
-    ensure_ada_cosmos_infrastructure,
-    synchronize_ada_access_projections,
+from ada.compositions.web_bootstrap import AdaConfigurationFilenames, AdaCosmosBindings
+from ada.compositions.web_deployment import (
+    AdaWebDeploymentDefinition,
+    open_ada_web_deployment_runtime,
+    prepare_ada_web_deployment,
 )
-from ada.configuration.tools import TOOL_COSMOS_REQUIREMENTS
-from ada.configuration.tools.adapters import (
-    CosmosToolProjectionRepository,
-    CosmosToolProjectionSettings,
-    SharePointToolConfigurationSettings,
-    SharePointToolConfigurationStore,
-)
-from atlanticus.configuration import ConfigurationBootstrap
-from atlanticus.connectivity.cosmos import CosmosSettings
-from atlanticus.kernel import Environment
 from atlanticus.web.application import create_web_application
 from atlanticus.web.compositions.runtime_infrastructure import (
+    CosmosConnectionEnvironmentDefinition,
+    SharePointEnvironmentDefinition,
     WebRuntimeInfrastructure,
-    create_sharepoint_configuration_specs,
     resolve_sharepoint_infrastructure_settings,
 )
+from atlanticus.web.environment import EnvironmentReader
 from atlanticus.web.identity.app_service import create_app_service_identity_provider
 from atlanticus.web.models import ApplicationMetadata, WebApplicationDefinition
 from atlanticus.web.modules import WebModule
 from atlanticus.web.navigation.api import resolve_navigation_from_services
 from atlanticus.web.navigation.configuration import (
-    NAVIGATION_COSMOS_REQUIREMENTS,
     NavigationConfigurationBundle,
     NavigationConfigurationCatalog,
     NavigationConfigurationSourceDocument,
     NavigationLinkConfiguration,
     encode_navigation_configuration_source,
-)
-from atlanticus.web.navigation.configuration.adapters import (
-    CosmosNavigationProjectionRepository,
-    CosmosNavigationProjectionSettings,
-    SharePointNavigationConfigurationSettings,
-    SharePointNavigationConfigurationStore,
 )
 from atlanticus.web.users.activity import (
     COSMOS_USER_ACTIVITY_RECORD_TYPE,
@@ -65,14 +49,6 @@ from atlanticus.web.users.configuration import (
     UserConfiguration,
     UserProfileConfiguration,
     encode_users_configuration_source,
-)
-from atlanticus.web.users.configuration.adapters import (
-    SharePointUsersConfigurationSettings,
-    SharePointUsersConfigurationStore,
-)
-from atlanticus.web.users.cosmos import (
-    CosmosDiscoveredUsersSource,
-    CosmosUsersProjectionRepository,
 )
 
 _READY_TIMEOUT_SECONDS = 120.0
@@ -88,99 +64,84 @@ _DISPLAY_NAME = 'Atlanticus E2E Operator'
 _USERS_FILENAME = '__atlanticus_full_e2e_users_configuration.json.gz'
 _NAVIGATION_FILENAME = '__atlanticus_full_e2e_navigation_configuration.json.gz'
 _TOOL_FILENAME = '__atlanticus_full_e2e_tool_configuration.json.gz'
+_DATABASE_VARIABLE = 'ATLANTICUS_COSMOS_DATABASE'
 
 
 def test_ada_full_application_end_to_end() -> None:
     _wait_until_ready()
     database_name = f'ada-full-it-{uuid.uuid4().hex[:8]}'
-    cosmos_settings = CosmosSettings(
-        endpoint=_required_environment('ATLANTICUS_COSMOS_ENDPOINT'),
-        key=_required_environment('ATLANTICUS_COSMOS_KEY'),
-        database_name=database_name,
-        allow_insecure_http=True,
-        max_query_items=100,
-        page_size=50,
-    )
-    connections = {_CONNECTION_NAME: cosmos_settings}
-    bindings = AdaCosmosBindings(
-        users=_CONNECTION_NAME,
-        activity=_CONNECTION_NAME,
-        navigation=_CONNECTION_NAME,
-        tools=_CONNECTION_NAME,
-    )
+    os.environ[_DATABASE_VARIABLE] = database_name
+    definition = _deployment_definition()
+    environment = EnvironmentReader()
 
-    provisioning = ensure_ada_cosmos_infrastructure(
-        cosmos_connections=connections,
-        bindings=bindings,
-        create_databases_if_missing=True,
+    sharepoint_settings = resolve_sharepoint_infrastructure_settings(
+        environment,
+        definition.sharepoint,
     )
-    assert _CONNECTION_NAME in provisioning.databases_created
-    assert set(provisioning.containers_created[_CONNECTION_NAME]) == {
+    seed_infrastructure = WebRuntimeInfrastructure(
+        cosmos_connections={},
+        sharepoint=sharepoint_settings,
+    )
+    seed_infrastructure.open()
+    try:
+        user = _seed_sharepoint_access_configuration(seed_infrastructure)
+    finally:
+        seed_infrastructure.close()
+
+    first_prepare = prepare_ada_web_deployment(
+        definition=definition,
+        environment=environment,
+        create_databases_if_missing=True,
+        actor='ada-full-e2e',
+    )
+    assert _CONNECTION_NAME in first_prepare.provisioning.databases_created
+    assert set(first_prepare.provisioning.containers_created[_CONNECTION_NAME]) == {
         'users',
         'users_support',
         'user_activity',
         'configuration',
     }
+    assert first_prepare.synchronization.users_projected is True
+    assert first_prepare.synchronization.navigation_projected is True
 
-    sharepoint_settings = _resolve_sharepoint_settings()
-    synchronization_infrastructure = WebRuntimeInfrastructure(
-        cosmos_connections=connections,
-        sharepoint=sharepoint_settings,
+    second_prepare = prepare_ada_web_deployment(
+        definition=definition,
+        environment=environment,
+        create_databases_if_missing=True,
+        actor='ada-full-e2e',
     )
-    synchronization_infrastructure.open()
-    try:
-        user = _seed_sharepoint_access_configuration(synchronization_infrastructure)
-        configuration = _create_e2e_configuration_backends(
-            synchronization_infrastructure,
-            bindings=bindings,
-        )
-        first_sync = synchronize_ada_access_projections(
-            configuration=configuration,
-            actor='ada-full-e2e',
-        )
-        assert first_sync.users_projected is True
-        assert first_sync.navigation_projected is True
-        second_sync = synchronize_ada_access_projections(
-            configuration=configuration,
-            actor='ada-full-e2e',
-        )
-        assert second_sync.users_projected is False
-        assert second_sync.navigation_projected is False
-    finally:
-        synchronization_infrastructure.close()
+    assert second_prepare.synchronization.users_projected is False
+    assert second_prepare.synchronization.navigation_projected is False
 
-    runtime_infrastructure = WebRuntimeInfrastructure(cosmos_connections=connections)
-    runtime_infrastructure.open()
+    metadata = ApplicationMetadata(
+        application_id=_APPLICATION_ID,
+        display_name='ADA Full E2E',
+        version='0.1.0',
+    )
+    deployment_runtime = open_ada_web_deployment_runtime(
+        definition=definition,
+        metadata=metadata,
+        identity_provider=create_app_service_identity_provider(),
+        environment=environment,
+    )
     try:
-        metadata = ApplicationMetadata(
-            application_id=_APPLICATION_ID,
-            display_name='ADA Full E2E',
-            version='0.1.0',
-        )
-        bootstrap = create_ada_web_bootstrap(
-            metadata=metadata,
-            identity_provider=create_app_service_identity_provider(),
-            infrastructure=runtime_infrastructure,
-            bindings=bindings,
-        )
-        assert bootstrap.infrastructure is runtime_infrastructure
         runtime = create_web_application(
             WebApplicationDefinition(
-                import_name='ada.compositions.web_bootstrap',
+                import_name='ada.compositions.web_deployment',
                 metadata=metadata,
                 publications_root=Path('/tmp/atlanticus-ada-full-e2e-assets'),
                 layout=_layout,
-                modules=(*bootstrap.modules, _create_e2e_module()),
+                modules=(*deployment_runtime.bootstrap.modules, _create_e2e_module()),
                 page_packages=('e2e_pages',),
             )
         )
         _exercise_application(runtime.server, user_id=user.user_id)
         _assert_activity_persisted(
-            runtime_infrastructure,
+            deployment_runtime.infrastructure,
             user_id=user.user_id,
             client_session_id='full-e2e-session',
         )
-        _assert_projections_persisted(runtime_infrastructure)
+        _assert_projections_persisted(deployment_runtime.infrastructure)
         print(f'Cosmos database: {database_name}')
         print(f'Cosmos connection: {_CONNECTION_NAME}')
         print(f'Users path: {sharepoint_settings.paths.users_relative_path}/{_USERS_FILENAME}')
@@ -190,18 +151,38 @@ def test_ada_full_application_end_to_end() -> None:
         )
         print(f'Activity user: {user.user_id}')
     finally:
-        runtime_infrastructure.close()
+        deployment_runtime.close()
 
 
-def _resolve_sharepoint_settings():
-    specs = create_sharepoint_configuration_specs()
-    bootstrap = ConfigurationBootstrap.from_process(
-        specs=specs,
-        process_values=os.environ,
+def _deployment_definition() -> AdaWebDeploymentDefinition:
+    return AdaWebDeploymentDefinition(
+        cosmos_connections=(
+            CosmosConnectionEnvironmentDefinition(
+                name=_CONNECTION_NAME,
+                endpoint_variable='ATLANTICUS_COSMOS_ENDPOINT',
+                key_variable='ATLANTICUS_COSMOS_KEY',
+                database_name_variable=_DATABASE_VARIABLE,
+                allow_insecure_http=True,
+            ),
+        ),
+        bindings=AdaCosmosBindings(
+            users=_CONNECTION_NAME,
+            activity=_CONNECTION_NAME,
+            navigation=_CONNECTION_NAME,
+            tools=_CONNECTION_NAME,
+        ),
+        sharepoint=SharePointEnvironmentDefinition(
+            read_endpoint_variable='ATLANTICUS_SHAREPOINT_READ_ENDPOINT',
+            write_endpoint_variable='ATLANTICUS_SHAREPOINT_WRITE_ENDPOINT',
+            root_path_variable='ATLANTICUS_SHAREPOINT_ROOT_PATH',
+            tool_path_variable='ATLANTICUS_SHAREPOINT_TOOL_PATH',
+        ),
+        configuration_filenames=AdaConfigurationFilenames(
+            users=_USERS_FILENAME,
+            navigation=_NAVIGATION_FILENAME,
+            tools=_TOOL_FILENAME,
+        ),
     )
-    configuration = bootstrap.load(process_values=os.environ)
-    assert configuration.environment == Environment.from_value('local')
-    return resolve_sharepoint_infrastructure_settings(configuration)
 
 
 def _seed_sharepoint_access_configuration(
@@ -279,54 +260,6 @@ def _seed_sharepoint_access_configuration(
     )
     return user
 
-
-def _create_e2e_configuration_backends(
-    infrastructure: WebRuntimeInfrastructure,
-    *,
-    bindings: AdaCosmosBindings,
-) -> AdaConfigurationBackends:
-    users_client = infrastructure.cosmos(bindings.users)
-    navigation_client = infrastructure.cosmos(bindings.navigation)
-    tools_client = infrastructure.cosmos(bindings.tools)
-    gateway = infrastructure.sharepoint()
-    paths = infrastructure.sharepoint_paths
-    return AdaConfigurationBackends(
-        users_source=SharePointUsersConfigurationStore(
-            gateway=gateway,
-            settings=SharePointUsersConfigurationSettings(
-                filename=_USERS_FILENAME,
-                relative_path=paths.users_relative_path,
-            ),
-        ),
-        users_projection=CosmosUsersProjectionRepository(client=users_client),
-        users_discovered=CosmosDiscoveredUsersSource(client=users_client),
-        navigation_source=SharePointNavigationConfigurationStore(
-            gateway=gateway,
-            settings=SharePointNavigationConfigurationSettings(
-                filename=_NAVIGATION_FILENAME,
-                relative_path=paths.navigation_relative_path,
-            ),
-        ),
-        navigation_projection=CosmosNavigationProjectionRepository(
-            client=navigation_client,
-            settings=CosmosNavigationProjectionSettings(
-                container_name=NAVIGATION_COSMOS_REQUIREMENTS[0].container_name,
-            ),
-        ),
-        tools_source=SharePointToolConfigurationStore(
-            gateway=gateway,
-            settings=SharePointToolConfigurationSettings(
-                filename=_TOOL_FILENAME,
-                relative_path=paths.tool_relative_path,
-            ),
-        ),
-        tools_projection=CosmosToolProjectionRepository(
-            client=tools_client,
-            settings=CosmosToolProjectionSettings(
-                container_name=TOOL_COSMOS_REQUIREMENTS[0].container_name,
-            ),
-        ),
-    )
 
 
 def _create_e2e_module() -> WebModule:

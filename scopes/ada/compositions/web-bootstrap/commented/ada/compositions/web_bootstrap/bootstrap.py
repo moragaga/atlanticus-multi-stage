@@ -1,8 +1,11 @@
+# Construcción de dependencias reales ADA.
+# Los filenames se seleccionan en runtime y conservan defaults productivos.
 from __future__ import annotations
 
 from ada.compositions.web_application import create_ada_application_modules
 from ada.compositions.web_bootstrap.models import (
     AdaConfigurationBackends,
+    AdaConfigurationFilenames,
     AdaCosmosBindings,
     AdaWebBootstrap,
     AdaWebBootstrapError,
@@ -52,7 +55,6 @@ def create_ada_web_bootstrap(
     bindings: AdaCosmosBindings,
     users_runtime: UsersRuntime | None = None,
 ) -> AdaWebBootstrap:
-    # Esta fase solo consume proyecciones ya preparadas; no lee SharePoint ni provisiona Cosmos.
     if not isinstance(metadata, ApplicationMetadata):
         raise TypeError('metadata must be ApplicationMetadata')
     if not isinstance(identity_provider, IdentityProvider):
@@ -65,17 +67,14 @@ def create_ada_web_bootstrap(
         raise TypeError('users_runtime must be UsersRuntime or None')
 
     runtime = users_runtime or UsersRuntime()
-    # El bootstrap ADA decide qué conexión lógica satisface cada capability.
     users_client = infrastructure.cosmos(bindings.users)
     activity_client = infrastructure.cosmos(bindings.activity)
     navigation_client = infrastructure.cosmos(bindings.navigation)
 
-    # Users consume la proyección Cosmos y su catálogo de perfiles ya sincronizado.
     users_gateway = CosmosUsersGatewayAdapter(client=users_client)
     profile_cache = UsersCosmosProfileCache(users_gateway)
     profiles = CosmosProfileCatalog(profile_cache)
     users_source = UsersCosmosSource(gateway=users_gateway, profiles=profile_cache)
-    # Navigation consume la proyección activa; SharePoint no participa del request path.
     navigation_projection = CosmosNavigationProjectionRepository(
         client=navigation_client,
         settings=CosmosNavigationProjectionSettings(
@@ -86,12 +85,10 @@ def create_ada_web_bootstrap(
         ),
     )
     navigation_provider = create_projected_navigation_definition_provider(navigation_projection)
-    # Activity usa el cliente real y la operación patch real de Connectivity.
     activity_repository = CosmosUserActivityRepository(
         client=activity_client,
         patch_operation_factory=CosmosPatchOperation,
     )
-    # R17A continúa recibiendo únicamente dependencias listas.
     modules = create_ada_application_modules(
         metadata=metadata,
         identity_provider=identity_provider,
@@ -117,12 +114,15 @@ def create_ada_configuration_backends(
     *,
     infrastructure: WebRuntimeInfrastructure,
     bindings: AdaCosmosBindings,
+    filenames: AdaConfigurationFilenames | None = None,
 ) -> AdaConfigurationBackends:
-    # Esta fase sí une la fuente SharePoint con las proyecciones Cosmos y se ejecuta fuera del worker.
     if not isinstance(infrastructure, WebRuntimeInfrastructure):
         raise TypeError('infrastructure must be WebRuntimeInfrastructure')
     if not isinstance(bindings, AdaCosmosBindings):
         raise TypeError('bindings must be AdaCosmosBindings')
+    if filenames is not None and not isinstance(filenames, AdaConfigurationFilenames):
+        raise TypeError('filenames must be AdaConfigurationFilenames or None')
+    resolved_filenames = filenames or AdaConfigurationFilenames()
 
     users_client = infrastructure.cosmos(bindings.users)
     navigation_client = infrastructure.cosmos(bindings.navigation)
@@ -133,6 +133,7 @@ def create_ada_configuration_backends(
         users_source=SharePointUsersConfigurationStore(
             gateway=gateway,
             settings=SharePointUsersConfigurationSettings(
+                filename=resolved_filenames.users,
                 relative_path=paths.users_relative_path,
             ),
         ),
@@ -141,6 +142,7 @@ def create_ada_configuration_backends(
         navigation_source=SharePointNavigationConfigurationStore(
             gateway=gateway,
             settings=SharePointNavigationConfigurationSettings(
+                filename=resolved_filenames.navigation,
                 relative_path=paths.navigation_relative_path,
             ),
         ),
@@ -156,6 +158,7 @@ def create_ada_configuration_backends(
         tools_source=SharePointToolConfigurationStore(
             gateway=gateway,
             settings=SharePointToolConfigurationSettings(
+                filename=resolved_filenames.tools,
                 relative_path=paths.tool_relative_path,
             ),
         ),
@@ -172,7 +175,6 @@ def create_ada_configuration_backends(
 
 
 def _single_container_name(requirements, *, capability: str) -> str:
-    # Los adapters actuales de Navigation y Tools materializan una proyección por capability.
     if len(requirements) != 1:
         raise AdaWebBootstrapError(
             f'{capability} bootstrap requires exactly one Cosmos container requirement'

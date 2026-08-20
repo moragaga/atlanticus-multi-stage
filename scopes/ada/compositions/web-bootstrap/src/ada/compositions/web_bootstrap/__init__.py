@@ -4,6 +4,7 @@ from ada.compositions.web_bootstrap.bootstrap import (
 )
 from ada.compositions.web_bootstrap.models import (
     AdaConfigurationBackends,
+    AdaConfigurationFilenames,
     AdaCosmosBindings,
     AdaWebBootstrap,
     AdaWebBootstrapError,
@@ -20,6 +21,7 @@ from ada.compositions.web_bootstrap.synchronization import (
 __all__ = [
     'AdaAccessProjectionSynchronizationResult',
     'AdaConfigurationBackends',
+    'AdaConfigurationFilenames',
     'AdaCosmosBindings',
     'AdaWebBootstrap',
     'AdaWebBootstrapError',

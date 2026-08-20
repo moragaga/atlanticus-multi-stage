@@ -1,21 +1,70 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
 from urllib.parse import parse_qsl, urlsplit
 
-from atlanticus.configuration import ConfigurationVariableSpec, ResolvedConfiguration
+from atlanticus.connectivity.cosmos import CosmosSettings
 from atlanticus.connectivity.http import HttpAuthMode, HttpSettings
 from atlanticus.web.compositions.sharepoint_http import (
     PowerAutomateSharePointSettings,
     SharePointPathSettings,
 )
+from atlanticus.web.environment import EnvironmentReader
 
-SHAREPOINT_READ_ENDPOINT_VARIABLE = 'ATLANTICUS_SHAREPOINT_READ_ENDPOINT'
-SHAREPOINT_WRITE_ENDPOINT_VARIABLE = 'ATLANTICUS_SHAREPOINT_WRITE_ENDPOINT'
-SHAREPOINT_ROOT_PATH_VARIABLE = 'ATLANTICUS_SHAREPOINT_ROOT_PATH'
-SHAREPOINT_TOOL_PATH_VARIABLE = 'ATLANTICUS_SHAREPOINT_TOOL_PATH'
+
+@dataclass(frozen=True, slots=True)
+class CosmosConnectionEnvironmentDefinition:
+    name: str
+    endpoint_variable: str
+    key_variable: str
+    database_name_variable: str
+    allow_insecure_http: bool = False
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, 'name', _require_name(self.name, 'name'))
+        object.__setattr__(
+            self,
+            'endpoint_variable',
+            _require_variable_name(self.endpoint_variable, 'endpoint_variable'),
+        )
+        object.__setattr__(
+            self,
+            'key_variable',
+            _require_variable_name(self.key_variable, 'key_variable'),
+        )
+        object.__setattr__(
+            self,
+            'database_name_variable',
+            _require_variable_name(self.database_name_variable, 'database_name_variable'),
+        )
+        if not isinstance(self.allow_insecure_http, bool):
+            raise TypeError('allow_insecure_http must be a boolean')
+
+
+@dataclass(frozen=True, slots=True)
+class SharePointEnvironmentDefinition:
+    read_endpoint_variable: str
+    write_endpoint_variable: str
+    root_path_variable: str
+    tool_path_variable: str
+    allow_insecure_http: bool = False
+
+    def __post_init__(self) -> None:
+        for field_name in (
+            'read_endpoint_variable',
+            'write_endpoint_variable',
+            'root_path_variable',
+            'tool_path_variable',
+        ):
+            object.__setattr__(
+                self,
+                field_name,
+                _require_variable_name(getattr(self, field_name), field_name),
+            )
+        if not isinstance(self.allow_insecure_http, bool):
+            raise TypeError('allow_insecure_http must be a boolean')
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,26 +74,42 @@ class SharePointInfrastructureSettings:
     paths: SharePointPathSettings
 
 
-def create_sharepoint_configuration_specs() -> tuple[ConfigurationVariableSpec, ...]:
-    return (
-        ConfigurationVariableSpec(key=SHAREPOINT_READ_ENDPOINT_VARIABLE, sensitive=True),
-        ConfigurationVariableSpec(key=SHAREPOINT_WRITE_ENDPOINT_VARIABLE, sensitive=True),
-        ConfigurationVariableSpec(key=SHAREPOINT_ROOT_PATH_VARIABLE),
-        ConfigurationVariableSpec(key=SHAREPOINT_TOOL_PATH_VARIABLE),
-    )
+def resolve_cosmos_connections(
+    environment: EnvironmentReader,
+    definitions: Sequence[CosmosConnectionEnvironmentDefinition],
+) -> Mapping[str, CosmosSettings]:
+    if not isinstance(environment, EnvironmentReader):
+        raise TypeError('environment must be EnvironmentReader')
+    resolved: dict[str, CosmosSettings] = {}
+    for definition in definitions:
+        if not isinstance(definition, CosmosConnectionEnvironmentDefinition):
+            raise TypeError('Cosmos connection definitions must use the expected type')
+        if definition.name in resolved:
+            raise ValueError(f"Duplicate Cosmos connection definition '{definition.name}'")
+        resolved[definition.name] = CosmosSettings(
+            endpoint=environment.require(definition.endpoint_variable),
+            key=environment.require(definition.key_variable),
+            database_name=environment.require(definition.database_name_variable),
+            allow_insecure_http=definition.allow_insecure_http,
+        )
+    return MappingProxyType(resolved)
 
 
 def resolve_sharepoint_infrastructure_settings(
-    configuration: ResolvedConfiguration,
+    environment: EnvironmentReader,
+    definition: SharePointEnvironmentDefinition,
 ) -> SharePointInfrastructureSettings:
-    _require_resolved_configuration(configuration)
+    if not isinstance(environment, EnvironmentReader):
+        raise TypeError('environment must be EnvironmentReader')
+    if not isinstance(definition, SharePointEnvironmentDefinition):
+        raise TypeError('definition must be SharePointEnvironmentDefinition')
     read = _parse_power_automate_endpoint(
-        configuration.require(SHAREPOINT_READ_ENDPOINT_VARIABLE),
-        SHAREPOINT_READ_ENDPOINT_VARIABLE,
+        environment.require(definition.read_endpoint_variable),
+        definition.read_endpoint_variable,
     )
     write = _parse_power_automate_endpoint(
-        configuration.require(SHAREPOINT_WRITE_ENDPOINT_VARIABLE),
-        SHAREPOINT_WRITE_ENDPOINT_VARIABLE,
+        environment.require(definition.write_endpoint_variable),
+        definition.write_endpoint_variable,
     )
     if read.base_url != write.base_url:
         raise ValueError('SharePoint Power Automate endpoints must share the same origin')
@@ -52,7 +117,7 @@ def resolve_sharepoint_infrastructure_settings(
         http=HttpSettings(
             base_url=read.base_url,
             auth_mode=HttpAuthMode.NONE,
-            allow_insecure_http=configuration.environment.is_local,
+            allow_insecure_http=definition.allow_insecure_http,
         ),
         gateway=PowerAutomateSharePointSettings(
             read_endpoint=read.endpoint,
@@ -61,8 +126,8 @@ def resolve_sharepoint_infrastructure_settings(
             write_parameters=write.parameters,
         ),
         paths=SharePointPathSettings(
-            root_path=configuration.require(SHAREPOINT_ROOT_PATH_VARIABLE),
-            tool_path=configuration.require(SHAREPOINT_TOOL_PATH_VARIABLE),
+            root_path=environment.require(definition.root_path_variable),
+            tool_path=environment.require(definition.tool_path_variable),
         ),
     )
 
@@ -110,6 +175,17 @@ def _parse_power_automate_endpoint(value: str, variable_name: str) -> _ParsedEnd
     )
 
 
-def _require_resolved_configuration(configuration: object) -> None:
-    if not isinstance(configuration, ResolvedConfiguration):
-        raise TypeError('configuration must be ResolvedConfiguration')
+def _require_name(value: object, field_name: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise TypeError(f'{field_name} must be non-empty text')
+    normalized = value.strip()
+    if normalized != value:
+        raise ValueError(f'{field_name} must not contain surrounding whitespace')
+    return normalized
+
+
+def _require_variable_name(value: object, field_name: str) -> str:
+    normalized = _require_name(value, field_name)
+    if '=' in normalized or '\x00' in normalized:
+        raise ValueError(f'{field_name} must contain a valid environment variable name')
+    return normalized

@@ -7,36 +7,43 @@ SOURCE_ROOT = PACKAGE_ROOT / 'src'
 COMMENTED_ROOT = PACKAGE_ROOT / 'commented'
 
 
-def test_package_declares_only_composition_level_dependencies() -> None:
+def test_package_dependencies_are_limited_to_existing_contract_layers() -> None:
     pyproject = tomllib.loads((PACKAGE_ROOT / 'pyproject.toml').read_text())
 
     assert pyproject['project']['dependencies'] == [
-        'atlanticus-cosmos==0.1.0',
-        'atlanticus-http==0.1.0',
+        'ada-composition-web-bootstrap==0.1.0',
         'atlanticus-web==0.1.0',
-        'atlanticus-web-composition-sharepoint-http==0.1.0',
+        'atlanticus-web-composition-runtime-infrastructure==0.1.0',
+        'atlanticus-web-identity==0.1.0',
     ]
 
 
-def test_productive_code_does_not_read_environment_or_depend_on_ada() -> None:
+def test_deployment_does_not_resolve_secrets_or_branch_on_environment_modes() -> None:
     source = '\n'.join(path.read_text() for path in SOURCE_ROOT.rglob('*.py'))
 
-    assert 'os.environ' not in source
-    assert 'ada.' not in source
+    assert 'ConfigurationBootstrap' not in source
+    assert 'KeyVault' not in source
+    assert 'ResolvedConfiguration' not in source
     assert 'ATLANTICUS_COSMOS_' not in source
     assert 'ATLANTICUS_SHAREPOINT_' not in source
-    assert 'ResolvedConfiguration' not in source
-    assert 'ConfigurationBootstrap' not in source
+    assert 'WebEnvironment' not in source
+    assert 'resolve_environment' not in source
 
 
-def test_runtime_does_not_provision_cosmos() -> None:
-    runtime_source = (
-        SOURCE_ROOT / 'atlanticus/web/compositions/runtime_infrastructure/runtime.py'
-    ).read_text()
+def test_worker_runtime_does_not_include_sharepoint_or_provisioning() -> None:
+    source = (SOURCE_ROOT / 'ada/compositions/web_deployment/runtime.py').read_text()
 
-    assert 'CosmosProvisioner' not in runtime_source
-    assert 'ensure_database' not in runtime_source
-    assert 'ensure_containers' not in runtime_source
+    assert 'resolve_sharepoint' not in source
+    assert 'ensure_ada_cosmos_infrastructure' not in source
+    assert 'synchronize_ada_access_projections' not in source
+    assert 'create_ada_configuration_backends' not in source
+
+
+def test_deployment_does_not_construct_the_flask_dash_application() -> None:
+    source = '\n'.join(path.read_text() for path in SOURCE_ROOT.rglob('*.py'))
+
+    assert 'create_web_application' not in source
+    assert 'WebApplicationDefinition' not in source
 
 
 def test_commented_mirror_matches_productive_ast() -> None:

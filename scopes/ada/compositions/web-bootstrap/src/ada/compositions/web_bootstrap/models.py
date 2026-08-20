@@ -44,6 +44,25 @@ class AdaCosmosBindings:
 
 
 @dataclass(frozen=True, slots=True)
+class AdaConfigurationFilenames:
+    users: str = 'users_configuration.json.gz'
+    navigation: str = 'navigation_configuration.json.gz'
+    tools: str = 'tools_configuration.json.gz'
+
+    def __post_init__(self) -> None:
+        for field_name in ('users', 'navigation', 'tools'):
+            value = getattr(self, field_name)
+            if not isinstance(value, str) or not value.strip():
+                raise TypeError(f'{field_name} configuration filename must be non-empty text')
+            normalized = value.strip()
+            if normalized != value:
+                raise ValueError(
+                    f'{field_name} configuration filename must not contain surrounding whitespace'
+                )
+            object.__setattr__(self, field_name, normalized)
+
+
+@dataclass(frozen=True, slots=True)
 class AdaConfigurationBackends:
     users_source: SharePointUsersConfigurationStore
     users_projection: CosmosUsersProjectionRepository

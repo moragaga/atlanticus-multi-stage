@@ -3,6 +3,7 @@ from __future__ import annotations
 from ada.compositions.web_application import create_ada_application_modules
 from ada.compositions.web_bootstrap.models import (
     AdaConfigurationBackends,
+    AdaConfigurationFilenames,
     AdaCosmosBindings,
     AdaWebBootstrap,
     AdaWebBootstrapError,
@@ -111,11 +112,15 @@ def create_ada_configuration_backends(
     *,
     infrastructure: WebRuntimeInfrastructure,
     bindings: AdaCosmosBindings,
+    filenames: AdaConfigurationFilenames | None = None,
 ) -> AdaConfigurationBackends:
     if not isinstance(infrastructure, WebRuntimeInfrastructure):
         raise TypeError('infrastructure must be WebRuntimeInfrastructure')
     if not isinstance(bindings, AdaCosmosBindings):
         raise TypeError('bindings must be AdaCosmosBindings')
+    if filenames is not None and not isinstance(filenames, AdaConfigurationFilenames):
+        raise TypeError('filenames must be AdaConfigurationFilenames or None')
+    resolved_filenames = filenames or AdaConfigurationFilenames()
 
     users_client = infrastructure.cosmos(bindings.users)
     navigation_client = infrastructure.cosmos(bindings.navigation)
@@ -126,6 +131,7 @@ def create_ada_configuration_backends(
         users_source=SharePointUsersConfigurationStore(
             gateway=gateway,
             settings=SharePointUsersConfigurationSettings(
+                filename=resolved_filenames.users,
                 relative_path=paths.users_relative_path,
             ),
         ),
@@ -134,6 +140,7 @@ def create_ada_configuration_backends(
         navigation_source=SharePointNavigationConfigurationStore(
             gateway=gateway,
             settings=SharePointNavigationConfigurationSettings(
+                filename=resolved_filenames.navigation,
                 relative_path=paths.navigation_relative_path,
             ),
         ),
@@ -149,6 +156,7 @@ def create_ada_configuration_backends(
         tools_source=SharePointToolConfigurationStore(
             gateway=gateway,
             settings=SharePointToolConfigurationSettings(
+                filename=resolved_filenames.tools,
                 relative_path=paths.tool_relative_path,
             ),
         ),

@@ -1,3 +1,5 @@
+# Modelos del bootstrap ADA.
+# Los nombres físicos de archivos pertenecen al runtime/composición, no al environment.
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -25,20 +27,17 @@ from atlanticus.web.users.runtime import UsersRuntime
 
 
 class AdaWebBootstrapError(RuntimeError):
-    # Error de composición/bootstrap ADA, separado de los errores de cada capability.
     pass
 
 
 @dataclass(frozen=True, slots=True)
 class AdaCosmosBindings:
-    # Cada campo identifica una conexión lógica resuelta por la solución, no por Atlanticus.
     users: str
     activity: str
     navigation: str
     tools: str
 
     def __post_init__(self) -> None:
-        # Los nombres son arbitrarios, pero deben ser textos utilizables como claves del registry.
         for field_name in ('users', 'activity', 'navigation', 'tools'):
             value = getattr(self, field_name)
             if not isinstance(value, str) or not value.strip():
@@ -47,8 +46,26 @@ class AdaCosmosBindings:
 
 
 @dataclass(frozen=True, slots=True)
+class AdaConfigurationFilenames:
+    users: str = 'users_configuration.json.gz'
+    navigation: str = 'navigation_configuration.json.gz'
+    tools: str = 'tools_configuration.json.gz'
+
+    def __post_init__(self) -> None:
+        for field_name in ('users', 'navigation', 'tools'):
+            value = getattr(self, field_name)
+            if not isinstance(value, str) or not value.strip():
+                raise TypeError(f'{field_name} configuration filename must be non-empty text')
+            normalized = value.strip()
+            if normalized != value:
+                raise ValueError(
+                    f'{field_name} configuration filename must not contain surrounding whitespace'
+                )
+            object.__setattr__(self, field_name, normalized)
+
+
+@dataclass(frozen=True, slots=True)
 class AdaConfigurationBackends:
-    # Backends de administración/sincronización: SharePoint es fuente y Cosmos proyección.
     users_source: SharePointUsersConfigurationStore
     users_projection: CosmosUsersProjectionRepository
     users_discovered: CosmosDiscoveredUsersSource
@@ -60,7 +77,6 @@ class AdaConfigurationBackends:
 
 @dataclass(frozen=True, slots=True)
 class AdaWebBootstrap:
-    # Dependencias efectivas del runtime operativo; SharePoint no forma parte de este contrato.
     infrastructure: WebRuntimeInfrastructure
     bindings: AdaCosmosBindings
     modules: tuple[WebModule, ...]

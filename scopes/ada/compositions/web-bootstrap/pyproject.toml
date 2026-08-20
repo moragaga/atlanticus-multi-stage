@@ -28,7 +28,6 @@ ada-composition-web-application = { workspace = true }
 ada-configuration-tools = { workspace = true }
 atlanticus-kernel = { path = "../../../../backend/kernel", editable = true }
 atlanticus-observability = { path = "../../../../backend/observability", editable = true }
-atlanticus-configuration = { path = "../../../../backend/configuration", editable = true }
 atlanticus-cosmos = { path = "../../../../connectivity/cosmos", editable = true }
 atlanticus-http = { path = "../../../../connectivity/http-client", editable = true }
 atlanticus-web = { path = "../../../../web/framework/core", editable = true }

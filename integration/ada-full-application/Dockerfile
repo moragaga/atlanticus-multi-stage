@@ -52,7 +52,7 @@ RUN uv sync \
 WORKDIR /workspace/scopes/ada
 
 RUN uv sync \
-        --package ada-composition-web-bootstrap \
+        --package ada-composition-web-deployment \
         --no-default-groups \
         --inexact \
         --frozen \
