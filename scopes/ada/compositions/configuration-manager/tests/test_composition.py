@@ -53,7 +53,5 @@ def test_configuration_manager_surface_registers_existing_modules_under_manager(
 def test_configuration_manager_surface_owns_services_not_standalone_host() -> None:
     surface = build_configuration_manager_surface(dependencies=_dependencies())
 
-    assert [module.name for module in surface.web_modules] == [
-        'ada-configuration-manager-services'
-    ]
+    assert [module.name for module in surface.web_modules] == ['ada-configuration-manager-services']
     assert surface.web_modules[0].register_services is not None

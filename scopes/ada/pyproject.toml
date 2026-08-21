@@ -9,9 +9,9 @@ dependencies = [
     "ada-application-reference==0.1.0",
     "ada-composition-web-application==0.1.0",
     "ada-composition-web-bootstrap==0.1.0",
-    "ada-composition-web-deployment==0.1.0",
-    "ada-application-configuration-manager==0.2.0",
-    "ada-composition-configuration-manager==0.1.0",
+    "ada-composition-web-deployment==0.1.2",
+    "ada-application-configuration-manager==0.2.2",
+    "ada-composition-configuration-manager==0.1.2",
     "ada-composition-process==0.1.0",
     "ada-composition-integrated-operations==0.1.0",
 ]

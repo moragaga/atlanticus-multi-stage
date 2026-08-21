@@ -1,4 +1,4 @@
-# Abre infraestructura y delega al bootstrap la selección coordinada de Identity y Users.
+# El runtime operacional resuelve solo la infraestructura Cosmos requerida por la aplicación.
 from __future__ import annotations
 
 from ada.compositions.web_bootstrap import create_ada_web_bootstrap
@@ -26,12 +26,15 @@ def open_ada_web_deployment_runtime(
     environment: EnvironmentReader | None = None,
     users_runtime: UsersRuntime | None = None,
 ) -> AdaWebDeploymentRuntime:
+    # Valida el contrato de deployment antes de resolver infraestructura.
     if not isinstance(definition, AdaWebDeploymentDefinition):
         raise TypeError('definition must be AdaWebDeploymentDefinition')
     reader = _environment_reader(environment)
     web_environment = resolve_deployment_environment(reader)
     bootstrap_admin_principal = resolve_bootstrap_admin_principal(reader, web_environment)
     connections = resolve_cosmos_connections(reader, definition.cosmos_connections)
+
+    # El worker operacional abre únicamente clientes Cosmos de larga vida.
     infrastructure = WebRuntimeInfrastructure(cosmos_connections=connections)
     infrastructure.open()
     try:
@@ -53,6 +56,7 @@ def open_ada_web_deployment_runtime(
 
 
 def _environment_reader(environment: EnvironmentReader | None) -> EnvironmentReader:
+    # Reutiliza el reader inyectado en tests/composición o crea el reader del proceso.
     if environment is None:
         return EnvironmentReader()
     if not isinstance(environment, EnvironmentReader):
@@ -61,6 +65,7 @@ def _environment_reader(environment: EnvironmentReader | None) -> EnvironmentRea
 
 
 def _close_quietly(infrastructure: WebRuntimeInfrastructure) -> None:
+    # El cierre de recuperación no oculta el error original de bootstrap.
     try:
         infrastructure.close()
     except Exception:

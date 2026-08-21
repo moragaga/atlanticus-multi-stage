@@ -1,3 +1,4 @@
+# Mantiene metadata y variables de infraestructura de la aplicación base ADA.
 from ada.compositions.web_bootstrap import AdaCosmosBindings
 from ada.compositions.web_deployment import AdaWebDeploymentDefinition
 from atlanticus.web.compositions.runtime_infrastructure import (
@@ -16,18 +17,16 @@ _FALSE_VALUES = frozenset({'0', 'false', 'no', 'off'})
 
 
 def build_metadata() -> ApplicationMetadata:
-    # Metadata estable de la aplicación base; no contiene configuración de infraestructura.
     return ApplicationMetadata(
         application_id='ada-application-base',
         display_name='ADA',
-        version='0.1.0',
+        version='0.2.1',
     )
 
 
 def build_deployment_definition(
     environment: EnvironmentReader | None = None,
 ) -> AdaWebDeploymentDefinition:
-    # La aplicación concreta declara qué variables contienen su conexión lógica.
     reader = _environment_reader(environment)
     return AdaWebDeploymentDefinition(
         cosmos_connections=(
@@ -36,7 +35,6 @@ def build_deployment_definition(
                 endpoint_variable='ATLANTICUS_COSMOS_ENDPOINT',
                 key_variable='ATLANTICUS_COSMOS_KEY',
                 database_name_variable='ATLANTICUS_COSMOS_DATABASE',
-                # HTTP sólo se habilita por opt-in explícito del deployment, nunca por ambiente.
                 allow_insecure_http=_optional_boolean(
                     reader,
                     _COSMOS_ALLOW_INSECURE_HTTP_VARIABLE,
@@ -62,17 +60,14 @@ def build_deployment_definition(
 def build_flask_config(
     environment: EnvironmentReader | None = None,
 ) -> dict[str, object]:
-    # El secreto proviene exclusivamente del deployment; el artifact no lo genera ni almacena.
     reader = _environment_reader(environment)
     secret_key = reader.optional(_FLASK_SECRET_KEY_VARIABLE)
     if secret_key is None or secret_key == '':
-        # Local puede seguir usando la generación segura que ya implementa Identity.
         return {}
     return {'SECRET_KEY': secret_key}
 
 
 def _environment_reader(environment: EnvironmentReader | None) -> EnvironmentReader:
-    # Centraliza la validación del reader para evitar contratos ligeramente distintos.
     if environment is None:
         return EnvironmentReader()
     if not isinstance(environment, EnvironmentReader):
@@ -86,7 +81,6 @@ def _optional_boolean(
     *,
     default: bool,
 ) -> bool:
-    # Acepta únicamente booleanos de deployment explícitos y conocidos.
     value = environment.optional(variable_name)
     if value is None or value == '':
         return default

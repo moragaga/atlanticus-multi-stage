@@ -61,7 +61,7 @@ def build_configuration_manager_definition(
         metadata=ApplicationMetadata(
             application_id='ada-configuration-manager',
             display_name='Gestor de configuración ADA',
-            version='0.2.0',
+            version='0.2.2',
         ),
         publications_root=Path(publications_root),
 # El prefijo vacío preserva /tools, /users y /navigation únicamente para este preview standalone.

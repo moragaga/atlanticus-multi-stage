@@ -44,9 +44,10 @@ def test_worker_runtime_requires_only_cosmos_environment_and_owns_lifecycle(monk
     events = []
 
     class FakeInfrastructure:
-        def __init__(self, *, cosmos_connections):
+        def __init__(self, *, cosmos_connections, sharepoint=None):
             self.cosmos_connections = cosmos_connections
-            events.append(('created', tuple(cosmos_connections)))
+            self.sharepoint = sharepoint
+            events.append(('created', tuple(cosmos_connections), sharepoint))
 
         def open(self):
             events.append('open')
@@ -96,7 +97,7 @@ def test_worker_runtime_requires_only_cosmos_environment_and_owns_lifecycle(monk
     runtime.close()
     assert runtime.closed is True
     assert events == [
-        ('created', ('application',)),
+        ('created', ('application',), None),
         'open',
         ('bootstrap', 'application', 'production', 'admin@example.com'),
         'close',
@@ -107,8 +108,8 @@ def test_worker_runtime_closes_infrastructure_when_bootstrap_fails(monkeypatch) 
     events = []
 
     class FakeInfrastructure:
-        def __init__(self, *, cosmos_connections):
-            del cosmos_connections
+        def __init__(self, *, cosmos_connections, sharepoint=None):
+            del cosmos_connections, sharepoint
 
         def open(self):
             events.append('open')

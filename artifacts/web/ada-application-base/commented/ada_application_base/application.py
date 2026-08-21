@@ -1,10 +1,20 @@
+# Compone la experiencia operacional y el Manager dentro de un único runtime web ADA.
+# Cosmos pertenece al deployment operacional; SharePoint se abre por separado solo para History del Manager.
 from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
 
-from dash import page_container
+from dash import Input, Output, dcc, html, page_container
 
+from ada.compositions.configuration_manager import (
+    EffectiveUserManagerPrincipalProvider,
+    build_configuration_manager_surface,
+    create_configuration_manager_dependencies,
+    create_manager_principal_binding_module,
+    open_configuration_manager_sharepoint_infrastructure,
+    resolve_configuration_backend_selection,
+)
 from ada.compositions.web_deployment import (
     AdaWebDeploymentRuntime,
     open_ada_web_deployment_runtime,
@@ -14,57 +24,160 @@ from ada_application_base.definition import (
     build_flask_config,
     build_metadata,
 )
-
 from atlanticus.web.application import create_web_application
-from atlanticus.web.environment import EnvironmentReader
+from atlanticus.web.compositions.runtime_infrastructure import WebRuntimeInfrastructure
+from atlanticus.web.environment import EnvironmentReader, resolve_environment
 from atlanticus.web.index import IndexPageDefinition
+from atlanticus.web.manager import ManagerSurface
 from atlanticus.web.models import WebApplicationDefinition, WebApplicationRuntime
+from atlanticus.web.modules import WebModule
+
+_LOCATION_ID = 'ada-application-base-location'
+_PAGE_HOST_ID = 'ada-application-base-page-host'
+_MANAGER_HOST_ID = 'ada-application-base-manager-host'
+_MANAGER_ROUTE_PREFIX = '/manager'
 
 
+# Agrupa los dos lifecycles compartidos por el único proceso web ADA.
 @dataclass(slots=True)
 class AdaApplicationBaseRuntime:
-    # El artifact posee el deployment runtime y la aplicación Web que éste alimenta.
     deployment: AdaWebDeploymentRuntime
     web: WebApplicationRuntime
+    manager_sharepoint_infrastructure: WebRuntimeInfrastructure | None = None
 
     @property
     def server(self):
-        # Expone Flask sin duplicar el runtime Web.
         return self.web.server
 
+    # Cierra siempre SharePoint del Manager y luego el deployment Cosmos operacional.
     def close(self) -> None:
-        # El cierre del deployment libera la infraestructura Cosmos del proceso.
-        self.deployment.close()
+        manager_error = None
+        try:
+            if self.manager_sharepoint_infrastructure is not None:
+                self.manager_sharepoint_infrastructure.close()
+        except Exception as error:
+            manager_error = error
+        try:
+            self.deployment.close()
+        except Exception:
+            if manager_error is None:
+                raise
+        if manager_error is not None:
+            raise manager_error
 
 
+# Composition root: abre deployment, Manager y finalmente crea un único Dash/Flask.
 def create_application_runtime() -> AdaApplicationBaseRuntime:
-    # Toma un snapshot único del entorno para resolver de forma coherente este runtime.
     environment = EnvironmentReader()
+    web_environment = resolve_environment()
     metadata = build_metadata()
-    # Esta fase sólo abre runtime; deployment resuelve Identity/Users desde ATLANTICUS_ENVIRONMENT.
+    deployment_definition = build_deployment_definition(environment)
+    backend_selection = resolve_configuration_backend_selection(
+        environment,
+        web_environment,
+    )
     deployment = open_ada_web_deployment_runtime(
-        definition=build_deployment_definition(environment),
+        definition=deployment_definition,
         metadata=metadata,
         environment=environment,
     )
+    # SharePoint solo existe cuando el backend History seleccionado lo requiere.
+    manager_sharepoint_infrastructure = None
     try:
-        # Reutiliza directamente los módulos certificados por R17B: Identity, Users,
-        # Navigation/Authorization y Activity.
+        manager_sharepoint_infrastructure = open_configuration_manager_sharepoint_infrastructure(
+            selection=backend_selection,
+            environment=environment,
+            definition=deployment_definition.sharepoint,
+        )
+        principal_provider = EffectiveUserManagerPrincipalProvider()
+        manager_dependencies = create_configuration_manager_dependencies(
+            selection=backend_selection,
+            infrastructure=deployment.infrastructure,
+            sharepoint_infrastructure=manager_sharepoint_infrastructure,
+            bindings=deployment_definition.bindings,
+            filenames=deployment_definition.configuration_filenames,
+            principal_provider=principal_provider,
+            environment=environment,
+        )
+        manager_surface = ManagerSurface(
+            build_configuration_manager_surface(
+                dependencies=manager_dependencies,
+                route_prefix=_MANAGER_ROUTE_PREFIX,
+            )
+        )
+        modules = (
+            *deployment.bootstrap.modules,
+            create_manager_principal_binding_module(principal_provider),
+            *manager_surface.web_modules,
+            _create_manager_host_module(),
+        )
         web = create_web_application(
             WebApplicationDefinition(
                 import_name='ada_application_base',
                 metadata=metadata,
                 publications_root=Path.cwd() / '.runtime' / 'assets',
-                layout=lambda _services: page_container,
-                modules=deployment.bootstrap.modules,
+                layout=lambda services: _build_layout(services, manager_surface),
+                modules=modules,
                 page_packages=('ada_application_base.pages',),
                 index=IndexPageDefinition(language='es'),
-                # El artifact sólo traduce el secreto entregado por deployment a Flask.
                 flask_config=build_flask_config(environment),
             )
         )
     except Exception:
-        # Si falla la composición Web no se deja infraestructura abierta.
+        if manager_sharepoint_infrastructure is not None:
+            _close_quietly(manager_sharepoint_infrastructure)
         deployment.close()
         raise
-    return AdaApplicationBaseRuntime(deployment=deployment, web=web)
+    return AdaApplicationBaseRuntime(
+        deployment=deployment,
+        web=web,
+        manager_sharepoint_infrastructure=manager_sharepoint_infrastructure,
+    )
+
+
+# Mantiene Tool Experience y Manager Surface dentro del mismo árbol raíz.
+def _build_layout(services, manager_surface: ManagerSurface) -> object:
+    return html.Div(
+        [
+            dcc.Location(id=_LOCATION_ID, refresh=False),
+            html.Div(page_container, id=_PAGE_HOST_ID),
+            html.Div(
+                manager_surface.layout(services),
+                id=_MANAGER_HOST_ID,
+                hidden=True,
+            ),
+        ]
+    )
+
+
+# Alterna visibilidad por ruta sin crear otra aplicación ni otro router.
+def _create_manager_host_module() -> WebModule:
+    def register_callbacks(app: object, _services: object) -> None:
+        @app.callback(
+            Output(_PAGE_HOST_ID, 'hidden'),
+            Output(_MANAGER_HOST_ID, 'hidden'),
+            Input(_LOCATION_ID, 'pathname'),
+        )
+        def select_surface(pathname: str | None):
+            manager_route = _is_manager_route(pathname)
+            return manager_route, not manager_route
+
+    return WebModule(
+        name='ada-application-base-manager-host',
+        register_callbacks=register_callbacks,
+    )
+
+
+def _is_manager_route(pathname: str | None) -> bool:
+    if not pathname:
+        return False
+    return pathname == _MANAGER_ROUTE_PREFIX or pathname.startswith(
+        f'{_MANAGER_ROUTE_PREFIX}/'
+    )
+
+
+def _close_quietly(infrastructure: WebRuntimeInfrastructure) -> None:
+    try:
+        infrastructure.close()
+    except Exception:
+        return

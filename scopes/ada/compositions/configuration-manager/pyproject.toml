@@ -4,23 +4,29 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ada-composition-configuration-manager"
-version = "0.1.0"
+version = "0.1.2"
 requires-python = "==3.14.2"
 classifiers = [
     "Private :: Do Not Upload",
 ]
 dependencies = [
+    "ada-composition-web-bootstrap==0.1.0",
     "ada-configuration-tools[web]==0.1.0",
     "atlanticus-web==0.1.0",
     "atlanticus-web-manager==0.2.0",
+    "atlanticus-web-composition-runtime-infrastructure==0.1.0",
+    "atlanticus-web-users-cosmos==0.1.0",
     "atlanticus-web-navigation-configuration[web]==0.1.0",
     "atlanticus-web-users-configuration[web]==0.1.0",
 ]
 
 [tool.uv.sources]
+ada-composition-web-bootstrap = { workspace = true }
 ada-configuration-tools = { workspace = true }
 atlanticus-web = { path = "../../../../web/framework/core", editable = true }
 atlanticus-web-manager = { path = "../../../../web/capabilities/manager", editable = true }
+atlanticus-web-composition-runtime-infrastructure = { path = "../../../../web/compositions/runtime-infrastructure", editable = true }
+atlanticus-web-users-cosmos = { path = "../../../../web/capabilities/users/cosmos", editable = true }
 atlanticus-web-navigation-configuration = { path = "../../../../web/capabilities/navigation/configuration", editable = true }
 atlanticus-web-users-configuration = { path = "../../../../web/capabilities/users/configuration", editable = true }
 

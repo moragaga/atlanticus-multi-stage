@@ -10,6 +10,7 @@ COSMOS_CONTAINER='atlanticus-ada-application-base-cosmos'
 APP_CONTAINER='atlanticus-ada-application-base-app'
 RUNTIME_DIR="$LOCAL_DIR/.runtime"
 ENV_FILE="$RUNTIME_DIR/environment.env"
+CONFIGURATION_DIR="$RUNTIME_DIR/configuration"
 COSMOS_KEY='C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=='
 DATABASE='ada-application-base-local'
 HOST_PORT="${ATLANTICUS_ADA_BASE_PORT:-8000}"
@@ -44,11 +45,13 @@ for container in "$APP_CONTAINER" "$COSMOS_CONTAINER"; do
 done
 
 docker network rm "$NETWORK" >/dev/null 2>&1 || true
-mkdir -p "$RUNTIME_DIR"
+mkdir -p "$RUNTIME_DIR" "$CONFIGURATION_DIR"
 rm -f "$ENV_FILE"
 umask 077
 {
     printf 'ATLANTICUS_ENVIRONMENT=local\n'
+    printf 'ATLANTICUS_CONFIGURATION_HISTORY_BACKEND=%s\n' "${ATLANTICUS_CONFIGURATION_HISTORY_BACKEND:-local}"
+    printf 'ATLANTICUS_CONFIGURATION_PROJECTION_BACKEND=%s\n' "${ATLANTICUS_CONFIGURATION_PROJECTION_BACKEND:-local}"
     printf 'ATLANTICUS_COSMOS_READY_URL=http://cosmos-emulator:8080/ready\n'
     printf 'ATLANTICUS_COSMOS_ENDPOINT=http://cosmos-emulator:8081\n'
     printf 'ATLANTICUS_COSMOS_KEY=%s\n' "$COSMOS_KEY"
@@ -57,6 +60,16 @@ umask 077
     printf 'ATLANTICUS_FLASK_SECRET_KEY=%s\n' "$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
     printf 'ATLANTICUS_AZURE_OBSERVABILITY_MODE=off\n'
 } > "$ENV_FILE"
+
+for variable in \
+    ATLANTICUS_SHAREPOINT_READ_ENDPOINT \
+    ATLANTICUS_SHAREPOINT_WRITE_ENDPOINT \
+    ATLANTICUS_SHAREPOINT_ROOT_PATH \
+    ATLANTICUS_SHAREPOINT_TOOL_PATH; do
+    if [[ -n "${!variable:-}" ]]; then
+        printf '%s=%s\n' "$variable" "${!variable}" >> "$ENV_FILE"
+    fi
+done
 
 trap cleanup_failed_start ERR
 
@@ -93,6 +106,7 @@ docker run -d \
     --env-file "$ENV_FILE" \
     --memory 768m \
     --cpus 0.75 \
+    -v "$CONFIGURATION_DIR:/usr/app/.runtime/configuration" \
     -p "127.0.0.1:${HOST_PORT}:8000" \
     "$IMAGE" >/dev/null
 
@@ -120,4 +134,6 @@ trap - ERR
 printf 'ADA Application Base local baseline is ready.\n'
 printf 'URL: http://127.0.0.1:%s/\n' "$HOST_PORT"
 printf 'Environment: local\n'
+printf 'Configuration history: %s\n' "${ATLANTICUS_CONFIGURATION_HISTORY_BACKEND:-local}"
+printf 'Configuration projection: %s\n' "${ATLANTICUS_CONFIGURATION_PROJECTION_BACKEND:-local}"
 printf 'Stop: bash integration/ada-application-base-local/stop-local.sh\n'

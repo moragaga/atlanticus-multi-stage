@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ada-composition-web-deployment"
-version = "0.1.0"
+version = "0.1.2"
 description = "Contrato de deployment y lifecycle para aplicaciones web ADA"
 requires-python = "==3.14.2"
 classifiers = ["Private :: Do Not Upload"]

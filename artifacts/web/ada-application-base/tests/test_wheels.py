@@ -6,6 +6,7 @@ from zipfile import ZipFile
 ROOT = Path(__file__).resolve().parents[1]
 WHEELS = ROOT / 'wheels'
 EXPECTED_INTERNAL_PACKAGES = {
+    'ada-composition-configuration-manager',
     'ada-composition-web-application',
     'ada-composition-web-bootstrap',
     'ada-composition-web-deployment',
@@ -23,6 +24,7 @@ EXPECTED_INTERNAL_PACKAGES = {
     'atlanticus-web-identity',
     'atlanticus-web-identity-app-service',
     'atlanticus-web-identity-local',
+    'atlanticus-web-manager',
     'atlanticus-web-navigation',
     'atlanticus-web-navigation-configuration',
     'atlanticus-web-observability',
@@ -34,12 +36,38 @@ EXPECTED_INTERNAL_PACKAGES = {
 }
 
 CRITICAL_PATH_PINNED_WHEELS = {
-    'ada-composition-web-bootstrap': 'ada_composition_web_bootstrap-0.1.0-py3-none-any.whl',
-    'ada-composition-web-deployment': 'ada_composition_web_deployment-0.1.0-py3-none-any.whl',
-    'atlanticus-web-identity': 'atlanticus_web_identity-0.1.0-py3-none-any.whl',
-    'atlanticus-web-identity-local': 'atlanticus_web_identity_local-0.1.0-py3-none-any.whl',
-    'atlanticus-web-users-cosmos': 'atlanticus_web_users_cosmos-0.1.0-py3-none-any.whl',
-    'atlanticus-web-users-local': 'atlanticus_web_users_local-0.1.0-py3-none-any.whl',
+    'ada-composition-configuration-manager': (
+        '0.1.2',
+        'ada_composition_configuration_manager-0.1.2-py3-none-any.whl',
+    ),
+    'ada-composition-web-bootstrap': (
+        '0.1.0',
+        'ada_composition_web_bootstrap-0.1.0-py3-none-any.whl',
+    ),
+    'ada-composition-web-deployment': (
+        '0.1.2',
+        'ada_composition_web_deployment-0.1.2-py3-none-any.whl',
+    ),
+    'atlanticus-web-manager': (
+        '0.2.0',
+        'atlanticus_web_manager-0.2.0-py3-none-any.whl',
+    ),
+    'atlanticus-web-identity': (
+        '0.1.0',
+        'atlanticus_web_identity-0.1.0-py3-none-any.whl',
+    ),
+    'atlanticus-web-identity-local': (
+        '0.1.0',
+        'atlanticus_web_identity_local-0.1.0-py3-none-any.whl',
+    ),
+    'atlanticus-web-users-cosmos': (
+        '0.1.0',
+        'atlanticus_web_users_cosmos-0.1.0-py3-none-any.whl',
+    ),
+    'atlanticus-web-users-local': (
+        '0.1.0',
+        'atlanticus_web_users_local-0.1.0-py3-none-any.whl',
+    ),
 }
 
 
@@ -48,6 +76,7 @@ def test_internal_wheel_closure_is_present() -> None:
     names = {item['Name'].lower().replace('_', '-') for item in metadata}
 
     assert names == EXPECTED_INTERNAL_PACKAGES
+    assert len(metadata) == len(EXPECTED_INTERNAL_PACKAGES)
 
 
 def test_internal_wheels_target_python_3142() -> None:
@@ -63,8 +92,8 @@ def test_critical_internal_wheels_are_path_pinned() -> None:
     lock = tomllib.loads((ROOT / 'uv.lock').read_text(encoding='utf-8'))
     locked_packages = {package['name']: package for package in lock['package']}
 
-    for package, filename in CRITICAL_PATH_PINNED_WHEELS.items():
-        assert f'{package}==0.1.0' in dependencies
+    for package, (version, filename) in CRITICAL_PATH_PINNED_WHEELS.items():
+        assert f'{package}=={version}' in dependencies
         expected_source = {'path': f'wheels/{filename}'}
         assert sources[package] == expected_source
         assert locked_packages[package]['source'] == expected_source
