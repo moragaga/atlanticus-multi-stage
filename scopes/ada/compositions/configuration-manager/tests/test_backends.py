@@ -8,6 +8,7 @@ from ada.compositions.configuration_manager import (
     ConfigurationHistoryBackend,
     ConfigurationProjectionBackend,
     create_configuration_manager_dependencies,
+    create_configuration_runtime_projection,
     open_configuration_manager_sharepoint_infrastructure,
     resolve_configuration_backend_selection,
 )
@@ -31,13 +32,28 @@ from atlanticus.web.compositions.sharepoint_http import (
 from atlanticus.web.environment import EnvironmentReader, WebEnvironment
 from atlanticus.web.errors import WebConfigurationError
 from atlanticus.web.manager import ManagerPrincipal
+from atlanticus.web.navigation.configuration import (
+    NavigationConfigurationCatalog,
+    NavigationLinkConfiguration,
+)
 from atlanticus.web.navigation.configuration.adapters import (
     FileNavigationConfigurationStore,
     FileNavigationProjectionRepository,
+    FileNavigationProjectionSettings,
     SharePointNavigationConfigurationStore,
 )
+from atlanticus.web.navigation.configuration.projection import (
+    NavigationConfigurationProjection,
+)
+from atlanticus.web.users.configuration import (
+    UserProfileConfiguration,
+    UsersConfigurationBundle,
+    UsersConfigurationCatalog,
+)
 from atlanticus.web.users.configuration.adapters import (
+    FileUsersConfigurationSettings,
     FileUsersConfigurationStore,
+    FileUsersProjectionProfileCatalog,
     FileUsersProjectionRepository,
     SharePointUsersConfigurationStore,
 )
@@ -222,6 +238,71 @@ def test_sharepoint_infrastructure_opens_only_when_history_requires_it(monkeypat
         ('created', {}, resolved_settings),
         'open',
     ]
+
+
+def test_local_runtime_projection_reads_file_profiles_and_navigation(tmp_path) -> None:
+    selection = ConfigurationBackendSelection(
+        history=ConfigurationHistoryBackend.LOCAL,
+        projection=ConfigurationProjectionBackend.LOCAL,
+    )
+    runtime_projection = create_configuration_runtime_projection(
+        selection=selection,
+        runtime_root=tmp_path,
+    )
+
+    assert runtime_projection is not None
+    assert isinstance(runtime_projection.profiles, FileUsersProjectionProfileCatalog)
+    assert runtime_projection.profiles._repository._settings.root == (
+        tmp_path / 'projection' / 'users'
+    )
+    assert runtime_projection.navigation_provider.current().links == ()
+
+    users_repository = FileUsersProjectionRepository(
+        FileUsersConfigurationSettings(root=tmp_path / 'projection' / 'users')
+    )
+    users_repository.project(
+        UsersConfigurationBundle.create(
+            catalog=UsersConfigurationCatalog(
+                profiles=(
+                    UserProfileConfiguration(
+                        key='operator',
+                        label='Operador',
+                        background_color='#445566',
+                    ),
+                )
+            ),
+            saved_by='John Doe',
+        ),
+        actor='John Doe',
+    )
+
+    assert runtime_projection.profiles.require('operator').label == 'Operador'
+
+    repository = FileNavigationProjectionRepository(
+        FileNavigationProjectionSettings(root=tmp_path / 'projection' / 'navigation')
+    )
+    repository.save(
+        NavigationConfigurationProjection.create(
+            source_revision='navigation-source',
+            projected_by='John Doe',
+            catalog=NavigationConfigurationCatalog(
+                links=(NavigationLinkConfiguration(key='home', label='Inicio', href='/'),)
+            ),
+        )
+    )
+
+    assert runtime_projection.navigation_provider.current().links[0].key == 'home'
+
+
+def test_cosmos_runtime_projection_uses_existing_bootstrap_path() -> None:
+    runtime_projection = create_configuration_runtime_projection(
+        selection=ConfigurationBackendSelection(
+            history=ConfigurationHistoryBackend.LOCAL,
+            projection=ConfigurationProjectionBackend.COSMOS,
+        )
+    )
+
+    assert runtime_projection is None
 
 
 def test_local_file_dependencies_keep_history_and_projection_in_separate_roots(tmp_path) -> None:

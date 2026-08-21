@@ -1,13 +1,17 @@
-# Resuelve los backends del Manager sin acoplar el framework a SharePoint, Cosmos o archivos.
-# La infraestructura Cosmos operacional se reutiliza; SharePoint se abre por separado solo si History lo requiere.
 from __future__ import annotations
+
+# Espejo comentado: misma lógica productiva con notas pedagógicas en español.
 
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
 from ada.compositions.configuration_manager.dependencies import ConfigurationManagerDependencies
-from ada.compositions.web_bootstrap import AdaConfigurationFilenames, AdaCosmosBindings
+from ada.compositions.web_bootstrap import (
+    AdaConfigurationFilenames,
+    AdaCosmosBindings,
+    AdaRuntimeProjection,
+)
 from ada.configuration.tools import TOOL_COSMOS_REQUIREMENTS, compose_tool_configuration_services
 from ada.configuration.tools.adapters import (
     CosmosToolProjectionRepository,
@@ -30,6 +34,7 @@ from atlanticus.web.manager import ManagerPrincipalProvider
 from atlanticus.web.navigation.configuration import (
     NAVIGATION_COSMOS_REQUIREMENTS,
     compose_navigation_configuration_services,
+    create_projected_navigation_definition_provider,
 )
 from atlanticus.web.navigation.configuration.adapters import (
     CosmosNavigationProjectionRepository,
@@ -45,6 +50,7 @@ from atlanticus.web.users.configuration import compose_users_configuration_servi
 from atlanticus.web.users.configuration.adapters import (
     FileUsersConfigurationSettings,
     FileUsersConfigurationStore,
+    FileUsersProjectionProfileCatalog,
     FileUsersProjectionRepository,
     MemoryDiscoveredUsersSource,
     SharePointUsersConfigurationSettings,
@@ -80,7 +86,6 @@ class ConfigurationBackendSelection:
         return self.history is ConfigurationHistoryBackend.SHAREPOINT
 
 
-# Resuelve la combinación permitida según ambiente antes de construir adapters.
 def resolve_configuration_backend_selection(
     reader: EnvironmentReader,
     environment: WebEnvironment,
@@ -133,8 +138,6 @@ def resolve_configuration_backend_selection(
     return ConfigurationBackendSelection(history=history, projection=projection)
 
 
-# Abre un lifecycle HTTP/SharePoint separado y sin clientes Cosmos.
-# Esto preserva el deployment operacional como Cosmos-only.
 def open_configuration_manager_sharepoint_infrastructure(
     *,
     selection: ConfigurationBackendSelection,
@@ -159,7 +162,34 @@ def open_configuration_manager_sharepoint_infrastructure(
     return infrastructure
 
 
-# Compone History y Projection de forma independiente usando contratos ya existentes.
+# Convierte la selección local/file en readers runtime para Profiles y Navigation.
+def create_configuration_runtime_projection(
+    *,
+    selection: ConfigurationBackendSelection,
+    environment: EnvironmentReader | None = None,
+    runtime_root: str | Path | None = None,
+) -> AdaRuntimeProjection | None:
+    if not isinstance(selection, ConfigurationBackendSelection):
+        raise TypeError('selection must be ConfigurationBackendSelection')
+    if selection.projection is ConfigurationProjectionBackend.COSMOS:
+        return None
+
+    root = _runtime_root(environment, runtime_root)
+    users_projection = FileUsersProjectionRepository(
+        FileUsersConfigurationSettings(root=root / 'projection' / 'users')
+    )
+    navigation_projection = FileNavigationProjectionRepository(
+        FileNavigationProjectionSettings(root=root / 'projection' / 'navigation')
+    )
+    return AdaRuntimeProjection(
+        profiles=FileUsersProjectionProfileCatalog(users_projection),
+        navigation_provider=create_projected_navigation_definition_provider(
+            navigation_projection
+        ),
+    )
+
+
+# Los workflows del Manager siguen resolviendo History y Projection de forma independiente.
 def create_configuration_manager_dependencies(
     *,
     selection: ConfigurationBackendSelection,
@@ -186,11 +216,9 @@ def create_configuration_manager_dependencies(
     if not callable(principal_provider):
         raise TypeError('principal_provider must be callable')
 
-    # El actor de auditoría se obtiene siempre del principal efectivo de la request.
     def actor_provider() -> str:
         return principal_provider().display_name
 
-    # History decide exclusivamente de dónde se lee/publica la configuración.
     if selection.history is ConfigurationHistoryBackend.SHAREPOINT:
         if sharepoint_infrastructure is None:
             raise WebConfigurationError(
@@ -240,7 +268,6 @@ def create_configuration_manager_dependencies(
             )
         )
 
-    # Projection decide dónde se materializa la configuración para consumo runtime.
     if selection.projection is ConfigurationProjectionBackend.COSMOS:
         users_client = infrastructure.cosmos(bindings.users)
         navigation_client = infrastructure.cosmos(bindings.navigation)

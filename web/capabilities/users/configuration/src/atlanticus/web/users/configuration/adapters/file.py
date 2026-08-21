@@ -18,7 +18,9 @@ from atlanticus.web.users.configuration.errors import (
     UsersConfigurationPublisherError,
     UsersConfigurationSourceError,
 )
+from atlanticus.web.users.configuration.models import UsersConfigurationCatalog
 from atlanticus.web.users.configuration.projection import UsersProjectionState
+from atlanticus.web.users.profiles import ProfileCatalog, ProfileDefinition
 
 
 @dataclass(frozen=True, slots=True)
@@ -85,12 +87,10 @@ class FileUsersProjectionRepository:
         self._settings = settings
 
     def load_state(self) -> UsersProjectionState | None:
-        if not self._path.exists():
+        document = self._load_document()
+        if document is None:
             return None
         try:
-            document = json.loads(self._path.read_text(encoding='utf-8'))
-            if not isinstance(document, dict):
-                raise TypeError
             return UsersProjectionState(
                 revision=str(document['revision']),
                 source_revision=str(document['source_revision']),
@@ -100,6 +100,20 @@ class FileUsersProjectionRepository:
         except Exception as error:
             raise UsersConfigurationProjectionError(
                 'Could not read local users projection state'
+            ) from error
+
+    def load_catalog(self) -> UsersConfigurationCatalog | None:
+        document = self._load_document()
+        if document is None:
+            return None
+        try:
+            catalog = document['catalog']
+            if not isinstance(catalog, dict):
+                raise TypeError
+            return UsersConfigurationCatalog.from_document(catalog)
+        except Exception as error:
+            raise UsersConfigurationProjectionError(
+                'Could not read local users projection catalog'
             ) from error
 
     def project(self, bundle: UsersConfigurationBundle, *, actor: str) -> UsersProjectionState:
@@ -129,9 +143,68 @@ class FileUsersProjectionRepository:
         except OSError:
             return False
 
+    def _load_document(self) -> dict[str, object] | None:
+        if not self._path.exists():
+            return None
+        try:
+            document = json.loads(self._path.read_text(encoding='utf-8'))
+            if not isinstance(document, dict):
+                raise TypeError
+            return document
+        except Exception as error:
+            raise UsersConfigurationProjectionError(
+                'Could not read local users projection'
+            ) from error
+
     @property
     def _path(self) -> Path:
         return self._settings.root / self._settings.projection_filename
+
+
+class FileUsersProjectionProfileCatalog(ProfileCatalog):
+    def __init__(self, repository: FileUsersProjectionRepository) -> None:
+        if not isinstance(repository, FileUsersProjectionRepository):
+            raise TypeError('repository must be FileUsersProjectionRepository')
+        super().__init__()
+        self._repository = repository
+
+    @property
+    def administrator_background_color(self) -> str:
+        return self._current().administrator_background_color
+
+    @property
+    def administrator_text_color(self) -> str:
+        return self._current().administrator_text_color
+
+    @property
+    def guest_background_color(self) -> str:
+        return self._current().guest_background_color
+
+    @property
+    def guest_text_color(self) -> str:
+        return self._current().guest_text_color
+
+    @property
+    def custom_profiles(self) -> tuple[ProfileDefinition, ...]:
+        return self._current().custom_profiles
+
+    def require(self, key: str) -> ProfileDefinition:
+        return self._current().require(key)
+
+    def all(self) -> tuple[ProfileDefinition, ...]:
+        return self._current().all()
+
+    def assignable(self) -> tuple[ProfileDefinition, ...]:
+        return self._current().assignable()
+
+    def restricted_access_profiles(self) -> tuple[ProfileDefinition, ...]:
+        return self._current().restricted_access_profiles()
+
+    def _current(self) -> ProfileCatalog:
+        catalog = self._repository.load_catalog()
+        if catalog is None:
+            return ProfileCatalog()
+        return catalog.profile_catalog()
 
 
 def _atomic_write_json(path: Path, document: dict[str, object]) -> None:

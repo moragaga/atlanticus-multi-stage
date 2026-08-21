@@ -1,5 +1,6 @@
-# Modelos del bootstrap ADA con contratos genéricos de Identity y Users.
 from __future__ import annotations
+
+# Espejo comentado: misma lógica productiva con notas pedagógicas en español.
 
 from dataclasses import dataclass
 
@@ -45,8 +46,6 @@ class AdaCosmosBindings:
             object.__setattr__(self, field_name, value.strip())
 
 
-# Agrupa los nombres físicos de los archivos proyectados desde SharePoint.
-# El deployment puede reemplazarlos, por ejemplo en pruebas E2E, sin cambiar el bootstrap.
 @dataclass(frozen=True, slots=True)
 class AdaConfigurationFilenames:
     users: str = 'users_configuration.json.gz'
@@ -54,13 +53,11 @@ class AdaConfigurationFilenames:
     tools: str = 'tools_configuration.json.gz'
 
     def __post_init__(self) -> None:
-        # Los tres nombres son contratos obligatorios: no aceptamos valores vacíos ni no textuales.
         for field_name in ('users', 'navigation', 'tools'):
             value = getattr(self, field_name)
             if not isinstance(value, str) or not value.strip():
                 raise TypeError(f'{field_name} configuration filename must be non-empty text')
             normalized = value.strip()
-            # Rechazamos espacios exteriores en vez de corregirlos silenciosamente para detectar errores.
             if normalized != value:
                 raise ValueError(
                     f'{field_name} configuration filename must not contain surrounding whitespace'
@@ -77,6 +74,19 @@ class AdaConfigurationBackends:
     navigation_projection: CosmosNavigationProjectionRepository
     tools_source: SharePointToolConfigurationStore
     tools_projection: CosmosToolProjectionRepository
+
+
+@dataclass(frozen=True, slots=True)
+# Agrupa las vistas runtime que pueden sustituir a los readers Cosmos durante desarrollo local.
+class AdaRuntimeProjection:
+    profiles: ProfileCatalog
+    navigation_provider: NavigationDefinitionProvider
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.profiles, ProfileCatalog):
+            raise TypeError('profiles must be ProfileCatalog')
+        if not isinstance(self.navigation_provider, NavigationDefinitionProvider):
+            raise TypeError('navigation_provider must be NavigationDefinitionProvider')
 
 
 @dataclass(frozen=True, slots=True)

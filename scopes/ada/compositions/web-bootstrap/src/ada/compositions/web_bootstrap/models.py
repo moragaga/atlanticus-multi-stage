@@ -75,6 +75,18 @@ class AdaConfigurationBackends:
 
 
 @dataclass(frozen=True, slots=True)
+class AdaRuntimeProjection:
+    profiles: ProfileCatalog
+    navigation_provider: NavigationDefinitionProvider
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.profiles, ProfileCatalog):
+            raise TypeError('profiles must be ProfileCatalog')
+        if not isinstance(self.navigation_provider, NavigationDefinitionProvider):
+            raise TypeError('navigation_provider must be NavigationDefinitionProvider')
+
+
+@dataclass(frozen=True, slots=True)
 class AdaWebBootstrap:
     infrastructure: WebRuntimeInfrastructure
     bindings: AdaCosmosBindings

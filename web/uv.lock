@@ -352,7 +352,7 @@ requires-dist = [
 
 [[package]]
 name = "atlanticus-web-users-configuration"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "capabilities/users/configuration" }
 dependencies = [
     { name = "atlanticus-web-users" },
@@ -374,7 +374,7 @@ provides-extras = ["web"]
 
 [[package]]
 name = "atlanticus-web-users-cosmos"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "capabilities/users/cosmos" }
 dependencies = [
     { name = "atlanticus-web-users" },

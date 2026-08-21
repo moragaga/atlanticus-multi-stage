@@ -1,6 +1,6 @@
-# Compone la experiencia operacional y el Manager dentro de un único runtime web ADA.
-# Cosmos pertenece al deployment operacional; SharePoint se abre por separado solo para History del Manager.
 from __future__ import annotations
+
+# Espejo comentado: misma lógica productiva con notas pedagógicas en español.
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,6 +11,7 @@ from ada.compositions.configuration_manager import (
     EffectiveUserManagerPrincipalProvider,
     build_configuration_manager_surface,
     create_configuration_manager_dependencies,
+    create_configuration_runtime_projection,
     create_manager_principal_binding_module,
     open_configuration_manager_sharepoint_infrastructure,
     resolve_configuration_backend_selection,
@@ -38,7 +39,6 @@ _MANAGER_HOST_ID = 'ada-application-base-manager-host'
 _MANAGER_ROUTE_PREFIX = '/manager'
 
 
-# Agrupa los dos lifecycles compartidos por el único proceso web ADA.
 @dataclass(slots=True)
 class AdaApplicationBaseRuntime:
     deployment: AdaWebDeploymentRuntime
@@ -49,7 +49,6 @@ class AdaApplicationBaseRuntime:
     def server(self):
         return self.web.server
 
-    # Cierra siempre SharePoint del Manager y luego el deployment Cosmos operacional.
     def close(self) -> None:
         manager_error = None
         try:
@@ -66,7 +65,7 @@ class AdaApplicationBaseRuntime:
             raise manager_error
 
 
-# Composition root: abre deployment, Manager y finalmente crea un único Dash/Flask.
+# La aplicación resuelve una sola vez la proyección seleccionada y la comparte con el bootstrap.
 def create_application_runtime() -> AdaApplicationBaseRuntime:
     environment = EnvironmentReader()
     web_environment = resolve_environment()
@@ -76,18 +75,24 @@ def create_application_runtime() -> AdaApplicationBaseRuntime:
         environment,
         web_environment,
     )
+    runtime_projection = create_configuration_runtime_projection(
+        selection=backend_selection,
+        environment=environment,
+    )
     deployment = open_ada_web_deployment_runtime(
         definition=deployment_definition,
         metadata=metadata,
         environment=environment,
+        runtime_projection=runtime_projection,
     )
-    # SharePoint solo existe cuando el backend History seleccionado lo requiere.
     manager_sharepoint_infrastructure = None
     try:
-        manager_sharepoint_infrastructure = open_configuration_manager_sharepoint_infrastructure(
-            selection=backend_selection,
-            environment=environment,
-            definition=deployment_definition.sharepoint,
+        manager_sharepoint_infrastructure = (
+            open_configuration_manager_sharepoint_infrastructure(
+                selection=backend_selection,
+                environment=environment,
+                definition=deployment_definition.sharepoint,
+            )
         )
         principal_provider = EffectiveUserManagerPrincipalProvider()
         manager_dependencies = create_configuration_manager_dependencies(
@@ -135,7 +140,6 @@ def create_application_runtime() -> AdaApplicationBaseRuntime:
     )
 
 
-# Mantiene Tool Experience y Manager Surface dentro del mismo árbol raíz.
 def _build_layout(services, manager_surface: ManagerSurface) -> object:
     return html.Div(
         [
@@ -150,7 +154,6 @@ def _build_layout(services, manager_surface: ManagerSurface) -> object:
     )
 
 
-# Alterna visibilidad por ruta sin crear otra aplicación ni otro router.
 def _create_manager_host_module() -> WebModule:
     def register_callbacks(app: object, _services: object) -> None:
         @app.callback(

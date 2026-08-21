@@ -6,6 +6,7 @@ from ada.compositions.web_bootstrap.models import (
     AdaConfigurationBackends,
     AdaConfigurationFilenames,
     AdaCosmosBindings,
+    AdaRuntimeProjection,
     AdaWebBootstrap,
     AdaWebBootstrapError,
 )
@@ -50,6 +51,7 @@ def create_ada_web_bootstrap(
     infrastructure: WebRuntimeInfrastructure,
     bindings: AdaCosmosBindings,
     users_runtime: UsersRuntime | None = None,
+    runtime_projection: AdaRuntimeProjection | None = None,
 ) -> AdaWebBootstrap:
     if not isinstance(metadata, ApplicationMetadata):
         raise TypeError('metadata must be ApplicationMetadata')
@@ -61,11 +63,14 @@ def create_ada_web_bootstrap(
         raise TypeError('bindings must be AdaCosmosBindings')
     if users_runtime is not None and not isinstance(users_runtime, UsersRuntime):
         raise TypeError('users_runtime must be UsersRuntime or None')
+    if runtime_projection is not None and not isinstance(runtime_projection, AdaRuntimeProjection):
+        raise TypeError('runtime_projection must be AdaRuntimeProjection or None')
+    if runtime_projection is not None and not environment.is_local:
+        raise ValueError('runtime_projection is only supported in local environment')
 
     runtime = users_runtime or UsersRuntime()
     users_client = infrastructure.cosmos(bindings.users)
     activity_client = infrastructure.cosmos(bindings.activity)
-    navigation_client = infrastructure.cosmos(bindings.navigation)
 
     access = create_ada_access_components(
         environment=environment,
@@ -73,17 +78,24 @@ def create_ada_web_bootstrap(
         bootstrap_admin_principal=(
             bootstrap_admin_principal if environment.is_production else None
         ),
+        local_profiles=(runtime_projection.profiles if runtime_projection is not None else None),
     )
-    navigation_projection = CosmosNavigationProjectionRepository(
-        client=navigation_client,
-        settings=CosmosNavigationProjectionSettings(
-            container_name=_single_container_name(
-                NAVIGATION_COSMOS_REQUIREMENTS,
-                capability='Navigation',
-            )
-        ),
-    )
-    navigation_provider = create_projected_navigation_definition_provider(navigation_projection)
+    if runtime_projection is None:
+        navigation_client = infrastructure.cosmos(bindings.navigation)
+        navigation_projection = CosmosNavigationProjectionRepository(
+            client=navigation_client,
+            settings=CosmosNavigationProjectionSettings(
+                container_name=_single_container_name(
+                    NAVIGATION_COSMOS_REQUIREMENTS,
+                    capability='Navigation',
+                )
+            ),
+        )
+        navigation_provider = create_projected_navigation_definition_provider(
+            navigation_projection
+        )
+    else:
+        navigation_provider = runtime_projection.navigation_provider
     activity_repository = CosmosUserActivityRepository(
         client=activity_client,
         patch_operation_factory=CosmosPatchOperation,

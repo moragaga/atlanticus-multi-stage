@@ -1,4 +1,4 @@
-# Superficie pública del bootstrap ADA.
+# Espejo comentado: misma lógica productiva con notas pedagógicas en español.
 from ada.compositions.web_bootstrap.bootstrap import (
     create_ada_configuration_backends,
     create_ada_web_bootstrap,
@@ -7,6 +7,7 @@ from ada.compositions.web_bootstrap.models import (
     AdaConfigurationBackends,
     AdaConfigurationFilenames,
     AdaCosmosBindings,
+    AdaRuntimeProjection,
     AdaWebBootstrap,
     AdaWebBootstrapError,
 )
@@ -24,6 +25,7 @@ __all__ = [
     'AdaConfigurationBackends',
     'AdaConfigurationFilenames',
     'AdaCosmosBindings',
+    'AdaRuntimeProjection',
     'AdaWebBootstrap',
     'AdaWebBootstrapError',
     'build_ada_cosmos_requirements',

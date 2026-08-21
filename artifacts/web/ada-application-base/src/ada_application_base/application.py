@@ -9,6 +9,7 @@ from ada.compositions.configuration_manager import (
     EffectiveUserManagerPrincipalProvider,
     build_configuration_manager_surface,
     create_configuration_manager_dependencies,
+    create_configuration_runtime_projection,
     create_manager_principal_binding_module,
     open_configuration_manager_sharepoint_infrastructure,
     resolve_configuration_backend_selection,
@@ -71,17 +72,24 @@ def create_application_runtime() -> AdaApplicationBaseRuntime:
         environment,
         web_environment,
     )
+    runtime_projection = create_configuration_runtime_projection(
+        selection=backend_selection,
+        environment=environment,
+    )
     deployment = open_ada_web_deployment_runtime(
         definition=deployment_definition,
         metadata=metadata,
         environment=environment,
+        runtime_projection=runtime_projection,
     )
     manager_sharepoint_infrastructure = None
     try:
-        manager_sharepoint_infrastructure = open_configuration_manager_sharepoint_infrastructure(
-            selection=backend_selection,
-            environment=environment,
-            definition=deployment_definition.sharepoint,
+        manager_sharepoint_infrastructure = (
+            open_configuration_manager_sharepoint_infrastructure(
+                selection=backend_selection,
+                environment=environment,
+                definition=deployment_definition.sharepoint,
+            )
         )
         principal_provider = EffectiveUserManagerPrincipalProvider()
         manager_dependencies = create_configuration_manager_dependencies(
@@ -163,7 +171,9 @@ def _create_manager_host_module() -> WebModule:
 def _is_manager_route(pathname: str | None) -> bool:
     if not pathname:
         return False
-    return pathname == _MANAGER_ROUTE_PREFIX or pathname.startswith(f'{_MANAGER_ROUTE_PREFIX}/')
+    return pathname == _MANAGER_ROUTE_PREFIX or pathname.startswith(
+        f'{_MANAGER_ROUTE_PREFIX}/'
+    )
 
 
 def _close_quietly(infrastructure: WebRuntimeInfrastructure) -> None:

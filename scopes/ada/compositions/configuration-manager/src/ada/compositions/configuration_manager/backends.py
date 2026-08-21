@@ -5,7 +5,11 @@ from enum import StrEnum
 from pathlib import Path
 
 from ada.compositions.configuration_manager.dependencies import ConfigurationManagerDependencies
-from ada.compositions.web_bootstrap import AdaConfigurationFilenames, AdaCosmosBindings
+from ada.compositions.web_bootstrap import (
+    AdaConfigurationFilenames,
+    AdaCosmosBindings,
+    AdaRuntimeProjection,
+)
 from ada.configuration.tools import TOOL_COSMOS_REQUIREMENTS, compose_tool_configuration_services
 from ada.configuration.tools.adapters import (
     CosmosToolProjectionRepository,
@@ -28,6 +32,7 @@ from atlanticus.web.manager import ManagerPrincipalProvider
 from atlanticus.web.navigation.configuration import (
     NAVIGATION_COSMOS_REQUIREMENTS,
     compose_navigation_configuration_services,
+    create_projected_navigation_definition_provider,
 )
 from atlanticus.web.navigation.configuration.adapters import (
     CosmosNavigationProjectionRepository,
@@ -43,6 +48,7 @@ from atlanticus.web.users.configuration import compose_users_configuration_servi
 from atlanticus.web.users.configuration.adapters import (
     FileUsersConfigurationSettings,
     FileUsersConfigurationStore,
+    FileUsersProjectionProfileCatalog,
     FileUsersProjectionRepository,
     MemoryDiscoveredUsersSource,
     SharePointUsersConfigurationSettings,
@@ -152,6 +158,32 @@ def open_configuration_manager_sharepoint_infrastructure(
     )
     infrastructure.open()
     return infrastructure
+
+
+def create_configuration_runtime_projection(
+    *,
+    selection: ConfigurationBackendSelection,
+    environment: EnvironmentReader | None = None,
+    runtime_root: str | Path | None = None,
+) -> AdaRuntimeProjection | None:
+    if not isinstance(selection, ConfigurationBackendSelection):
+        raise TypeError('selection must be ConfigurationBackendSelection')
+    if selection.projection is ConfigurationProjectionBackend.COSMOS:
+        return None
+
+    root = _runtime_root(environment, runtime_root)
+    users_projection = FileUsersProjectionRepository(
+        FileUsersConfigurationSettings(root=root / 'projection' / 'users')
+    )
+    navigation_projection = FileNavigationProjectionRepository(
+        FileNavigationProjectionSettings(root=root / 'projection' / 'navigation')
+    )
+    return AdaRuntimeProjection(
+        profiles=FileUsersProjectionProfileCatalog(users_projection),
+        navigation_provider=create_projected_navigation_definition_provider(
+            navigation_projection
+        ),
+    )
 
 
 def create_configuration_manager_dependencies(

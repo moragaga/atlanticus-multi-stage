@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ada.compositions.web_bootstrap import create_ada_web_bootstrap
+from ada.compositions.web_bootstrap import AdaRuntimeProjection, create_ada_web_bootstrap
 from ada.compositions.web_deployment.access import (
     resolve_bootstrap_admin_principal,
     resolve_deployment_environment,
@@ -24,6 +24,7 @@ def open_ada_web_deployment_runtime(
     metadata: ApplicationMetadata,
     environment: EnvironmentReader | None = None,
     users_runtime: UsersRuntime | None = None,
+    runtime_projection: AdaRuntimeProjection | None = None,
 ) -> AdaWebDeploymentRuntime:
     if not isinstance(definition, AdaWebDeploymentDefinition):
         raise TypeError('definition must be AdaWebDeploymentDefinition')
@@ -41,6 +42,7 @@ def open_ada_web_deployment_runtime(
             infrastructure=infrastructure,
             bindings=definition.bindings,
             users_runtime=users_runtime,
+            runtime_projection=runtime_projection,
         )
         return AdaWebDeploymentRuntime(
             infrastructure=infrastructure,

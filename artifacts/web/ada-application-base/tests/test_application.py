@@ -26,6 +26,7 @@ def test_create_application_runtime_mounts_manager_in_same_web_runtime(
     web = SimpleNamespace(server=server)
     principal_provider = object()
     manager_dependencies = object()
+    runtime_projection = object()
     surface_definition = object()
     manager_surface = SimpleNamespace(
         web_modules=('manager-services', 'manager-callbacks'),
@@ -45,6 +46,16 @@ def test_create_application_runtime_mounts_manager_in_same_web_runtime(
         application,
         'resolve_configuration_backend_selection',
         lambda _environment, _web_environment: backend_selection,
+    )
+
+    def create_runtime_projection(**kwargs):
+        captured['runtime_projection_call'] = kwargs
+        return runtime_projection
+
+    monkeypatch.setattr(
+        application,
+        'create_configuration_runtime_projection',
+        create_runtime_projection,
     )
 
     def open_deployment(**kwargs):
@@ -106,6 +117,8 @@ def test_create_application_runtime_mounts_manager_in_same_web_runtime(
     assert runtime.web is web
     assert runtime.server is server
     assert runtime.manager_sharepoint_infrastructure is None
+    assert captured['runtime_projection_call']['selection'] is backend_selection
+    assert captured['deployment_call']['runtime_projection'] is runtime_projection
     assert 'include_sharepoint' not in captured['deployment_call']
     assert captured['manager_sharepoint_call']['selection'] is backend_selection
     assert captured['manager_sharepoint_call']['definition'] == 'sharepoint-definition'
@@ -148,6 +161,11 @@ def test_create_application_runtime_opens_sharepoint_only_for_manager_history(mo
         application,
         'resolve_configuration_backend_selection',
         lambda _environment, _web_environment: backend_selection,
+    )
+    monkeypatch.setattr(
+        application,
+        'create_configuration_runtime_projection',
+        lambda **_kwargs: None,
     )
 
     def open_deployment(**kwargs):
@@ -201,6 +219,11 @@ def test_create_application_runtime_closes_manager_and_deployment_when_web_compo
         application,
         'resolve_configuration_backend_selection',
         lambda _environment, _web_environment: SimpleNamespace(requires_sharepoint=True),
+    )
+    monkeypatch.setattr(
+        application,
+        'create_configuration_runtime_projection',
+        lambda **_kwargs: None,
     )
     monkeypatch.setattr(
         application,

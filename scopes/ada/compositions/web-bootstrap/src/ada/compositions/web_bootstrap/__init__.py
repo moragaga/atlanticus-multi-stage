@@ -6,6 +6,7 @@ from ada.compositions.web_bootstrap.models import (
     AdaConfigurationBackends,
     AdaConfigurationFilenames,
     AdaCosmosBindings,
+    AdaRuntimeProjection,
     AdaWebBootstrap,
     AdaWebBootstrapError,
 )
@@ -23,6 +24,7 @@ __all__ = [
     'AdaConfigurationBackends',
     'AdaConfigurationFilenames',
     'AdaCosmosBindings',
+    'AdaRuntimeProjection',
     'AdaWebBootstrap',
     'AdaWebBootstrapError',
     'build_ada_cosmos_requirements',

@@ -60,7 +60,7 @@ def build_configuration_manager_definition(
         metadata=ApplicationMetadata(
             application_id='ada-configuration-manager',
             display_name='Gestor de configuración ADA',
-            version='0.2.2',
+            version='0.2.3',
         ),
         publications_root=Path(publications_root),
         surface=build_configuration_manager_surface(

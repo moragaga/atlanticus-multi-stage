@@ -59,6 +59,7 @@ def test_worker_runtime_requires_only_cosmos_environment_and_owns_lifecycle(monk
         pass
 
     fake_bootstrap = FakeBootstrap()
+    runtime_projection = object()
     monkeypatch.setattr(runtime_module, 'WebRuntimeInfrastructure', FakeInfrastructure)
     monkeypatch.setattr(models_module, 'WebRuntimeInfrastructure', FakeInfrastructure)
     monkeypatch.setattr(models_module, 'AdaWebBootstrap', FakeBootstrap)
@@ -70,6 +71,7 @@ def test_worker_runtime_requires_only_cosmos_environment_and_owns_lifecycle(monk
                 kwargs['bindings'].users,
                 kwargs['environment'].value,
                 kwargs['bootstrap_admin_principal'],
+                kwargs['runtime_projection'],
             )
         )
         return fake_bootstrap
@@ -79,13 +81,13 @@ def test_worker_runtime_requires_only_cosmos_environment_and_owns_lifecycle(monk
     runtime = open_ada_web_deployment_runtime(
         definition=_definition(),
         metadata=object(),
+        runtime_projection=runtime_projection,
         environment=EnvironmentReader(
             {
                 'COSMOS_ENDPOINT': 'https://example.documents.azure.com/',
                 'COSMOS_KEY': 'secret',
                 'COSMOS_DATABASE': 'ada-runtime',
-                'ATLANTICUS_ENVIRONMENT': 'production',
-                'ATLANTICUS_BOOTSTRAP_ADMIN': 'Admin@Example.com',
+                'ATLANTICUS_ENVIRONMENT': 'local',
             }
         ),
     )
@@ -99,7 +101,7 @@ def test_worker_runtime_requires_only_cosmos_environment_and_owns_lifecycle(monk
     assert events == [
         ('created', ('application',), None),
         'open',
-        ('bootstrap', 'application', 'production', 'admin@example.com'),
+        ('bootstrap', 'application', 'local', None, runtime_projection),
         'close',
     ]
 

@@ -2,17 +2,23 @@ from datetime import UTC, datetime
 
 from ada.compositions.web_bootstrap import (
     AdaCosmosBindings,
+    AdaRuntimeProjection,
     create_ada_configuration_backends,
     create_ada_web_bootstrap,
 )
 from atlanticus.web.environment import WebEnvironment
 from atlanticus.web.models import ApplicationMetadata
+from atlanticus.web.navigation.api import (
+    NavigationDefinition,
+    NavigationDefinitionProvider,
+    NavigationLinkDefinition,
+)
 from atlanticus.web.navigation.configuration import (
     NavigationConfigurationCatalog,
     NavigationLinkConfiguration,
 )
 from atlanticus.web.navigation.configuration.projection import NavigationConfigurationProjection
-from atlanticus.web.users.profiles import ProfileDefinition
+from atlanticus.web.users.profiles import ProfileCatalog, ProfileDefinition
 
 
 class FakeCosmosClient:
@@ -257,6 +263,61 @@ def test_bootstrap_uses_solution_binding_for_each_cosmos_capability(monkeypatch)
     assert configuration.navigation_projection._client is navigation_client
     assert configuration.tools_projection._client is tools_client
     assert runtime.activity_repository._client is activity_client
+
+
+def test_runtime_bootstrap_local_can_use_injected_file_projection_without_navigation_cosmos(
+    monkeypatch,
+) -> None:
+    users_client = _configuration_client()
+    activity_client = FakeCosmosClient()
+    infrastructure = FakeInfrastructure(
+        {
+            'users-store': users_client,
+            'activity-store': activity_client,
+        },
+        sharepoint_enabled=False,
+    )
+    monkeypatch.setattr(
+        'ada.compositions.web_bootstrap.bootstrap.WebRuntimeInfrastructure',
+        FakeInfrastructure,
+    )
+    profiles = ProfileCatalog(
+        custom_profiles=(
+            ProfileDefinition(
+                key='operator',
+                label='Operador',
+                background_color='#445566',
+            ),
+        )
+    )
+    navigation_provider = NavigationDefinitionProvider(
+        lambda: NavigationDefinition(
+            links=(NavigationLinkDefinition(key='manager', label='Manager', href='/manager'),)
+        )
+    )
+
+    bootstrap = create_ada_web_bootstrap(
+        metadata=ApplicationMetadata('ada-test', 'ADA Test', '0.1.0'),
+        environment=WebEnvironment.LOCAL,
+        infrastructure=infrastructure,
+        bindings=AdaCosmosBindings(
+            users='users-store',
+            activity='activity-store',
+            navigation='navigation-store',
+            tools='tools-store',
+        ),
+        runtime_projection=AdaRuntimeProjection(
+            profiles=profiles,
+            navigation_provider=navigation_provider,
+        ),
+    )
+
+    assert bootstrap.identity_provider.key == 'local'
+    assert bootstrap.users_source.__class__.__name__ == 'LocalUsersSource'
+    assert bootstrap.profiles is profiles
+    assert bootstrap.navigation_provider is navigation_provider
+    assert bootstrap.navigation_provider.current().links[0].key == 'manager'
+    assert bootstrap.activity_repository._client is activity_client
 
 
 def test_runtime_bootstrap_local_uses_local_identity_and_users_with_projected_profiles(

@@ -1,4 +1,4 @@
-# Mantiene metadata y variables de infraestructura de la aplicación base ADA.
+# Espejo comentado: misma lógica productiva con notas pedagógicas en español.
 from ada.compositions.web_bootstrap import AdaCosmosBindings
 from ada.compositions.web_deployment import AdaWebDeploymentDefinition
 from atlanticus.web.compositions.runtime_infrastructure import (
@@ -16,11 +16,12 @@ _TRUE_VALUES = frozenset({'1', 'true', 'yes', 'on'})
 _FALSE_VALUES = frozenset({'0', 'false', 'no', 'off'})
 
 
+# La metadata identifica la revisión distribuible del artifact.
 def build_metadata() -> ApplicationMetadata:
     return ApplicationMetadata(
         application_id='ada-application-base',
         display_name='ADA',
-        version='0.2.1',
+        version='0.2.2',
     )
 
 

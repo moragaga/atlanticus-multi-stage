@@ -47,13 +47,18 @@ def create_ada_access_components(
     environment: WebEnvironment,
     users_client,
     bootstrap_admin_principal: str | None = None,
+    local_profiles: ProfileCatalog | None = None,
 ) -> AdaAccessComponents:
     if not isinstance(environment, WebEnvironment):
         raise TypeError('environment must be WebEnvironment')
+    if local_profiles is not None and not isinstance(local_profiles, ProfileCatalog):
+        raise TypeError('local_profiles must be ProfileCatalog or None')
+    if local_profiles is not None and not environment.is_local:
+        raise ValueError('local_profiles is only supported in local environment')
 
     users_gateway = CosmosUsersGatewayAdapter(client=users_client)
     profile_cache = UsersCosmosProfileCache(users_gateway)
-    profiles = CosmosProfileCatalog(profile_cache)
+    profiles = local_profiles or CosmosProfileCatalog(profile_cache)
 
     if environment.is_local:
         return AdaAccessComponents(

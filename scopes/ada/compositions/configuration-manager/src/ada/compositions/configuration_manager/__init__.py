@@ -3,6 +3,7 @@ from ada.compositions.configuration_manager.backends import (
     ConfigurationHistoryBackend,
     ConfigurationProjectionBackend,
     create_configuration_manager_dependencies,
+    create_configuration_runtime_projection,
     open_configuration_manager_sharepoint_infrastructure,
     resolve_configuration_backend_selection,
 )
@@ -32,6 +33,7 @@ __all__ = [
     'ConfigurationProjectionBackend',
     'EffectiveUserManagerPrincipalProvider',
     'create_configuration_manager_dependencies',
+    'create_configuration_runtime_projection',
     'open_configuration_manager_sharepoint_infrastructure',
     'create_manager_principal_binding_module',
     'manager_principal_from_effective_user',
