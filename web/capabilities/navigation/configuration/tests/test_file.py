@@ -32,7 +32,7 @@ def test_file_source_and_projection_are_independent(tmp_path: Path) -> None:
         saved_by='administrator',
     )
 
-    source.publish_bundle(bundle)
+    source.publish_bundle(bundle, expected_source_revision=None)
 
     assert source.fetch_bundle().revision == bundle.revision
     assert projection.load() is None

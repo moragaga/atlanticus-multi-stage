@@ -1,4 +1,8 @@
-# Espejo pedagógico: misma implementación productiva, acompañada por esta nota en español.
+# Coordina autorización y workflows del Manager; verify_source consulta Source sin escribir ni proyectar.
+# La verificación queda asociada al draft exacto para separar contrato, concurrencia y publicación.
+
+from datetime import UTC, datetime
+
 from atlanticus.web.manager.authorization import ManagerAuthorizationPolicy
 from atlanticus.web.manager.errors import (
     ManagerAuthorizationError,
@@ -15,6 +19,7 @@ from atlanticus.web.manager.projection import (
     RevisionHistoryWorkflow,
     SourcePublicationResult,
     SourceSnapshot,
+    SourceVerificationResult,
 )
 from atlanticus.web.manager.registry import ManagerModuleRegistry
 from atlanticus.web.services import ServiceRegistry
@@ -48,6 +53,29 @@ class ManagerProjectionCoordinator:
         if not self._authorization.can_validate(principal, module):
             raise ManagerAuthorizationError('Manager validation access is denied')
         return workflow.validate_draft(payload)
+
+    def verify_source(
+        self,
+        module_key: str,
+        principal: ManagerPrincipal,
+        *,
+        draft_revision: str,
+        base_source_revision: str | None,
+    ) -> SourceVerificationResult:
+        module, workflow = self._resolve(module_key)
+        if not self._authorization.can_publish(principal, module):
+            raise ManagerAuthorizationError('Manager source verification access is denied')
+        revision = draft_revision.strip()
+        if not revision:
+            raise ManagerProjectionError('Draft revision must not be empty')
+        status = workflow.get_status()
+        return SourceVerificationResult(
+            draft_revision=revision,
+            base_source_revision=base_source_revision,
+            source_revision=status.source_revision,
+            source_audit=status.source_audit,
+            checked_at=datetime.now(UTC),
+        )
 
     def publish_draft(
         self,

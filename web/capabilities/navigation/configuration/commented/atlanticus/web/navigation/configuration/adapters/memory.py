@@ -1,4 +1,6 @@
-# Espejo pedagógico: adapters en memoria para pruebas aisladas del workflow.
+# Implementa el History en memoria de Navigation con la misma precondición de revisión que los stores reales.
+# Se usa para probar el lifecycle sin acoplar los servicios a un backend específico.
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -7,6 +9,7 @@ from atlanticus.web.navigation.configuration.bundle import (
     NavigationConfigurationBundle,
     NavigationConfigurationSourceDocument,
 )
+from atlanticus.web.navigation.configuration.errors import NavigationConfigurationSourceError
 from atlanticus.web.navigation.configuration.projection import NavigationConfigurationProjection
 
 
@@ -17,7 +20,18 @@ class MemoryNavigationConfigurationStore:
     def fetch_bundle(self) -> NavigationConfigurationBundle | None:
         return self.source.current_bundle() if self.source is not None else None
 
-    def publish_bundle(self, bundle: NavigationConfigurationBundle) -> None:
+    def publish_bundle(
+        self,
+        bundle: NavigationConfigurationBundle,
+        *,
+        expected_source_revision: str | None,
+    ) -> None:
+        current = self.fetch_bundle()
+        current_revision = current.revision if current is not None else None
+        if current_revision != expected_source_revision:
+            raise NavigationConfigurationSourceError(
+                'Navigation source revision changed before publication'
+            )
         if self.source is None:
             self.source = NavigationConfigurationSourceDocument.from_bundle(bundle)
             return

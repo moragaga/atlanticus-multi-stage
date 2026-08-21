@@ -1,8 +1,7 @@
+# Construye el editor de Navigation cargando contenido y source_revision desde el mismo bundle atómico.
+# La revisión queda en un store de sesión para acompañar correctamente el primer borrador.
+
 from __future__ import annotations
-
-# La interfaz muestra decisiones administrativas: estructura, sección y perfiles por enlace.
-# Los formularios se agrupan en pares para reducir altura sin exponer detalles internos del runtime.
-
 
 from dash import dcc, html
 
@@ -44,6 +43,7 @@ from atlanticus.web.navigation.configuration.web.ids import (
     SAVE_BUTTON_ID,
     SAVE_RESULT_ID,
     SOURCE_NAME_ID,
+    SOURCE_REVISION_STORE_ID,
     STRUCTURE_ID,
 )
 from atlanticus.web.navigation.configuration.web.models import NavigationAdminWebContext
@@ -53,14 +53,22 @@ _MODAL_CLOSED = 'atlanticus-navigation-admin__modal'
 
 def build_navigation_admin_configuration(context: NavigationAdminWebContext) -> object:
     try:
-        catalog = context.services.administration.load_catalog() or build_initial_catalog()
+        bundle = context.services.administration.load_source()
+        catalog = bundle.catalog if bundle is not None else build_initial_catalog()
+        source_revision = bundle.revision if bundle is not None else None
         error = None
     except Exception:
         catalog = build_initial_catalog()
+        source_revision = None
         error = 'Navigation configuration source could not be loaded'
     return html.Div(
         [
             dcc.Store(id=CATALOG_STORE_ID, data=catalog.to_document(), storage_type='memory'),
+            dcc.Store(
+                id=SOURCE_REVISION_STORE_ID,
+                data=source_revision,
+                storage_type='memory',
+            ),
             dcc.Store(id=LINK_EDITOR_STORE_ID, storage_type='memory'),
             dcc.Store(id=GROUP_EDITOR_STORE_ID, storage_type='memory'),
             dcc.Store(id=MOUNT_STORE_ID, data=1, storage_type='memory'),
@@ -100,8 +108,7 @@ def _runtime_context(context: NavigationAdminWebContext) -> object:
                         children=html.Button(
                             'Cargar configuración de Navigation',
                             className=(
-                                'atlanticus-manager__button '
-                                'atlanticus-manager__button--secondary'
+                                'atlanticus-manager__button atlanticus-manager__button--secondary'
                             ),
                         ),
                         multiple=False,
@@ -226,8 +233,7 @@ def _save_section() -> object:
                         id=SAVE_BUTTON_ID,
                         n_clicks=0,
                         className=(
-                            'atlanticus-manager__button '
-                            'atlanticus-manager__button--primary'
+                            'atlanticus-manager__button atlanticus-manager__button--primary'
                         ),
                     ),
                 ],
@@ -236,8 +242,7 @@ def _save_section() -> object:
             html.Div(id=SAVE_RESULT_ID),
         ],
         className=(
-            'atlanticus-navigation-admin__section '
-            'atlanticus-navigation-admin__section--footer'
+            'atlanticus-navigation-admin__section atlanticus-navigation-admin__section--footer'
         ),
     )
 
@@ -302,8 +307,7 @@ def _link_modal() -> object:
                             id=LINK_CANCEL_ID,
                             n_clicks=0,
                             className=(
-                                'atlanticus-manager__button '
-                                'atlanticus-manager__button--secondary'
+                                'atlanticus-manager__button atlanticus-manager__button--secondary'
                             ),
                         ),
                         html.Button(
@@ -311,8 +315,7 @@ def _link_modal() -> object:
                             id=LINK_SAVE_ID,
                             n_clicks=0,
                             className=(
-                                'atlanticus-manager__button '
-                                'atlanticus-manager__button--primary'
+                                'atlanticus-manager__button atlanticus-manager__button--primary'
                             ),
                         ),
                     ],
@@ -366,8 +369,7 @@ def _group_modal() -> object:
                             id=GROUP_CANCEL_ID,
                             n_clicks=0,
                             className=(
-                                'atlanticus-manager__button '
-                                'atlanticus-manager__button--secondary'
+                                'atlanticus-manager__button atlanticus-manager__button--secondary'
                             ),
                         ),
                         html.Button(
@@ -375,8 +377,7 @@ def _group_modal() -> object:
                             id=GROUP_SAVE_ID,
                             n_clicks=0,
                             className=(
-                                'atlanticus-manager__button '
-                                'atlanticus-manager__button--primary'
+                                'atlanticus-manager__button atlanticus-manager__button--primary'
                             ),
                         ),
                     ],

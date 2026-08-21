@@ -1,5 +1,7 @@
+# Implementa el History SharePoint de Navigation y relee el manifest justo antes del write.
+# Si la revisión actual difiere de la esperada, rechaza la publicación sin modificar la historia.
+
 from __future__ import annotations
-# El store conoce operaciones de archivo SharePoint, no el POST físico de Power Automate.
 
 import base64
 from dataclasses import dataclass
@@ -17,7 +19,6 @@ from atlanticus.web.navigation.configuration.errors import (
 )
 
 
-# Contrato estructural local para mantener la capability independiente de la composition HTTP.
 class SharePointFileGateway(Protocol):
     def read(self, *, filename: str, relative_path: str) -> str | None: ...
 
@@ -50,9 +51,20 @@ class SharePointNavigationConfigurationStore:
         source = self._load_source()
         return source.current_bundle() if source is not None else None
 
-    def publish_bundle(self, bundle: NavigationConfigurationBundle) -> None:
+    def publish_bundle(
+        self,
+        bundle: NavigationConfigurationBundle,
+        *,
+        expected_source_revision: str | None,
+    ) -> None:
         try:
             current = self._load_source()
+            current_bundle = current.current_bundle() if current is not None else None
+            current_revision = current_bundle.revision if current_bundle is not None else None
+            if current_revision != expected_source_revision:
+                raise NavigationConfigurationSourceError(
+                    'Navigation source revision changed before publication'
+                )
             updated = (
                 NavigationConfigurationSourceDocument.from_bundle(bundle)
                 if current is None
@@ -64,7 +76,7 @@ class SharePointNavigationConfigurationStore:
                 'ascii'
             )
             self._write_content(content)
-        except (NavigationConfigurationPublisherError, NavigationConfigurationSourceError):
+        except NavigationConfigurationPublisherError, NavigationConfigurationSourceError:
             raise
         except Exception as error:
             raise NavigationConfigurationPublisherError(
@@ -91,7 +103,6 @@ class SharePointNavigationConfigurationStore:
                 'SharePoint navigation configuration content is invalid'
             ) from error
 
-    # La lectura delega la semántica SharePoint al gateway inyectado.
     def _fetch_content(self) -> str | None:
         try:
             return self._gateway.read(
@@ -103,7 +114,6 @@ class SharePointNavigationConfigurationStore:
                 'Could not load navigation configuration from SharePoint'
             ) from error
 
-    # La escritura no conoce método HTTP, endpoint ni autenticación.
     def _write_content(self, content: str) -> None:
         try:
             self._gateway.write(

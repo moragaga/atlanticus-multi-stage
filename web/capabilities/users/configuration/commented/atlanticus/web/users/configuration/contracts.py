@@ -1,4 +1,5 @@
-# Espejo pedagógico: Implementa el dominio administrativo genérico de Users: draft validable, Source versionado, proyección y adapters.
+# Declara los contratos de Users; la publicación incluye expected_source_revision como precondición explícita.
+# El contrato conserva la independencia respecto del backend concreto.
 
 from collections.abc import Callable
 from typing import Protocol
@@ -19,7 +20,12 @@ class UsersConfigurationSource(Protocol):
 
 
 class UsersConfigurationPublisher(Protocol):
-    def publish_bundle(self, bundle: UsersConfigurationBundle) -> None: ...
+    def publish_bundle(
+        self,
+        bundle: UsersConfigurationBundle,
+        *,
+        expected_source_revision: str | None,
+    ) -> None: ...
 
 
 class UsersProjectionRepository(Protocol):

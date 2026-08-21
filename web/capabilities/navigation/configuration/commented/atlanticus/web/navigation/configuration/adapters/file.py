@@ -1,4 +1,6 @@
-# Espejo pedagógico: Source y Projection locales independientes con escritura atómica.
+# Implementa History local de Navigation y valida expected_source_revision inmediatamente antes de persistir.
+# La comprobación final evita que una revisión nueva se absorba silenciosamente durante una publicación.
+
 from __future__ import annotations
 
 import json
@@ -35,9 +37,20 @@ class FileNavigationConfigurationStore:
         source = self._load_source()
         return source.current_bundle() if source is not None else None
 
-    def publish_bundle(self, bundle: NavigationConfigurationBundle) -> None:
+    def publish_bundle(
+        self,
+        bundle: NavigationConfigurationBundle,
+        *,
+        expected_source_revision: str | None,
+    ) -> None:
         try:
             current = self._load_source()
+            current_bundle = current.current_bundle() if current is not None else None
+            current_revision = current_bundle.revision if current_bundle is not None else None
+            if current_revision != expected_source_revision:
+                raise NavigationConfigurationSourceError(
+                    'Navigation source revision changed before publication'
+                )
             updated = (
                 NavigationConfigurationSourceDocument.from_bundle(bundle)
                 if current is None

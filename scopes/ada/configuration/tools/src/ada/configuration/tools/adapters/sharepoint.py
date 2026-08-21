@@ -48,9 +48,20 @@ class SharePointToolConfigurationStore:
         source = self._load_source()
         return source.current_bundle() if source is not None else None
 
-    def publish_bundle(self, bundle: ToolConfigurationBundle) -> None:
+    def publish_bundle(
+        self,
+        bundle: ToolConfigurationBundle,
+        *,
+        expected_source_revision: str | None,
+    ) -> None:
         try:
             current = self._load_source()
+            current_bundle = current.current_bundle() if current is not None else None
+            current_revision = current_bundle.revision if current_bundle is not None else None
+            if current_revision != expected_source_revision:
+                raise ToolConfigurationSourceError(
+                    'Tool source revision changed before publication'
+                )
             updated = (
                 ToolConfigurationSourceDocument.from_bundle(bundle)
                 if current is None

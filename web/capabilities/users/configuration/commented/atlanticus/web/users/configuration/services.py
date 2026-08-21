@@ -1,5 +1,6 @@
-# Espejo pedagógico del módulo productivo.
-# Los comentarios explican responsabilidades sin alterar estructura ni comportamiento.
+# Orquesta la configuración de Users y propaga expected_source_revision hasta la escritura final.
+# La verificación de negocio previa no reemplaza la comprobación fresca que ejecuta el store.
+
 from __future__ import annotations
 
 import hashlib
@@ -35,7 +36,6 @@ from atlanticus.web.users.configuration.projection import (
 )
 
 
-# Define UsersConfigurationServices como frontera explícita del módulo y valida su contrato.
 @dataclass(frozen=True, slots=True)
 class UsersConfigurationServices:
     administration: UsersAdministrationService
@@ -44,7 +44,6 @@ class UsersConfigurationServices:
     projection: UsersProjectionRepository
 
 
-# Define UsersAdministrationService como frontera explícita del módulo y valida su contrato.
 class UsersAdministrationService:
     def __init__(
         self,
@@ -59,8 +58,11 @@ class UsersAdministrationService:
         self._discovered = discovered
         self._audit_actor_provider = audit_actor_provider
 
+    def load_source(self) -> UsersConfigurationBundle | None:
+        return self._source.fetch_bundle()
+
     def load_catalog(self) -> UsersConfigurationCatalog | None:
-        bundle = self._source.fetch_bundle()
+        bundle = self.load_source()
         return bundle.catalog if bundle is not None else None
 
     def list_discovered(self) -> tuple[DiscoveredUser, ...]:
@@ -98,17 +100,17 @@ class UsersAdministrationService:
         current = self._source.fetch_bundle()
         current_revision = current.revision if current is not None else None
         if current_revision != expected_source_revision:
-            raise UsersConfigurationSourceError(
-                'Users source revision changed before publication'
-            )
+            raise UsersConfigurationSourceError('Users source revision changed before publication')
         bundle = UsersConfigurationBundle.create(
             catalog=catalog,
             saved_by=validation.audit.actor,
             now_utc=validation.audit.occurred_at_utc,
         )
         published = current_revision != bundle.revision
-        if published:
-            self._publisher.publish_bundle(bundle)
+        self._publisher.publish_bundle(
+            bundle,
+            expected_source_revision=expected_source_revision,
+        )
         return UsersSourcePublicationResult(
             source_revision=bundle.revision,
             published=published,
@@ -126,7 +128,6 @@ class UsersAdministrationService:
         return bundle.catalog
 
 
-# Define UsersProjectionWorkflow como frontera explícita del módulo y valida su contrato.
 class UsersProjectionWorkflow:
     def __init__(
         self,
@@ -199,7 +200,6 @@ class UsersProjectionWorkflow:
         return bundle
 
 
-# Encapsula la operación compose users configuration services para mantener esta responsabilidad aislada.
 def compose_users_configuration_services(
     *,
     source: UsersConfigurationSource,
@@ -225,7 +225,6 @@ def compose_users_configuration_services(
     )
 
 
-# Encapsula la operación validate catalog para mantener esta responsabilidad aislada.
 def _validate_catalog(
     catalog: UsersConfigurationCatalog,
 ) -> tuple[UsersProjectionIssue, ...]:
@@ -243,7 +242,6 @@ def _validate_catalog(
     return tuple(issues)
 
 
-# Encapsula la operación catalog summary para mantener esta responsabilidad aislada.
 def _catalog_summary(
     catalog: UsersConfigurationCatalog,
 ) -> tuple[UsersProjectionSummaryItem, ...]:
@@ -255,7 +253,6 @@ def _catalog_summary(
     )
 
 
-# Encapsula la operación build draft revision para mantener esta responsabilidad aislada.
 def _build_draft_revision(catalog: UsersConfigurationCatalog) -> str:
     canonical = json.dumps(
         catalog.to_document(),
@@ -266,7 +263,6 @@ def _build_draft_revision(catalog: UsersConfigurationCatalog) -> str:
     return hashlib.sha256(canonical).hexdigest()
 
 
-# Encapsula la operación matches configured identity para mantener esta responsabilidad aislada.
 def _matches_configured_identity(
     discovered: DiscoveredUser,
     configured: UserConfiguration,

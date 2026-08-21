@@ -1,4 +1,6 @@
-# Expone los contratos públicos del Manager, incluidos conflicto de fuente y snapshot actual.
+# Expone la API pública de Manager, incluido el resultado explícito de verificación de Source.
+# El facade evita que los consumidores dependan de módulos internos concretos.
+
 from atlanticus.web.manager.authorization import (
     DefaultManagerAuthorizationPolicy,
     ManagerAuthorizationPolicy,
@@ -36,6 +38,7 @@ from atlanticus.web.manager.projection import (
     RevisionHistoryWorkflow,
     SourcePublicationResult,
     SourceSnapshot,
+    SourceVerificationResult,
     build_draft_revision,
     resolve_projection_state,
 )
@@ -75,6 +78,7 @@ __all__ = [
     'RevisionHistoryWorkflow',
     'SourcePublicationResult',
     'SourceSnapshot',
+    'SourceVerificationResult',
     'build_draft_revision',
     'resolve_projection_state',
 ]

@@ -55,8 +55,11 @@ class UsersAdministrationService:
         self._discovered = discovered
         self._audit_actor_provider = audit_actor_provider
 
+    def load_source(self) -> UsersConfigurationBundle | None:
+        return self._source.fetch_bundle()
+
     def load_catalog(self) -> UsersConfigurationCatalog | None:
-        bundle = self._source.fetch_bundle()
+        bundle = self.load_source()
         return bundle.catalog if bundle is not None else None
 
     def list_discovered(self) -> tuple[DiscoveredUser, ...]:
@@ -101,8 +104,10 @@ class UsersAdministrationService:
             now_utc=validation.audit.occurred_at_utc,
         )
         published = current_revision != bundle.revision
-        if published:
-            self._publisher.publish_bundle(bundle)
+        self._publisher.publish_bundle(
+            bundle,
+            expected_source_revision=expected_source_revision,
+        )
         return UsersSourcePublicationResult(
             source_revision=bundle.revision,
             published=published,

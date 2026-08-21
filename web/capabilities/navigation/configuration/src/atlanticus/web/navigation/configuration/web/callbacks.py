@@ -55,6 +55,7 @@ from atlanticus.web.navigation.configuration.web.ids import (
     MOUNT_STORE_ID,
     SAVE_BUTTON_ID,
     SAVE_RESULT_ID,
+    SOURCE_REVISION_STORE_ID,
     STRUCTURE_ID,
     group_add_link_id,
     group_delete_id,
@@ -382,9 +383,13 @@ def register_navigation_admin_callbacks(app: object, context: NavigationAdminWeb
         Output(CATALOG_STORE_ID, 'data', allow_duplicate=True),
         Output(IMPORT_RESULT_ID, 'children'),
         Input(IMPORT_UPLOAD_ID, 'contents'),
+        State(SOURCE_REVISION_STORE_ID, 'data'),
         prevent_initial_call=True,
     )
-    def import_configuration(contents: str | None):
+    def import_configuration(
+        contents: str | None,
+        source_revision: str | None,
+    ):
         if contents is None:
             return no_update, no_update, no_update
         if not context.can_manage():
@@ -397,7 +402,7 @@ def register_navigation_admin_callbacks(app: object, context: NavigationAdminWeb
             draft = _browser_draft_document(
                 catalog=catalog,
                 owner_subject_id=context.draft_owner_provider(),
-                base_source_revision=_current_source_revision(context),
+                base_source_revision=source_revision,
             )
         except Exception as error:
             return no_update, no_update, _error(str(error))
@@ -409,6 +414,7 @@ def register_navigation_admin_callbacks(app: object, context: NavigationAdminWeb
         Input(SAVE_BUTTON_ID, 'n_clicks'),
         Input(context.draft_save_action_id, 'n_clicks'),
         State(CATALOG_STORE_ID, 'data'),
+        State(SOURCE_REVISION_STORE_ID, 'data'),
         State(context.draft_store_id, 'data'),
         prevent_initial_call=True,
     )
@@ -416,6 +422,7 @@ def register_navigation_admin_callbacks(app: object, context: NavigationAdminWeb
         content_clicks: int | None,
         workflow_clicks: int | None,
         catalog_data: dict[str, object] | None,
+        source_revision: str | None,
         current_draft: dict[str, object] | None,
     ):
         trigger = ctx.triggered_id
@@ -436,7 +443,7 @@ def register_navigation_admin_callbacks(app: object, context: NavigationAdminWeb
                 base_source_revision=_draft_base_source_revision(
                     current_draft,
                     owner_subject_id=context.draft_owner_provider(),
-                    fallback=_current_source_revision(context),
+                    fallback=source_revision,
                 ),
             )
         except Exception as error:
@@ -690,13 +697,6 @@ def _section_key(value: str | None) -> str | None:
     if normalized in {None, _ROOT_SECTION_VALUE}:
         return None
     return normalized
-
-
-def _current_source_revision(context: NavigationAdminWebContext) -> str | None:
-    try:
-        return context.services.projection_workflow.get_status().source_revision
-    except Exception:
-        return None
 
 
 def _catalog_from_browser_draft(

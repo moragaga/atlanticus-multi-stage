@@ -1,5 +1,6 @@
-# Espejo pedagógico del módulo productivo.
-# Los comentarios explican responsabilidades sin alterar estructura ni comportamiento.
+# Construye el editor de Users leyendo catálogo y source_revision desde un mismo bundle.
+# La revisión original queda persistida junto al estado del editor para crear correctamente el primer draft.
+
 from __future__ import annotations
 
 from dash import dcc, html
@@ -12,8 +13,6 @@ from atlanticus.web.users.configuration.web.ids import (
     ADMINISTRATOR_PREVIEW_ID,
     ADMINISTRATOR_TEXT_COLOR_ID,
     CATALOG_STORE_ID,
-    color_picker_button_id,
-    color_picker_swatch_id,
     DISCOVERED_LIST_ID,
     DISCOVERED_PANEL_ID,
     DISCOVERED_REFRESH_ID,
@@ -43,6 +42,7 @@ from atlanticus.web.users.configuration.web.ids import (
     SAVE_RESULT_ID,
     SECTION_STORE_ID,
     SOURCE_NAME_ID,
+    SOURCE_REVISION_STORE_ID,
     USER_CANCEL_ID,
     USER_EDITOR_STORE_ID,
     USER_EMAIL_ID,
@@ -56,6 +56,8 @@ from atlanticus.web.users.configuration.web.ids import (
     USERS_LIST_ID,
     USERS_PANEL_ID,
     USERS_TAB_ID,
+    color_picker_button_id,
+    color_picker_swatch_id,
 )
 from atlanticus.web.users.configuration.web.models import UsersAdminWebContext
 from atlanticus.web.users.profiles import (
@@ -72,19 +74,26 @@ from atlanticus.web.users.profiles import (
 _MODAL_CLOSED = 'atlanticus-users-admin__modal'
 
 
-# Encapsula la operación build users admin configuration para mantener esta responsabilidad aislada.
 def build_users_admin_configuration(context: UsersAdminWebContext) -> object:
     try:
-        catalog = context.services.administration.load_catalog() or _empty_catalog()
+        bundle = context.services.administration.load_source()
+        catalog = bundle.catalog if bundle is not None else _empty_catalog()
+        source_revision = bundle.revision if bundle is not None else None
         error = None
     except Exception:
         catalog = _empty_catalog()
+        source_revision = None
         error = 'Users configuration source could not be loaded'
     return html.Div(
         [
             dcc.Store(
                 id=CATALOG_STORE_ID,
                 data=catalog.to_document(),
+                storage_type='memory',
+            ),
+            dcc.Store(
+                id=SOURCE_REVISION_STORE_ID,
+                data=source_revision,
                 storage_type='memory',
             ),
             dcc.Store(id=SECTION_STORE_ID, data='profiles', storage_type='memory'),
@@ -94,8 +103,7 @@ def build_users_admin_configuration(context: UsersAdminWebContext) -> object:
             html.Div(
                 error,
                 className=(
-                    'atlanticus-users-admin__message '
-                    'atlanticus-users-admin__message--error'
+                    'atlanticus-users-admin__message atlanticus-users-admin__message--error'
                 ),
             )
             if error
@@ -125,7 +133,6 @@ def build_users_admin_configuration(context: UsersAdminWebContext) -> object:
     )
 
 
-# Encapsula la operación empty catalog para mantener esta responsabilidad aislada.
 def _empty_catalog() -> UsersConfigurationCatalog:
     return UsersConfigurationCatalog(
         administrator_background_color=DEFAULT_ADMINISTRATOR_BACKGROUND_COLOR,
@@ -135,7 +142,6 @@ def _empty_catalog() -> UsersConfigurationCatalog:
     )
 
 
-# Encapsula la operación runtime context para mantener esta responsabilidad aislada.
 def _runtime_context(context: UsersAdminWebContext) -> object:
     return html.Section(
         [
@@ -160,8 +166,7 @@ def _runtime_context(context: UsersAdminWebContext) -> object:
                         children=html.Button(
                             'Cargar configuración de Users',
                             className=(
-                                'atlanticus-manager__button '
-                                'atlanticus-manager__button--secondary'
+                                'atlanticus-manager__button atlanticus-manager__button--secondary'
                             ),
                         ),
                         multiple=False,
@@ -182,7 +187,6 @@ def _runtime_context(context: UsersAdminWebContext) -> object:
     )
 
 
-# Encapsula la operación editor navigation para mantener esta responsabilidad aislada.
 def _editor_navigation() -> object:
     return html.Nav(
         [
@@ -190,9 +194,7 @@ def _editor_navigation() -> object:
                 'Perfiles',
                 id=PROFILE_TAB_ID,
                 n_clicks=0,
-                className=(
-                    'atlanticus-users-admin__tab atlanticus-users-admin__tab--active'
-                ),
+                className=('atlanticus-users-admin__tab atlanticus-users-admin__tab--active'),
             ),
             html.Button(
                 'Usuarios',
@@ -211,7 +213,6 @@ def _editor_navigation() -> object:
     )
 
 
-# Encapsula la operación profiles panel para mantener esta responsabilidad aislada.
 def _profiles_panel(catalog: UsersConfigurationCatalog) -> object:
     return html.Div(
         [
@@ -285,7 +286,6 @@ def _profiles_panel(catalog: UsersConfigurationCatalog) -> object:
     )
 
 
-# Encapsula la operación users panel para mantener esta responsabilidad aislada.
 def _users_panel(catalog: UsersConfigurationCatalog) -> object:
     del catalog
     return html.Section(
@@ -304,8 +304,7 @@ def _users_panel(catalog: UsersConfigurationCatalog) -> object:
                         id=ADD_USER_ID,
                         n_clicks=0,
                         className=(
-                            'atlanticus-manager__button '
-                            'atlanticus-manager__button--secondary'
+                            'atlanticus-manager__button atlanticus-manager__button--secondary'
                         ),
                     ),
                 ],
@@ -317,7 +316,6 @@ def _users_panel(catalog: UsersConfigurationCatalog) -> object:
     )
 
 
-# Encapsula la operación discovered panel para mantener esta responsabilidad aislada.
 def _discovered_panel() -> object:
     return html.Section(
         [
@@ -335,8 +333,7 @@ def _discovered_panel() -> object:
                         id=DISCOVERED_REFRESH_ID,
                         n_clicks=0,
                         className=(
-                            'atlanticus-manager__button '
-                            'atlanticus-manager__button--secondary'
+                            'atlanticus-manager__button atlanticus-manager__button--secondary'
                         ),
                     ),
                 ],
@@ -348,7 +345,6 @@ def _discovered_panel() -> object:
     )
 
 
-# Encapsula la operación save section para mantener esta responsabilidad aislada.
 def _save_section() -> object:
     return html.Section(
         [
@@ -371,8 +367,7 @@ def _save_section() -> object:
                         id=SAVE_BUTTON_ID,
                         n_clicks=0,
                         className=(
-                            'atlanticus-manager__button '
-                            'atlanticus-manager__button--primary'
+                            'atlanticus-manager__button atlanticus-manager__button--primary'
                         ),
                     ),
                 ],
@@ -380,13 +375,10 @@ def _save_section() -> object:
             ),
             html.Div(id=SAVE_RESULT_ID),
         ],
-        className=(
-            'atlanticus-users-admin__section atlanticus-users-admin__section--footer'
-        ),
+        className=('atlanticus-users-admin__section atlanticus-users-admin__section--footer'),
     )
 
 
-# Encapsula la operación local profile card para mantener esta responsabilidad aislada.
 def _local_profile_card() -> object:
     return html.Article(
         [
@@ -418,7 +410,6 @@ def _local_profile_card() -> object:
     )
 
 
-# Encapsula la operación fixed persona para mantener esta responsabilidad aislada.
 def _fixed_persona(label: str, background_color: str, text_color: str) -> object:
     return html.Div(
         [
@@ -436,7 +427,6 @@ def _fixed_persona(label: str, background_color: str, text_color: str) -> object
     )
 
 
-# Encapsula la operación system profile card para mantener esta responsabilidad aislada.
 def _system_profile_card(
     *,
     title: str,
@@ -483,7 +473,6 @@ def _system_profile_card(
     )
 
 
-# Encapsula la operación profile modal para mantener esta responsabilidad aislada.
 def _profile_modal() -> object:
     return html.Div(
         [
@@ -560,7 +549,6 @@ def _profile_modal() -> object:
     )
 
 
-# Mantiene el valor como componente Dash y delega la selección visual al input nativo del navegador.
 def _color_picker(*, label: str, picker_id: str, value: str) -> object:
     return html.Div(
         [
@@ -591,7 +579,6 @@ def _color_picker(*, label: str, picker_id: str, value: str) -> object:
     )
 
 
-# Encapsula la operación profile preview para mantener esta responsabilidad aislada.
 def _profile_preview(
     *,
     preview_id: str,
@@ -616,7 +603,6 @@ def _profile_preview(
     )
 
 
-# Encapsula la operación user modal para mantener esta responsabilidad aislada.
 def _user_modal() -> object:
     return html.Div(
         [
@@ -693,7 +679,6 @@ def _user_modal() -> object:
     )
 
 
-# Encapsula la operación modal header para mantener esta responsabilidad aislada.
 def _modal_header(eyebrow: str, title_id: str, close_id: str) -> object:
     return html.Header(
         [
@@ -715,7 +700,6 @@ def _modal_header(eyebrow: str, title_id: str, close_id: str) -> object:
     )
 
 
-# Encapsula la operación modal actions para mantener esta responsabilidad aislada.
 def _modal_actions(*, cancel_id: str, save_id: str, save_label: str) -> object:
     return html.Footer(
         [
@@ -723,9 +707,7 @@ def _modal_actions(*, cancel_id: str, save_id: str, save_label: str) -> object:
                 'Cancelar',
                 id=cancel_id,
                 n_clicks=0,
-                className=(
-                    'atlanticus-manager__button atlanticus-manager__button--secondary'
-                ),
+                className=('atlanticus-manager__button atlanticus-manager__button--secondary'),
             ),
             html.Button(
                 save_label,
@@ -738,7 +720,6 @@ def _modal_actions(*, cancel_id: str, save_id: str, save_label: str) -> object:
     )
 
 
-# Encapsula la operación section heading para mantener esta responsabilidad aislada.
 def _section_heading(title: str, description: str) -> object:
     return html.Div(
         [html.H3(title), html.P(description)],
@@ -746,7 +727,6 @@ def _section_heading(title: str, description: str) -> object:
     )
 
 
-# Encapsula la operación field para mantener esta responsabilidad aislada.
 def _field(label: str, control: object, help_text: str) -> object:
     return html.Label(
         [
@@ -758,7 +738,6 @@ def _field(label: str, control: object, help_text: str) -> object:
     )
 
 
-# Encapsula la operación reference field para mantener esta responsabilidad aislada.
 def _reference_field(label: str, value_id: str, help_text: str) -> object:
     return html.Div(
         [

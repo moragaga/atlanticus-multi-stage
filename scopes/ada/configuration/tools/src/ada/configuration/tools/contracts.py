@@ -16,7 +16,12 @@ class ToolConfigurationSource(Protocol):
 
 
 class ToolConfigurationPublisher(Protocol):
-    def publish_bundle(self, bundle: ToolConfigurationBundle) -> None: ...
+    def publish_bundle(
+        self,
+        bundle: ToolConfigurationBundle,
+        *,
+        expected_source_revision: str | None,
+    ) -> None: ...
 
 
 class ToolProjectionRepository(Protocol):

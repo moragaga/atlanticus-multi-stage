@@ -1,5 +1,7 @@
+# Implementa el History SharePoint de Tools y relee el manifest justo antes de escribir para detectar cambios remotos.
+# No proyecta ni fuerza escrituras: una revisión distinta produce conflicto y preserva la fuente existente.
+
 from __future__ import annotations
-# El store conoce operaciones de archivo SharePoint, no el POST físico de Power Automate.
 
 import base64
 from dataclasses import dataclass
@@ -17,7 +19,6 @@ from ada.configuration.tools.errors import (
 )
 
 
-# Contrato estructural local para mantener la capability independiente de la composition HTTP.
 class SharePointFileGateway(Protocol):
     def read(self, *, filename: str, relative_path: str) -> str | None: ...
 
@@ -50,9 +51,20 @@ class SharePointToolConfigurationStore:
         source = self._load_source()
         return source.current_bundle() if source is not None else None
 
-    def publish_bundle(self, bundle: ToolConfigurationBundle) -> None:
+    def publish_bundle(
+        self,
+        bundle: ToolConfigurationBundle,
+        *,
+        expected_source_revision: str | None,
+    ) -> None:
         try:
             current = self._load_source()
+            current_bundle = current.current_bundle() if current is not None else None
+            current_revision = current_bundle.revision if current_bundle is not None else None
+            if current_revision != expected_source_revision:
+                raise ToolConfigurationSourceError(
+                    'Tool source revision changed before publication'
+                )
             updated = (
                 ToolConfigurationSourceDocument.from_bundle(bundle)
                 if current is None
@@ -62,7 +74,7 @@ class SharePointToolConfigurationStore:
                 return
             content = base64.b64encode(encode_tool_configuration_source(updated)).decode('ascii')
             self._write_content(content)
-        except (ToolConfigurationPublisherError, ToolConfigurationSourceError):
+        except ToolConfigurationPublisherError, ToolConfigurationSourceError:
             raise
         except Exception as error:
             raise ToolConfigurationPublisherError(
@@ -89,7 +101,6 @@ class SharePointToolConfigurationStore:
                 'SharePoint tool configuration content is invalid'
             ) from error
 
-    # La lectura delega la semántica SharePoint al gateway inyectado.
     def _fetch_content(self) -> str | None:
         try:
             return self._gateway.read(
@@ -101,7 +112,6 @@ class SharePointToolConfigurationStore:
                 'Could not load tool configuration from SharePoint'
             ) from error
 
-    # La escritura no conoce método HTTP, endpoint ni autenticación.
     def _write_content(self, content: str) -> None:
         try:
             self._gateway.write(

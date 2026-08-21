@@ -1,6 +1,6 @@
-# Espejo pedagógico: conserva la misma lógica del archivo productivo.
-# Los comentarios documentan la responsabilidad sin cambiar el comportamiento.
-# Simula Source y Projection en archivos separados para pruebas locales.
+# Implementa History local de Tools y aplica optimistic concurrency releyendo la revisión antes de persistir.
+# El backend file mantiene el mismo contrato de publicación que SharePoint para que la composición sea intercambiable.
+
 from __future__ import annotations
 
 import json
@@ -37,9 +37,20 @@ class FileToolConfigurationStore:
         source = self._load_source()
         return source.current_bundle() if source is not None else None
 
-    def publish_bundle(self, bundle: ToolConfigurationBundle) -> None:
+    def publish_bundle(
+        self,
+        bundle: ToolConfigurationBundle,
+        *,
+        expected_source_revision: str | None,
+    ) -> None:
         try:
             current = self._load_source()
+            current_bundle = current.current_bundle() if current is not None else None
+            current_revision = current_bundle.revision if current_bundle is not None else None
+            if current_revision != expected_source_revision:
+                raise ToolConfigurationSourceError(
+                    'Tool source revision changed before publication'
+                )
             updated = (
                 ToolConfigurationSourceDocument.from_bundle(bundle)
                 if current is None
@@ -97,9 +108,7 @@ class FileToolProjectionRepository:
         try:
             return ToolConfigurationProjection.from_document(_read_json(path))
         except Exception as error:
-            raise ToolConfigurationProjectionError(
-                'Local tool projection is invalid'
-            ) from error
+            raise ToolConfigurationProjectionError('Local tool projection is invalid') from error
 
     def save(self, projection: ToolConfigurationProjection) -> ToolConfigurationProjection:
         try:

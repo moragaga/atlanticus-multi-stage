@@ -56,8 +56,11 @@ class NavigationAdministrationService:
         self._audit_actor_provider = audit_actor_provider
         self._validators = validators
 
+    def load_source(self) -> NavigationConfigurationBundle | None:
+        return self._source.fetch_bundle()
+
     def load_catalog(self) -> NavigationConfigurationCatalog | None:
-        bundle = self._source.fetch_bundle()
+        bundle = self.load_source()
         return bundle.catalog if bundle is not None else None
 
     def validate_catalog(
@@ -100,8 +103,10 @@ class NavigationAdministrationService:
             now_utc=validation.audit.occurred_at_utc,
         )
         published = current_revision != bundle.revision
-        if published:
-            self._publisher.publish_bundle(bundle)
+        self._publisher.publish_bundle(
+            bundle,
+            expected_source_revision=expected_source_revision,
+        )
         return NavigationSourcePublicationResult(
             source_revision=bundle.revision,
             published=published,

@@ -33,3 +33,11 @@ def test_dynamic_navigation_actions_require_a_real_click() -> None:
     assert 'def _triggered_click_is_real() -> bool:' in source
     assert source.count('and _triggered_click_is_real()') >= 3
     assert source.count('or not _triggered_click_is_real()') >= 2
+
+
+def test_navigation_editor_keeps_source_revision_loaded_with_editor_content() -> None:
+    source = _web_source()
+
+    assert 'SOURCE_REVISION_STORE_ID' in source
+    assert "State(SOURCE_REVISION_STORE_ID, 'data')" in source
+    assert '_current_source_revision' not in source

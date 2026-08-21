@@ -1,6 +1,6 @@
-# Espejo pedagógico: conserva la misma lógica del archivo productivo.
-# Los comentarios documentan la responsabilidad sin cambiar el comportamiento.
-# Define puertos independientes para fuente, publicación y proyección.
+# Declara los contratos de configuración de Tools; publicar exige la revisión de Source que el caller espera conservar.
+# El contrato mantiene separados lectura, publicación e infraestructura concreta.
+
 from collections.abc import Callable
 from typing import Protocol
 
@@ -19,7 +19,12 @@ class ToolConfigurationSource(Protocol):
 
 
 class ToolConfigurationPublisher(Protocol):
-    def publish_bundle(self, bundle: ToolConfigurationBundle) -> None: ...
+    def publish_bundle(
+        self,
+        bundle: ToolConfigurationBundle,
+        *,
+        expected_source_revision: str | None,
+    ) -> None: ...
 
 
 class ToolProjectionRepository(Protocol):

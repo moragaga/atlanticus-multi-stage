@@ -50,6 +50,7 @@ from atlanticus.web.users.configuration.web.ids import (
     SAVE_BUTTON_ID,
     SAVE_RESULT_ID,
     SECTION_STORE_ID,
+    SOURCE_REVISION_STORE_ID,
     USER_CANCEL_ID,
     USER_EDITOR_STORE_ID,
     USER_EMAIL_ID,
@@ -577,9 +578,13 @@ def register_users_admin_callbacks(app: object, context: UsersAdminWebContext) -
         Output(GUEST_TEXT_COLOR_ID, 'value', allow_duplicate=True),
         Output(IMPORT_RESULT_ID, 'children'),
         Input(IMPORT_UPLOAD_ID, 'contents'),
+        State(SOURCE_REVISION_STORE_ID, 'data'),
         prevent_initial_call=True,
     )
-    def import_configuration(contents: str | None):
+    def import_configuration(
+        contents: str | None,
+        source_revision: str | None,
+    ):
         if contents is None:
             return (no_update,) * 7
         if not context.can_manage():
@@ -592,7 +597,7 @@ def register_users_admin_callbacks(app: object, context: UsersAdminWebContext) -
             draft = _browser_draft_document(
                 catalog=catalog,
                 owner_subject_id=context.draft_owner_provider(),
-                base_source_revision=_current_source_revision(context),
+                base_source_revision=source_revision,
             )
         except Exception as error:
             return (no_update,) * 6 + (_error(str(error)),)
@@ -612,6 +617,7 @@ def register_users_admin_callbacks(app: object, context: UsersAdminWebContext) -
         Input(SAVE_BUTTON_ID, 'n_clicks'),
         Input(context.draft_save_action_id, 'n_clicks'),
         State(CATALOG_STORE_ID, 'data'),
+        State(SOURCE_REVISION_STORE_ID, 'data'),
         State(context.draft_store_id, 'data'),
         prevent_initial_call=True,
     )
@@ -619,6 +625,7 @@ def register_users_admin_callbacks(app: object, context: UsersAdminWebContext) -
         content_clicks: int | None,
         workflow_clicks: int | None,
         catalog_data: dict[str, object] | None,
+        source_revision: str | None,
         current_draft: dict[str, object] | None,
     ):
         trigger = ctx.triggered_id
@@ -636,7 +643,7 @@ def register_users_admin_callbacks(app: object, context: UsersAdminWebContext) -
             base_revision = _draft_base_source_revision(
                 current_draft,
                 owner_subject_id=context.draft_owner_provider(),
-                fallback=_current_source_revision(context),
+                fallback=source_revision,
             )
             draft = _browser_draft_document(
                 catalog=catalog,
@@ -646,13 +653,6 @@ def register_users_admin_callbacks(app: object, context: UsersAdminWebContext) -
         except Exception as error:
             return no_update, _error(str(error))
         return draft, None
-
-
-def _current_source_revision(context: UsersAdminWebContext) -> str | None:
-    try:
-        return context.services.projection_workflow.get_status().source_revision
-    except Exception:
-        return None
 
 
 def _catalog(data: dict[str, object] | None) -> UsersConfigurationCatalog:

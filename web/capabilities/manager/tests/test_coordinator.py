@@ -17,6 +17,7 @@ from atlanticus.web.manager import (
     ProjectionStatus,
     RevisionHistoryEntry,
     SourcePublicationResult,
+    SourceVerificationResult,
     build_draft_revision,
 )
 from atlanticus.web.services import ServiceRegistry
@@ -196,3 +197,41 @@ def test_force_publish_requires_enabled_module_and_uses_current_revision() -> No
 
     assert result.published is True
     assert workflow.published_expected == 'source-b'
+
+
+def test_verify_source_returns_explicit_match_for_current_draft_base() -> None:
+    workflow = MutableWorkflow('source-b')
+    coordinator = _coordinator_for(workflow)
+    principal = ManagerPrincipal('local', 'Administrador local', is_local=True)
+
+    result = coordinator.verify_source(
+        'tools',
+        principal,
+        draft_revision='draft-1',
+        base_source_revision='source-b',
+    )
+
+    assert isinstance(result, SourceVerificationResult)
+    assert result.draft_revision == 'draft-1'
+    assert result.base_source_revision == 'source-b'
+    assert result.source_revision == 'source-b'
+    assert result.source_audit.actor == 'Admin'
+    assert result.matches is True
+
+
+def test_verify_source_returns_explicit_conflict_without_writing() -> None:
+    workflow = MutableWorkflow('source-b')
+    coordinator = _coordinator_for(workflow)
+    principal = ManagerPrincipal('local', 'Administrador local', is_local=True)
+
+    result = coordinator.verify_source(
+        'tools',
+        principal,
+        draft_revision='draft-1',
+        base_source_revision='source-a',
+    )
+
+    assert result.matches is False
+    assert result.base_source_revision == 'source-a'
+    assert result.source_revision == 'source-b'
+    assert workflow.published_expected is None

@@ -61,8 +61,11 @@ def test_file_source_uses_one_document_and_unique_history_by_revision(tmp_path) 
         now_utc=datetime(2026, 8, 18, 14, 0, tzinfo=UTC),
     )
 
-    store.publish_bundle(bundle)
-    store.publish_bundle(ToolConfigurationBundle.create(catalog=_catalog(), saved_by='tester-2'))
+    store.publish_bundle(bundle, expected_source_revision=None)
+    store.publish_bundle(
+        ToolConfigurationBundle.create(catalog=_catalog(), saved_by='tester-2'),
+        expected_source_revision=bundle.revision,
+    )
 
     assert store.fetch_bundle() == bundle
     assert store.list_history() == (bundle,)

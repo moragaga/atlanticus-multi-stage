@@ -1,4 +1,6 @@
-# Mantiene separados borrador, fuente publicada y proyección; SourceSnapshot representa la fuente exacta cargada.
+# Mantiene separados borrador, Source publicado, verificación de Source y Projection activa.
+# SourceVerificationResult describe una comprobación puntual sin convertirla en publicación ni proyección.
+
 from __future__ import annotations
 
 import hashlib
@@ -187,6 +189,74 @@ class DraftValidationResult:
             raise ManagerProjectionError('Draft validation revision must not be empty')
         object.__setattr__(self, 'issues', tuple(self.issues))
         object.__setattr__(self, 'summary', tuple(self.summary))
+
+
+@dataclass(frozen=True, slots=True)
+class SourceVerificationResult:
+    draft_revision: str
+    base_source_revision: str | None
+    source_revision: str | None
+    source_audit: ProjectionAuditRecord | None
+    checked_at: datetime
+
+    def __post_init__(self) -> None:
+        draft_revision = self.draft_revision.strip()
+        if not draft_revision:
+            raise ManagerProjectionError('Source verification draft revision must not be empty')
+        base_source_revision = _optional_string(self.base_source_revision)
+        source_revision = _optional_string(self.source_revision)
+        if (source_revision is None) != (self.source_audit is None):
+            raise ManagerProjectionError('Source verification metadata must be complete')
+        if self.checked_at.tzinfo is None or self.checked_at.utcoffset() is None:
+            raise ManagerProjectionError('Source verification timestamp must be timezone-aware')
+        object.__setattr__(self, 'draft_revision', draft_revision)
+        object.__setattr__(self, 'base_source_revision', base_source_revision)
+        object.__setattr__(self, 'source_revision', source_revision)
+        object.__setattr__(self, 'checked_at', self.checked_at.astimezone(UTC))
+
+    @property
+    def matches(self) -> bool:
+        return self.base_source_revision == self.source_revision
+
+    def to_document(self) -> dict[str, object]:
+        source_audit = None
+        if self.source_audit is not None:
+            source_audit = {
+                'actor': self.source_audit.actor,
+                'occurred_at': self.source_audit.occurred_at.isoformat(),
+            }
+        return {
+            'schema_version': 1,
+            'draft_revision': self.draft_revision,
+            'base_source_revision': self.base_source_revision,
+            'source_revision': self.source_revision,
+            'source_audit': source_audit,
+            'checked_at': self.checked_at.isoformat(),
+        }
+
+    @classmethod
+    def from_document(cls, document: dict[str, object]) -> SourceVerificationResult:
+        try:
+            if document.get('schema_version') != 1:
+                raise TypeError
+            source_audit_document = document.get('source_audit')
+            source_audit = None
+            if source_audit_document is not None:
+                if not isinstance(source_audit_document, dict):
+                    raise TypeError
+                source_audit = ProjectionAuditRecord(
+                    actor=str(source_audit_document['actor']),
+                    occurred_at=datetime.fromisoformat(str(source_audit_document['occurred_at'])),
+                )
+            return cls(
+                draft_revision=str(document['draft_revision']),
+                base_source_revision=_optional_string(document.get('base_source_revision')),
+                source_revision=_optional_string(document.get('source_revision')),
+                source_audit=source_audit,
+                checked_at=datetime.fromisoformat(str(document['checked_at'])),
+            )
+        except (KeyError, TypeError, ValueError) as error:
+            raise ManagerProjectionError('Source verification contract is invalid') from error
 
 
 @dataclass(frozen=True, slots=True)

@@ -1,4 +1,6 @@
-# Actualiza la versión del artifact que incorpora concurrencia de fuente.
+# Define el artifact ADA y fija las versiones exactas de las composiciones que forman su contrato transportable.
+# Este espejo conserva la misma lógica productiva; los comentarios solo explican las fronteras del ensamblaje.
+
 from ada.compositions.web_bootstrap import AdaCosmosBindings
 from ada.compositions.web_deployment import AdaWebDeploymentDefinition
 from atlanticus.web.compositions.runtime_infrastructure import (
@@ -20,7 +22,7 @@ def build_metadata() -> ApplicationMetadata:
     return ApplicationMetadata(
         application_id='ada-application-base',
         display_name='ADA',
-        version='0.2.3',
+        version='0.2.4',
     )
 
 

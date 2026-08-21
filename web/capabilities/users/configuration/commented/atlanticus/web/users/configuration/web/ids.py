@@ -1,6 +1,8 @@
-# Espejo pedagógico del módulo productivo.
-# Los comentarios explican responsabilidades sin alterar estructura ni comportamiento.
+# Centraliza los IDs Dash de Users, incluido el store que conserva la revisión de Source cargada.
+# Esta señal permite que layout y callbacks compartan la misma base de concurrencia.
+
 CATALOG_STORE_ID = 'atlanticus-users-admin-catalog-store'
+SOURCE_REVISION_STORE_ID = 'atlanticus-users-admin-source-revision-store'
 SECTION_STORE_ID = 'atlanticus-users-admin-section-store'
 PROFILE_EDITOR_STORE_ID = 'atlanticus-users-admin-profile-editor-store'
 USER_EDITOR_STORE_ID = 'atlanticus-users-admin-user-editor-store'
@@ -50,31 +52,25 @@ SAVE_BUTTON_ID = 'atlanticus-users-admin-save'
 SAVE_RESULT_ID = 'atlanticus-users-admin-save-result'
 
 
-# Encapsula la operación profile edit id para mantener esta responsabilidad aislada.
-
-# Deriva el identificador del botón que abre el selector nativo asociado al valor Dash.
 def color_picker_button_id(picker_id: str) -> str:
     return f'{picker_id}-picker'
 
 
-# Deriva el identificador de la muestra visual que refleja el color seleccionado.
 def color_picker_swatch_id(picker_id: str) -> str:
     return f'{picker_id}-swatch'
+
 
 def profile_edit_id(key: str | object) -> dict[str, object]:
     return {'type': 'atlanticus-users-admin-profile-edit', 'key': key}
 
 
-# Encapsula la operación profile delete id para mantener esta responsabilidad aislada.
 def profile_delete_id(key: str | object) -> dict[str, object]:
     return {'type': 'atlanticus-users-admin-profile-delete', 'key': key}
 
 
-# Encapsula la operación user edit id para mantener esta responsabilidad aislada.
 def user_edit_id(user_id: str | object) -> dict[str, object]:
     return {'type': 'atlanticus-users-admin-user-edit', 'user_id': user_id}
 
 
-# Encapsula la operación discovered add id para mantener esta responsabilidad aislada.
 def discovered_add_id(user_id: str | object) -> dict[str, object]:
     return {'type': 'atlanticus-users-admin-discovered-add', 'user_id': user_id}

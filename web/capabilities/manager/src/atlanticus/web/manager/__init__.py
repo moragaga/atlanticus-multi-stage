@@ -35,6 +35,7 @@ from atlanticus.web.manager.projection import (
     RevisionHistoryWorkflow,
     SourcePublicationResult,
     SourceSnapshot,
+    SourceVerificationResult,
     build_draft_revision,
     resolve_projection_state,
 )
@@ -74,6 +75,7 @@ __all__ = [
     'RevisionHistoryWorkflow',
     'SourcePublicationResult',
     'SourceSnapshot',
+    'SourceVerificationResult',
     'build_draft_revision',
     'resolve_projection_state',
 ]

@@ -1,5 +1,6 @@
-# Espejo pedagógico del módulo productivo.
-# Los comentarios explican responsabilidades sin alterar estructura ni comportamiento.
+# Gestiona la edición de Users y conserva la revisión de Source asociada al contenido inicialmente cargado.
+# Así el primer draft no adopta por error una revisión remota que apareció mientras el usuario editaba.
+
 from __future__ import annotations
 
 import base64
@@ -25,8 +26,6 @@ from atlanticus.web.users.configuration.web.ids import (
     ADMINISTRATOR_PREVIEW_ID,
     ADMINISTRATOR_TEXT_COLOR_ID,
     CATALOG_STORE_ID,
-    color_picker_button_id,
-    color_picker_swatch_id,
     DISCOVERED_LIST_ID,
     DISCOVERED_PANEL_ID,
     DISCOVERED_REFRESH_ID,
@@ -54,6 +53,7 @@ from atlanticus.web.users.configuration.web.ids import (
     SAVE_BUTTON_ID,
     SAVE_RESULT_ID,
     SECTION_STORE_ID,
+    SOURCE_REVISION_STORE_ID,
     USER_CANCEL_ID,
     USER_EDITOR_STORE_ID,
     USER_EMAIL_ID,
@@ -67,6 +67,8 @@ from atlanticus.web.users.configuration.web.ids import (
     USERS_LIST_ID,
     USERS_PANEL_ID,
     USERS_TAB_ID,
+    color_picker_button_id,
+    color_picker_swatch_id,
     discovered_add_id,
     profile_delete_id,
     profile_edit_id,
@@ -92,7 +94,6 @@ _DEFAULT_PROFILE_TEXT_COLOR = '#071522'
 _BROWSER_DRAFT_SCHEMA_VERSION = 1
 
 
-# Registra primero los bridges clientside de color y luego los callbacks administrativos.
 def register_users_admin_callbacks(app: object, context: UsersAdminWebContext) -> None:
     for picker_id in (
         ADMINISTRATOR_BACKGROUND_COLOR_ID,
@@ -196,15 +197,12 @@ def register_users_admin_callbacks(app: object, context: UsersAdminWebContext) -
         try:
             updated = UsersConfigurationCatalog(
                 administrator_background_color=(
-                    administrator_background_color
-                    or catalog.administrator_background_color
+                    administrator_background_color or catalog.administrator_background_color
                 ),
                 administrator_text_color=(
                     administrator_text_color or catalog.administrator_text_color
                 ),
-                guest_background_color=(
-                    guest_background_color or catalog.guest_background_color
-                ),
+                guest_background_color=(guest_background_color or catalog.guest_background_color),
                 guest_text_color=guest_text_color or catalog.guest_text_color,
                 profiles=catalog.profiles,
                 users=catalog.users,
@@ -583,9 +581,13 @@ def register_users_admin_callbacks(app: object, context: UsersAdminWebContext) -
         Output(GUEST_TEXT_COLOR_ID, 'value', allow_duplicate=True),
         Output(IMPORT_RESULT_ID, 'children'),
         Input(IMPORT_UPLOAD_ID, 'contents'),
+        State(SOURCE_REVISION_STORE_ID, 'data'),
         prevent_initial_call=True,
     )
-    def import_configuration(contents: str | None):
+    def import_configuration(
+        contents: str | None,
+        source_revision: str | None,
+    ):
         if contents is None:
             return (no_update,) * 7
         if not context.can_manage():
@@ -598,7 +600,7 @@ def register_users_admin_callbacks(app: object, context: UsersAdminWebContext) -
             draft = _browser_draft_document(
                 catalog=catalog,
                 owner_subject_id=context.draft_owner_provider(),
-                base_source_revision=_current_source_revision(context),
+                base_source_revision=source_revision,
             )
         except Exception as error:
             return (no_update,) * 6 + (_error(str(error)),)
@@ -618,6 +620,7 @@ def register_users_admin_callbacks(app: object, context: UsersAdminWebContext) -
         Input(SAVE_BUTTON_ID, 'n_clicks'),
         Input(context.draft_save_action_id, 'n_clicks'),
         State(CATALOG_STORE_ID, 'data'),
+        State(SOURCE_REVISION_STORE_ID, 'data'),
         State(context.draft_store_id, 'data'),
         prevent_initial_call=True,
     )
@@ -625,6 +628,7 @@ def register_users_admin_callbacks(app: object, context: UsersAdminWebContext) -
         content_clicks: int | None,
         workflow_clicks: int | None,
         catalog_data: dict[str, object] | None,
+        source_revision: str | None,
         current_draft: dict[str, object] | None,
     ):
         trigger = ctx.triggered_id
@@ -642,7 +646,7 @@ def register_users_admin_callbacks(app: object, context: UsersAdminWebContext) -
             base_revision = _draft_base_source_revision(
                 current_draft,
                 owner_subject_id=context.draft_owner_provider(),
-                fallback=_current_source_revision(context),
+                fallback=source_revision,
             )
             draft = _browser_draft_document(
                 catalog=catalog,
@@ -654,15 +658,6 @@ def register_users_admin_callbacks(app: object, context: UsersAdminWebContext) -
         return draft, None
 
 
-
-# Encapsula la operación current source revision para mantener esta responsabilidad aislada.
-def _current_source_revision(context: UsersAdminWebContext) -> str | None:
-    try:
-        return context.services.projection_workflow.get_status().source_revision
-    except Exception:
-        return None
-
-# Encapsula la operación catalog para mantener esta responsabilidad aislada.
 def _catalog(data: dict[str, object] | None) -> UsersConfigurationCatalog:
     if not isinstance(data, dict):
         return UsersConfigurationCatalog(
@@ -674,7 +669,6 @@ def _catalog(data: dict[str, object] | None) -> UsersConfigurationCatalog:
     return UsersConfigurationCatalog.from_document(data)
 
 
-# Encapsula la operación catalog from browser draft para mantener esta responsabilidad aislada.
 def _catalog_from_browser_draft(
     data: dict[str, object] | None,
     owner_subject_id: str,
@@ -693,7 +687,6 @@ def _catalog_from_browser_draft(
     return catalog
 
 
-# Encapsula la operación browser draft document para mantener esta responsabilidad aislada.
 def _browser_draft_document(
     *,
     catalog: UsersConfigurationCatalog,
@@ -713,7 +706,6 @@ def _browser_draft_document(
     }
 
 
-# Encapsula la operación draft base source revision para mantener esta responsabilidad aislada.
 def _draft_base_source_revision(
     data: dict[str, object] | None,
     *,
@@ -731,7 +723,6 @@ def _draft_base_source_revision(
     return normalized or None
 
 
-# Encapsula la operación save profile para mantener esta responsabilidad aislada.
 def _save_profile(
     catalog: UsersConfigurationCatalog,
     editor_data: dict[str, object] | None,
@@ -766,7 +757,7 @@ def _save_profile(
         users=catalog.users,
     )
 
-# Encapsula la operación save user para mantener esta responsabilidad aislada.
+
 def _save_user(
     catalog: UsersConfigurationCatalog,
     editor_data: dict[str, object] | None,
@@ -824,7 +815,7 @@ def _save_user(
         users=users,
     )
 
-# Encapsula la operación assignable profile options para mantener esta responsabilidad aislada.
+
 def _assignable_profile_options(catalog: UsersConfigurationCatalog) -> list[dict[str, str]]:
     return [
         {'label': profile.label, 'value': profile.key}
@@ -832,7 +823,6 @@ def _assignable_profile_options(catalog: UsersConfigurationCatalog) -> list[dict
     ]
 
 
-# Encapsula la operación profile cards para mantener esta responsabilidad aislada.
 def _profile_cards(catalog: UsersConfigurationCatalog) -> object:
     if not catalog.profiles:
         return _empty('Todavía no hay perfiles personalizados.')
@@ -896,7 +886,6 @@ def _profile_cards(catalog: UsersConfigurationCatalog) -> object:
     )
 
 
-# Encapsula la operación user cards para mantener esta responsabilidad aislada.
 def _user_cards(catalog: UsersConfigurationCatalog) -> object:
     if not catalog.users:
         return _empty('Todavía no hay usuarios configurados.')
@@ -945,7 +934,6 @@ def _user_cards(catalog: UsersConfigurationCatalog) -> object:
     )
 
 
-# Encapsula la operación discovered cards para mantener esta responsabilidad aislada.
 def _discovered_cards(
     users: tuple[DiscoveredUser, ...],
     catalog: UsersConfigurationCatalog,
@@ -1000,7 +988,6 @@ def _discovered_cards(
     )
 
 
-# Encapsula la operación profile badge para mantener esta responsabilidad aislada.
 def _profile_badge(profile: ProfileDefinition) -> object:
     return html.Span(
         profile.label,
@@ -1012,7 +999,6 @@ def _profile_badge(profile: ProfileDefinition) -> object:
     )
 
 
-# Encapsula la operación find discovered para mantener esta responsabilidad aislada.
 def _find_discovered(context: UsersAdminWebContext, user_id: str) -> DiscoveredUser | None:
     try:
         return next(
@@ -1027,7 +1013,6 @@ def _find_discovered(context: UsersAdminWebContext, user_id: str) -> DiscoveredU
         return None
 
 
-# Encapsula la operación find discovered by email para mantener esta responsabilidad aislada.
 def _find_discovered_by_email(
     context: UsersAdminWebContext,
     email: str,
@@ -1048,7 +1033,6 @@ def _find_discovered_by_email(
     return matches[0] if matches else None
 
 
-# Encapsula la operación profile preview style para mantener esta responsabilidad aislada.
 def _profile_preview_style(
     background_color: str,
     text_color: str,
@@ -1059,7 +1043,6 @@ def _profile_preview_style(
     }
 
 
-# Encapsula la operación profile editor key para mantener esta responsabilidad aislada.
 def _profile_editor_key(
     editor_data: dict[str, object] | None,
     name: str | None,
@@ -1072,12 +1055,10 @@ def _profile_editor_key(
         return 'Se genera al guardar'
 
 
-# Encapsula la operación profile editor title para mantener esta responsabilidad aislada.
 def _profile_editor_title(editor_data: dict[str, object] | None) -> str:
     return 'Editar perfil' if str((editor_data or {}).get('mode', '')) == 'edit' else 'Nuevo perfil'
 
 
-# Encapsula la operación user editor title para mantener esta responsabilidad aislada.
 def _user_editor_title(editor_data: dict[str, object] | None) -> str:
     mode = str((editor_data or {}).get('mode', 'create'))
     if mode == 'discovered':
@@ -1091,12 +1072,10 @@ def _user_editor_title(editor_data: dict[str, object] | None) -> str:
     return 'Nuevo usuario'
 
 
-# Encapsula la operación user identity locked para mantener esta responsabilidad aislada.
 def _user_identity_locked(editor_data: dict[str, object] | None) -> bool:
     return str((editor_data or {}).get('mode', '')) == 'discovered'
 
 
-# Encapsula la operación profile modal response para mantener esta responsabilidad aislada.
 def _profile_modal_response(
     *,
     closed: bool = False,
@@ -1136,7 +1115,7 @@ def _profile_modal_response(
         catalog if catalog is not None else no_update,
     )
 
-# Encapsula la operación user modal response para mantener esta responsabilidad aislada.
+
 def _user_modal_response(
     *,
     closed: bool = False,
@@ -1185,7 +1164,6 @@ def _user_modal_response(
     )
 
 
-# Encapsula la operación save draft click is real para mantener esta responsabilidad aislada.
 def _save_draft_click_is_real(
     trigger: object,
     *,
@@ -1200,8 +1178,6 @@ def _save_draft_click_is_real(
     return False
 
 
-
-# Abre un input HTML color efímero y sincroniza su valor con un componente Dash oculto.
 def _register_native_color_picker(app: object, picker_id: str) -> None:
     button_id = color_picker_button_id(picker_id)
     swatch_id = color_picker_swatch_id(picker_id)
@@ -1237,12 +1213,10 @@ def _register_native_color_picker(app: object, picker_id: str) -> None:
     )
 
 
-# Encapsula la operación click is real para mantener esta responsabilidad aislada.
 def _click_is_real(clicks: int | None) -> bool:
     return isinstance(clicks, int) and not isinstance(clicks, bool) and clicks > 0
 
 
-# Encapsula la operación pattern click is real para mantener esta responsabilidad aislada.
 def _pattern_click_is_real(
     trigger: object,
     clicks: list[int | None] | None,
@@ -1257,12 +1231,10 @@ def _pattern_click_is_real(
     return False
 
 
-# Encapsula la operación matches trigger para mantener esta responsabilidad aislada.
 def _matches_trigger(trigger: object, *ids: str) -> bool:
     return isinstance(trigger, str) and trigger in ids
 
 
-# Encapsula la operación optional text para mantener esta responsabilidad aislada.
 def _optional_text(value: object) -> str | None:
     if value is None:
         return None
@@ -1270,12 +1242,10 @@ def _optional_text(value: object) -> str | None:
     return normalized or None
 
 
-# Encapsula la operación empty para mantener esta responsabilidad aislada.
 def _empty(message: str) -> object:
     return html.Div(message, className='atlanticus-users-admin__empty')
 
 
-# Encapsula la operación error para mantener esta responsabilidad aislada.
 def _error(message: str) -> object:
     return html.Div(
         message,

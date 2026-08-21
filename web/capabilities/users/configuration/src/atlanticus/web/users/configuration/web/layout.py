@@ -39,6 +39,7 @@ from atlanticus.web.users.configuration.web.ids import (
     SAVE_RESULT_ID,
     SECTION_STORE_ID,
     SOURCE_NAME_ID,
+    SOURCE_REVISION_STORE_ID,
     USER_CANCEL_ID,
     USER_EDITOR_STORE_ID,
     USER_EMAIL_ID,
@@ -72,16 +73,24 @@ _MODAL_CLOSED = 'atlanticus-users-admin__modal'
 
 def build_users_admin_configuration(context: UsersAdminWebContext) -> object:
     try:
-        catalog = context.services.administration.load_catalog() or _empty_catalog()
+        bundle = context.services.administration.load_source()
+        catalog = bundle.catalog if bundle is not None else _empty_catalog()
+        source_revision = bundle.revision if bundle is not None else None
         error = None
     except Exception:
         catalog = _empty_catalog()
+        source_revision = None
         error = 'Users configuration source could not be loaded'
     return html.Div(
         [
             dcc.Store(
                 id=CATALOG_STORE_ID,
                 data=catalog.to_document(),
+                storage_type='memory',
+            ),
+            dcc.Store(
+                id=SOURCE_REVISION_STORE_ID,
+                data=source_revision,
                 storage_type='memory',
             ),
             dcc.Store(id=SECTION_STORE_ID, data='profiles', storage_type='memory'),

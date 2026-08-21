@@ -100,7 +100,10 @@ class ToolAdministrationService:
             now_utc=occurred_at,
         )
         published = current_revision != bundle.revision
-        self._publisher.publish_bundle(bundle)
+        self._publisher.publish_bundle(
+            bundle,
+            expected_source_revision=expected_source_revision,
+        )
         return ToolSourcePublicationResult(
             source_revision=bundle.revision,
             published=published,

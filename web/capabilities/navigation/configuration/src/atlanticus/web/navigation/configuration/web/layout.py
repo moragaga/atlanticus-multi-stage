@@ -40,6 +40,7 @@ from atlanticus.web.navigation.configuration.web.ids import (
     SAVE_BUTTON_ID,
     SAVE_RESULT_ID,
     SOURCE_NAME_ID,
+    SOURCE_REVISION_STORE_ID,
     STRUCTURE_ID,
 )
 from atlanticus.web.navigation.configuration.web.models import NavigationAdminWebContext
@@ -49,14 +50,22 @@ _MODAL_CLOSED = 'atlanticus-navigation-admin__modal'
 
 def build_navigation_admin_configuration(context: NavigationAdminWebContext) -> object:
     try:
-        catalog = context.services.administration.load_catalog() or build_initial_catalog()
+        bundle = context.services.administration.load_source()
+        catalog = bundle.catalog if bundle is not None else build_initial_catalog()
+        source_revision = bundle.revision if bundle is not None else None
         error = None
     except Exception:
         catalog = build_initial_catalog()
+        source_revision = None
         error = 'Navigation configuration source could not be loaded'
     return html.Div(
         [
             dcc.Store(id=CATALOG_STORE_ID, data=catalog.to_document(), storage_type='memory'),
+            dcc.Store(
+                id=SOURCE_REVISION_STORE_ID,
+                data=source_revision,
+                storage_type='memory',
+            ),
             dcc.Store(id=LINK_EDITOR_STORE_ID, storage_type='memory'),
             dcc.Store(id=GROUP_EDITOR_STORE_ID, storage_type='memory'),
             dcc.Store(id=MOUNT_STORE_ID, data=1, storage_type='memory'),

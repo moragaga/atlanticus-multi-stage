@@ -1,9 +1,7 @@
+# Gestiona la edición de Navigation y conserva la revisión de Source que acompañaba al contenido cargado.
+# El primer Guardar borrador usa esa base original y no consulta una revisión remota más nueva silenciosamente.
+
 from __future__ import annotations
-
-# Los callbacks editan un catálogo en memoria.
-# Solo persisten cuando el usuario guarda el browser draft.
-# La composición puede aportar perfiles adicionales, pero el módulo web permanece standalone.
-
 
 import base64
 from datetime import UTC, datetime
@@ -60,6 +58,7 @@ from atlanticus.web.navigation.configuration.web.ids import (
     MOUNT_STORE_ID,
     SAVE_BUTTON_ID,
     SAVE_RESULT_ID,
+    SOURCE_REVISION_STORE_ID,
     STRUCTURE_ID,
     group_add_link_id,
     group_delete_id,
@@ -129,9 +128,6 @@ def register_navigation_admin_callbacks(app: object, context: NavigationAdminWeb
         _edit_clicks: list[int | None],
         catalog_data: dict[str, object] | None,
     ):
-        # Los botones con pattern matching pueden aparecer dinámicamente con n_clicks=0.
-        # Dash puede notificar ese cambio estructural como trigger, por lo que no basta con
-        # revisar el id: exigimos que el valor disparado represente un clic real.
         trigger = ctx.triggered_id
         catalog = _catalog(catalog_data)
         if trigger == ADD_ROOT_LINK_ID and _click_is_real(root_clicks):
@@ -390,9 +386,13 @@ def register_navigation_admin_callbacks(app: object, context: NavigationAdminWeb
         Output(CATALOG_STORE_ID, 'data', allow_duplicate=True),
         Output(IMPORT_RESULT_ID, 'children'),
         Input(IMPORT_UPLOAD_ID, 'contents'),
+        State(SOURCE_REVISION_STORE_ID, 'data'),
         prevent_initial_call=True,
     )
-    def import_configuration(contents: str | None):
+    def import_configuration(
+        contents: str | None,
+        source_revision: str | None,
+    ):
         if contents is None:
             return no_update, no_update, no_update
         if not context.can_manage():
@@ -405,7 +405,7 @@ def register_navigation_admin_callbacks(app: object, context: NavigationAdminWeb
             draft = _browser_draft_document(
                 catalog=catalog,
                 owner_subject_id=context.draft_owner_provider(),
-                base_source_revision=_current_source_revision(context),
+                base_source_revision=source_revision,
             )
         except Exception as error:
             return no_update, no_update, _error(str(error))
@@ -417,6 +417,7 @@ def register_navigation_admin_callbacks(app: object, context: NavigationAdminWeb
         Input(SAVE_BUTTON_ID, 'n_clicks'),
         Input(context.draft_save_action_id, 'n_clicks'),
         State(CATALOG_STORE_ID, 'data'),
+        State(SOURCE_REVISION_STORE_ID, 'data'),
         State(context.draft_store_id, 'data'),
         prevent_initial_call=True,
     )
@@ -424,6 +425,7 @@ def register_navigation_admin_callbacks(app: object, context: NavigationAdminWeb
         content_clicks: int | None,
         workflow_clicks: int | None,
         catalog_data: dict[str, object] | None,
+        source_revision: str | None,
         current_draft: dict[str, object] | None,
     ):
         trigger = ctx.triggered_id
@@ -444,7 +446,7 @@ def register_navigation_admin_callbacks(app: object, context: NavigationAdminWeb
                 base_source_revision=_draft_base_source_revision(
                     current_draft,
                     owner_subject_id=context.draft_owner_provider(),
-                    fallback=_current_source_revision(context),
+                    fallback=source_revision,
                 ),
             )
         except Exception as error:
@@ -513,11 +515,7 @@ def _profile_options(
         for profile in selectable_profile_options(external)
     ]
     known = {option['value'] for option in options}
-    options.extend(
-        {'label': key, 'value': key}
-        for key in extra_keys
-        if key not in known
-    )
+    options.extend({'label': key, 'value': key} for key in extra_keys if key not in known)
     return options
 
 
@@ -546,8 +544,7 @@ def _navigation_structure(catalog: NavigationConfigurationCatalog) -> object:
 
 def _group_card(group) -> object:
     children = [
-        _link_card(link, parent_key=group.key)
-        for link in sorted(group.links, key=_sort_key)
+        _link_card(link, parent_key=group.key) for link in sorted(group.links, key=_sort_key)
     ]
     if not children:
         children = [
@@ -705,13 +702,6 @@ def _section_key(value: str | None) -> str | None:
     return normalized
 
 
-def _current_source_revision(context: NavigationAdminWebContext) -> str | None:
-    try:
-        return context.services.projection_workflow.get_status().source_revision
-    except Exception:
-        return None
-
-
 def _catalog_from_browser_draft(
     data: dict[str, object] | None,
     owner_subject_id: str,
@@ -784,8 +774,6 @@ def _save_draft_click_is_real(
 
 
 def _triggered_click_is_real() -> bool:
-    # ctx.triggered conserva el valor concreto del Input que disparó el callback.
-    # Un componente recién montado suele aportar 0; un clic real aporta 1 o más.
     triggered = ctx.triggered
     if not triggered:
         return False

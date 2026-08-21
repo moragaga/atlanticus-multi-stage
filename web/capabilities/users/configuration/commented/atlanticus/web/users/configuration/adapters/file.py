@@ -1,6 +1,7 @@
-from __future__ import annotations
+# Implementa History local de Users y valida expected_source_revision inmediatamente antes de persistir.
+# La semántica de concurrencia se mantiene igual a la de SharePoint aunque el almacenamiento sea file.
 
-# Espejo comentado: misma lógica productiva con notas pedagógicas en español.
+from __future__ import annotations
 
 import json
 import os
@@ -40,9 +41,20 @@ class FileUsersConfigurationStore:
         source = self._load_source()
         return source.current_bundle() if source is not None else None
 
-    def publish_bundle(self, bundle: UsersConfigurationBundle) -> None:
+    def publish_bundle(
+        self,
+        bundle: UsersConfigurationBundle,
+        *,
+        expected_source_revision: str | None,
+    ) -> None:
         try:
             current = self._load_source()
+            current_bundle = current.current_bundle() if current is not None else None
+            current_revision = current_bundle.revision if current_bundle is not None else None
+            if current_revision != expected_source_revision:
+                raise UsersConfigurationSourceError(
+                    'Users source revision changed before publication'
+                )
             updated = (
                 UsersConfigurationSourceDocument.from_bundle(bundle)
                 if current is None
@@ -84,7 +96,6 @@ class FileUsersConfigurationStore:
         return self._settings.root / self._settings.source_filename
 
 
-# La proyección local conserva estado y catálogo en el mismo documento atómico.
 class FileUsersProjectionRepository:
     def __init__(self, settings: FileUsersConfigurationSettings) -> None:
         self._settings = settings
@@ -164,7 +175,6 @@ class FileUsersProjectionRepository:
         return self._settings.root / self._settings.projection_filename
 
 
-# Esta vista relee el archivo proyectado en cada consulta para reflejar cambios sin reiniciar ADA.
 class FileUsersProjectionProfileCatalog(ProfileCatalog):
     def __init__(self, repository: FileUsersProjectionRepository) -> None:
         if not isinstance(repository, FileUsersProjectionRepository):

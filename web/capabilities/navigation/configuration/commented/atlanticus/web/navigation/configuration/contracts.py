@@ -1,4 +1,6 @@
-# Espejo pedagógico: puertos de Source, Publisher y Projection para intercambiar adapters.
+# Declara los contratos de Navigation; publish_bundle recibe la revisión de Source esperada como precondición.
+# El caller no necesita conocer si el backend final es file, memory o SharePoint.
+
 from collections.abc import Callable
 from typing import Protocol
 
@@ -17,7 +19,12 @@ class NavigationConfigurationSource(Protocol):
 
 
 class NavigationConfigurationPublisher(Protocol):
-    def publish_bundle(self, bundle: NavigationConfigurationBundle) -> None: ...
+    def publish_bundle(
+        self,
+        bundle: NavigationConfigurationBundle,
+        *,
+        expected_source_revision: str | None,
+    ) -> None: ...
 
 
 class NavigationProjectionRepository(Protocol):

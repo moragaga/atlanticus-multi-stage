@@ -6,6 +6,7 @@ from atlanticus.web.users.configuration.bundle import (
     UsersConfigurationBundle,
     UsersConfigurationSourceDocument,
 )
+from atlanticus.web.users.configuration.errors import UsersConfigurationSourceError
 from atlanticus.web.users.configuration.models import DiscoveredUser
 from atlanticus.web.users.configuration.projection import UsersProjectionState
 
@@ -17,7 +18,16 @@ class MemoryUsersConfigurationStore:
     def fetch_bundle(self) -> UsersConfigurationBundle | None:
         return self.source.current_bundle() if self.source is not None else None
 
-    def publish_bundle(self, bundle: UsersConfigurationBundle) -> None:
+    def publish_bundle(
+        self,
+        bundle: UsersConfigurationBundle,
+        *,
+        expected_source_revision: str | None,
+    ) -> None:
+        current = self.fetch_bundle()
+        current_revision = current.revision if current is not None else None
+        if current_revision != expected_source_revision:
+            raise UsersConfigurationSourceError('Users source revision changed before publication')
         if self.source is None:
             self.source = UsersConfigurationSourceDocument.from_bundle(bundle)
             return

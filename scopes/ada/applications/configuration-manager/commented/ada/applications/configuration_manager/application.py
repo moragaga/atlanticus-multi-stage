@@ -1,4 +1,6 @@
-# El preview local conserva force publish deshabilitado y solo actualiza su versión.
+# Compone el host standalone de Configuration Manager para preview y QA sin alterar la semántica del Manager embebido.
+# Las versiones declaradas aquí identifican el artifact de aplicación que consume los contratos reutilizables.
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -61,7 +63,7 @@ def build_configuration_manager_definition(
         metadata=ApplicationMetadata(
             application_id='ada-configuration-manager',
             display_name='Gestor de configuración ADA',
-            version='0.2.4',
+            version='0.2.5',
         ),
         publications_root=Path(publications_root),
         surface=build_configuration_manager_surface(

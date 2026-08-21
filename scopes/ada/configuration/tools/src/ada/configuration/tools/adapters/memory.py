@@ -6,6 +6,7 @@ from ada.configuration.tools.bundle import (
     ToolConfigurationBundle,
     ToolConfigurationSourceDocument,
 )
+from ada.configuration.tools.errors import ToolConfigurationSourceError
 from ada.configuration.tools.projection import ToolConfigurationProjection
 
 
@@ -16,7 +17,16 @@ class MemoryToolConfigurationStore:
     def fetch_bundle(self) -> ToolConfigurationBundle | None:
         return self.source.current_bundle() if self.source is not None else None
 
-    def publish_bundle(self, bundle: ToolConfigurationBundle) -> None:
+    def publish_bundle(
+        self,
+        bundle: ToolConfigurationBundle,
+        *,
+        expected_source_revision: str | None,
+    ) -> None:
+        current = self.fetch_bundle()
+        current_revision = current.revision if current is not None else None
+        if current_revision != expected_source_revision:
+            raise ToolConfigurationSourceError('Tool source revision changed before publication')
         if self.source is None:
             self.source = ToolConfigurationSourceDocument.from_bundle(bundle)
             return

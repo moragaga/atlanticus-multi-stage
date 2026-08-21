@@ -16,7 +16,12 @@ class NavigationConfigurationSource(Protocol):
 
 
 class NavigationConfigurationPublisher(Protocol):
-    def publish_bundle(self, bundle: NavigationConfigurationBundle) -> None: ...
+    def publish_bundle(
+        self,
+        bundle: NavigationConfigurationBundle,
+        *,
+        expected_source_revision: str | None,
+    ) -> None: ...
 
 
 class NavigationProjectionRepository(Protocol):

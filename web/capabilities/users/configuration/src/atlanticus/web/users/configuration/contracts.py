@@ -17,7 +17,12 @@ class UsersConfigurationSource(Protocol):
 
 
 class UsersConfigurationPublisher(Protocol):
-    def publish_bundle(self, bundle: UsersConfigurationBundle) -> None: ...
+    def publish_bundle(
+        self,
+        bundle: UsersConfigurationBundle,
+        *,
+        expected_source_revision: str | None,
+    ) -> None: ...
 
 
 class UsersProjectionRepository(Protocol):

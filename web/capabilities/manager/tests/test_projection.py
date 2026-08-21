@@ -5,6 +5,7 @@ from atlanticus.web.manager import (
     ProjectionAuditRecord,
     ProjectionState,
     ProjectionStatus,
+    SourceVerificationResult,
     build_draft_revision,
     resolve_projection_state,
 )
@@ -49,3 +50,32 @@ def test_manager_draft_roundtrips_browser_contract_and_base_revision() -> None:
     assert restored.revision == build_draft_revision(payload)
     assert restored.base_source_revision == 'source-a'
     assert restored.with_base_source_revision('source-b').base_source_revision == 'source-b'
+
+
+def test_source_verification_requires_consistent_revision_state() -> None:
+    checked_at = datetime(2026, 8, 18, 12, 15, tzinfo=UTC)
+    result = SourceVerificationResult(
+        draft_revision='draft-a',
+        base_source_revision='source-a',
+        source_revision='source-a',
+        source_audit=_AUDIT,
+        checked_at=checked_at,
+    )
+
+    restored = SourceVerificationResult.from_document(result.to_document())
+
+    assert result.matches is True
+    assert result.checked_at == checked_at
+    assert restored == result
+
+
+def test_source_verification_accepts_empty_source_when_draft_started_without_source() -> None:
+    result = SourceVerificationResult(
+        draft_revision='draft-a',
+        base_source_revision=None,
+        source_revision=None,
+        source_audit=None,
+        checked_at=datetime(2026, 8, 18, 12, 15, tzinfo=UTC),
+    )
+
+    assert result.matches is True

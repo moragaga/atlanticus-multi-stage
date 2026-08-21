@@ -1,6 +1,7 @@
-from __future__ import annotations
+# Implementa el History en memoria de Users y rechaza una publicación cuya revisión esperada ya quedó obsoleta.
+# Esto permite verificar la concurrencia de manera determinística en tests.
 
-# Espejo pedagógico: Implementa el dominio administrativo genérico de Users: draft validable, Source versionado, proyección y adapters.
+from __future__ import annotations
 
 from dataclasses import dataclass, field
 
@@ -8,6 +9,7 @@ from atlanticus.web.users.configuration.bundle import (
     UsersConfigurationBundle,
     UsersConfigurationSourceDocument,
 )
+from atlanticus.web.users.configuration.errors import UsersConfigurationSourceError
 from atlanticus.web.users.configuration.models import DiscoveredUser
 from atlanticus.web.users.configuration.projection import UsersProjectionState
 
@@ -19,7 +21,16 @@ class MemoryUsersConfigurationStore:
     def fetch_bundle(self) -> UsersConfigurationBundle | None:
         return self.source.current_bundle() if self.source is not None else None
 
-    def publish_bundle(self, bundle: UsersConfigurationBundle) -> None:
+    def publish_bundle(
+        self,
+        bundle: UsersConfigurationBundle,
+        *,
+        expected_source_revision: str | None,
+    ) -> None:
+        current = self.fetch_bundle()
+        current_revision = current.revision if current is not None else None
+        if current_revision != expected_source_revision:
+            raise UsersConfigurationSourceError('Users source revision changed before publication')
         if self.source is None:
             self.source = UsersConfigurationSourceDocument.from_bundle(bundle)
             return

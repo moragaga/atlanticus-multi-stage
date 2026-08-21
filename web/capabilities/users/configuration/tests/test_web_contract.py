@@ -102,3 +102,12 @@ def test_users_admin_import_refreshes_the_whole_users_catalog() -> None:
     assert "Output(CATALOG_STORE_ID, 'data', allow_duplicate=True)" in callbacks
     assert "Output(ADMINISTRATOR_TEXT_COLOR_ID, 'value', allow_duplicate=True)" in callbacks
     assert "Output(GUEST_TEXT_COLOR_ID, 'value', allow_duplicate=True)" in callbacks
+
+
+def test_users_admin_keeps_source_revision_loaded_with_editor_content() -> None:
+    layout = layout_source()
+    callbacks = (WEB / 'callbacks.py').read_text(encoding='utf-8')
+
+    assert 'SOURCE_REVISION_STORE_ID' in layout
+    assert "State(SOURCE_REVISION_STORE_ID, 'data')" in callbacks
+    assert '_current_source_revision' not in callbacks

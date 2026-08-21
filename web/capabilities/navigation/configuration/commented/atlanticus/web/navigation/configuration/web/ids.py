@@ -1,7 +1,8 @@
-
-# Los identificadores del editor son propios de Navigation y no dependen de la composición ADA.
+# Centraliza los identificadores Dash de Navigation, incluido el store de la revisión de Source cargada.
+# Los IDs compartidos mantienen callbacks y layout alineados sin literales duplicados.
 
 CATALOG_STORE_ID = 'atlanticus-navigation-admin-catalog'
+SOURCE_REVISION_STORE_ID = 'atlanticus-navigation-admin-source-revision'
 MOUNT_STORE_ID = 'atlanticus-navigation-admin-mounted'
 LINK_EDITOR_STORE_ID = 'atlanticus-navigation-admin-link-editor'
 GROUP_EDITOR_STORE_ID = 'atlanticus-navigation-admin-group-editor'
