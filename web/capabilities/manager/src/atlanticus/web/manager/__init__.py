@@ -8,6 +8,7 @@ from atlanticus.web.manager.errors import (
     ManagerDefinitionError,
     ManagerError,
     ManagerProjectionError,
+    ManagerSourceConflictError,
 )
 from atlanticus.web.manager.models import (
     ManagerApplicationDefinition,
@@ -33,6 +34,7 @@ from atlanticus.web.manager.projection import (
     RevisionHistoryEntry,
     RevisionHistoryWorkflow,
     SourcePublicationResult,
+    SourceSnapshot,
     build_draft_revision,
     resolve_projection_state,
 )
@@ -61,6 +63,7 @@ __all__ = [
     'ManagerSurfaceDefinition',
     'ManagerProjectionCoordinator',
     'ManagerProjectionError',
+    'ManagerSourceConflictError',
     'ProjectionAuditRecord',
     'ProjectionExecutionResult',
     'ProjectionIssue',
@@ -70,6 +73,7 @@ __all__ = [
     'RevisionHistoryEntry',
     'RevisionHistoryWorkflow',
     'SourcePublicationResult',
+    'SourceSnapshot',
     'build_draft_revision',
     'resolve_projection_state',
 ]

@@ -1,4 +1,4 @@
-# Agrupa dependencias ya compuestas; esta frontera no crea clientes ni conoce SharePoint, Cosmos o el ciclo de vida del host.
+# La composición decide si el host permite force publish; el Manager no conoce SharePoint.
 from dataclasses import dataclass
 
 from ada.configuration.tools import ToolConfigurationServices
@@ -19,3 +19,4 @@ class ConfigurationManagerDependencies:
     users_projection_name: str = 'Projection'
     navigation_source_name: str = 'Source'
     navigation_projection_name: str = 'Projection'
+    force_publish_enabled: bool = False

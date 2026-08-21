@@ -18,3 +18,4 @@ class ConfigurationManagerDependencies:
     users_projection_name: str = 'Projection'
     navigation_source_name: str = 'Source'
     navigation_projection_name: str = 'Projection'
+    force_publish_enabled: bool = False

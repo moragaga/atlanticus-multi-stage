@@ -1,6 +1,5 @@
+# Espejo pedagógico: misma implementación productiva, acompañada por esta nota en español.
 from __future__ import annotations
-
-# Espejo comentado: misma lógica productiva con notas pedagógicas en español.
 
 from dataclasses import dataclass
 from enum import StrEnum
@@ -162,7 +161,6 @@ def open_configuration_manager_sharepoint_infrastructure(
     return infrastructure
 
 
-# Convierte la selección local/file en readers runtime para Profiles y Navigation.
 def create_configuration_runtime_projection(
     *,
     selection: ConfigurationBackendSelection,
@@ -189,7 +187,6 @@ def create_configuration_runtime_projection(
     )
 
 
-# Los workflows del Manager siguen resolviendo History y Projection de forma independiente.
 def create_configuration_manager_dependencies(
     *,
     selection: ConfigurationBackendSelection,
@@ -200,6 +197,8 @@ def create_configuration_manager_dependencies(
     sharepoint_infrastructure: WebRuntimeInfrastructure | None = None,
     environment: EnvironmentReader | None = None,
     runtime_root: str | Path | None = None,
+    web_environment: WebEnvironment | None = None,
+    force_publish_enabled: bool = False,
 ) -> ConfigurationManagerDependencies:
     if not isinstance(selection, ConfigurationBackendSelection):
         raise TypeError('selection must be ConfigurationBackendSelection')
@@ -215,6 +214,14 @@ def create_configuration_manager_dependencies(
         raise TypeError('filenames must be AdaConfigurationFilenames')
     if not callable(principal_provider):
         raise TypeError('principal_provider must be callable')
+    if web_environment is not None and not isinstance(web_environment, WebEnvironment):
+        raise TypeError('web_environment must be WebEnvironment or None')
+    if not isinstance(force_publish_enabled, bool):
+        raise TypeError('force_publish_enabled must be bool')
+    if force_publish_enabled and selection.history is not ConfigurationHistoryBackend.SHAREPOINT:
+        raise WebConfigurationError('Force publication requires SharePoint configuration history')
+    if force_publish_enabled and web_environment is not WebEnvironment.PRODUCTION:
+        raise WebConfigurationError('Force publication is only supported in production')
 
     def actor_provider() -> str:
         return principal_provider().display_name
@@ -335,6 +342,7 @@ def create_configuration_manager_dependencies(
         users_projection_name=_projection_label(selection.projection),
         navigation_source_name=_history_label(selection.history),
         navigation_projection_name=_projection_label(selection.projection),
+        force_publish_enabled=force_publish_enabled,
     )
 
 

@@ -397,6 +397,59 @@ def test_sharepoint_history_uses_separate_history_infrastructure_and_cosmos_proj
     assert dependencies.tools_projection_name == 'Cosmos DB'
     assert dependencies.users_projection_name == 'Cosmos DB'
     assert dependencies.navigation_projection_name == 'Cosmos DB'
+    assert dependencies.force_publish_enabled is False
+
+
+def test_sharepoint_history_can_enable_force_publication_explicitly() -> None:
+    dependencies = create_configuration_manager_dependencies(
+        selection=ConfigurationBackendSelection(
+            history=ConfigurationHistoryBackend.SHAREPOINT,
+            projection=ConfigurationProjectionBackend.COSMOS,
+        ),
+        infrastructure=_cosmos_infrastructure(),
+        sharepoint_infrastructure=_sharepoint_infrastructure(),
+        bindings=_bindings(),
+        filenames=AdaConfigurationFilenames(),
+        principal_provider=_principal,
+        force_publish_enabled=True,
+        web_environment=WebEnvironment.PRODUCTION,
+    )
+
+    assert dependencies.force_publish_enabled is True
+
+
+def test_force_publication_rejects_local_environment() -> None:
+    selection = ConfigurationBackendSelection(
+        history=ConfigurationHistoryBackend.SHAREPOINT,
+        projection=ConfigurationProjectionBackend.COSMOS,
+    )
+
+    with pytest.raises(WebConfigurationError, match='only supported in production'):
+        create_configuration_manager_dependencies(
+            selection=selection,
+            infrastructure=_cosmos_infrastructure(),
+            sharepoint_infrastructure=_sharepoint_infrastructure(),
+            bindings=_bindings(),
+            filenames=AdaConfigurationFilenames(),
+            principal_provider=_principal,
+            force_publish_enabled=True,
+            web_environment=WebEnvironment.LOCAL,
+        )
+
+
+def test_force_publication_rejects_local_history() -> None:
+    with pytest.raises(WebConfigurationError, match='requires SharePoint'):
+        create_configuration_manager_dependencies(
+            selection=ConfigurationBackendSelection(
+                history=ConfigurationHistoryBackend.LOCAL,
+                projection=ConfigurationProjectionBackend.LOCAL,
+            ),
+            infrastructure=WebRuntimeInfrastructure(cosmos_connections={}),
+            bindings=_bindings(),
+            filenames=AdaConfigurationFilenames(),
+            principal_provider=_principal,
+            force_publish_enabled=True,
+        )
 
 
 def test_sharepoint_history_requires_dedicated_sharepoint_infrastructure() -> None:

@@ -1,4 +1,4 @@
-# Esta composición registra Tools, Users y Navigation en una Manager Surface; no crea una aplicación Dash/Flask.
+# Propaga la política de force publish de forma uniforme a Tools, Users y Navigation.
 from ada.compositions.configuration_manager.dependencies import (
     ConfigurationManagerDependencies,
 )
@@ -43,7 +43,6 @@ USERS_WORKFLOW_SERVICE = 'ada.configuration-manager.users.workflow'
 NAVIGATION_WORKFLOW_SERVICE = 'ada.configuration-manager.navigation.workflow'
 
 
-# route_prefix pertenece al host: ADA usa /manager y el preview standalone puede usar el prefijo vacío.
 def build_configuration_manager_surface(
     *,
     dependencies: ConfigurationManagerDependencies,
@@ -110,6 +109,7 @@ def build_configuration_manager_surface(
                 content_section_title='Configuración de herramienta',
                 source_name=dependencies.tools_source_name,
                 projection_name=dependencies.tools_projection_name,
+                force_publish_enabled=dependencies.force_publish_enabled,
             ),
             ManagerModule(
                 key='users',
@@ -131,6 +131,7 @@ def build_configuration_manager_surface(
                 content_section_title='Usuarios y perfiles',
                 source_name=dependencies.users_source_name,
                 projection_name=dependencies.users_projection_name,
+                force_publish_enabled=dependencies.force_publish_enabled,
             ),
             ManagerModule(
                 key='navigation',
@@ -152,6 +153,7 @@ def build_configuration_manager_surface(
                 content_section_title='Navegación',
                 source_name=dependencies.navigation_source_name,
                 projection_name=dependencies.navigation_projection_name,
+                force_publish_enabled=dependencies.force_publish_enabled,
             ),
         ),
         default_module_key='tools',
@@ -165,7 +167,6 @@ def build_configuration_manager_surface(
     )
 
 
-# Los adapters de workflow se registran en el ServiceRegistry del host consumidor y comparten su ciclo de vida.
 def _register_services(
     services: ServiceRegistry,
     dependencies: ConfigurationManagerDependencies,

@@ -1,4 +1,4 @@
-# Los IDs del Manager están namespaced; REFRESH_SIGNAL_ID desacopla la Surface del botón de recarga propio del host standalone.
+# Centraliza IDs de Dash para el panel funcional de conflicto.
 LOCATION_ID = 'atlanticus-manager-location'
 SUMMARY_ID = 'atlanticus-manager-summary'
 SIDEBAR_ID = 'atlanticus-manager-sidebar'
@@ -47,6 +47,20 @@ def workflow_draft_status_id(module_key: str) -> dict[str, str]:
         'module': module_key,
     }
 
+
+
+def workflow_conflict_id(module_key: str) -> dict[str, str]:
+    return {
+        'type': 'atlanticus-manager-workflow-conflict',
+        'module': module_key,
+    }
+
+
+def workflow_conflict_details_id(module_key: str) -> dict[str, str]:
+    return {
+        'type': 'atlanticus-manager-workflow-conflict-details',
+        'module': module_key,
+    }
 
 def workflow_history_id(module_key: str) -> dict[str, str]:
     return {

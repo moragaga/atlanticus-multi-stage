@@ -8,7 +8,7 @@ from ada.compositions.configuration_manager import (
 from atlanticus.web.manager import ManagerModuleRegistry, ManagerPrincipal
 
 
-def _dependencies() -> ConfigurationManagerDependencies:
+def _dependencies(*, force_publish_enabled: bool = False) -> ConfigurationManagerDependencies:
     return ConfigurationManagerDependencies(
         tools=object(),
         users=object(),
@@ -24,6 +24,7 @@ def _dependencies() -> ConfigurationManagerDependencies:
         users_projection_name='Archivo local',
         navigation_source_name='Archivo local',
         navigation_projection_name='Archivo local',
+        force_publish_enabled=force_publish_enabled,
     )
 
 
@@ -55,3 +56,11 @@ def test_configuration_manager_surface_owns_services_not_standalone_host() -> No
 
     assert [module.name for module in surface.web_modules] == ['ada-configuration-manager-services']
     assert surface.web_modules[0].register_services is not None
+
+
+def test_force_publication_capability_is_explicitly_propagated_to_all_modules() -> None:
+    surface = build_configuration_manager_surface(
+        dependencies=_dependencies(force_publish_enabled=True)
+    )
+
+    assert all(module.force_publish_enabled for module in surface.modules)

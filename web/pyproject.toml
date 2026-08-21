@@ -18,7 +18,7 @@ dev = [
     "atlanticus-web-users-cosmos==0.1.1",
     "atlanticus-web-users-configuration==0.1.1",
     "atlanticus-web-users-activity==0.1.0",
-    "atlanticus-web-manager==0.2.0",
+    "atlanticus-web-manager==0.3.0",
     "pytest==9.1.1",
     "ruff==0.15.22",
 ]

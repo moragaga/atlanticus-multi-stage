@@ -1,4 +1,4 @@
-# Separa la definición embebible de la Surface de la definición del host standalone que crea una aplicación Web completa.
+# Define módulos y permite habilitar explícitamente la publicación forzada por host.
 import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
@@ -108,10 +108,10 @@ class ManagerModule:
     default_section: str = 'content'
     source_name: str = 'Source'
     projection_name: str = 'Projection'
+    force_publish_enabled: bool = False
 
 
 @dataclass(frozen=True, slots=True)
-# La Surface declara módulos y un prefijo de montaje, pero no conoce Flask, Dash ni branding del host.
 class ManagerSurfaceDefinition:
     principal_provider: ManagerPrincipalProvider
     groups: tuple[ManagerModuleGroup, ...]
@@ -131,7 +131,6 @@ class ManagerSurfaceDefinition:
 
 
 @dataclass(frozen=True, slots=True)
-# El host standalone envuelve una Surface y conserva solo metadatos y elementos visuales propios del preview.
 class ManagerApplicationDefinition:
     import_name: str
     metadata: ApplicationMetadata

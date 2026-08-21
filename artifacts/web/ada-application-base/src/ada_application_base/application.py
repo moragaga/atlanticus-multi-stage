@@ -100,6 +100,10 @@ def create_application_runtime() -> AdaApplicationBaseRuntime:
             filenames=deployment_definition.configuration_filenames,
             principal_provider=principal_provider,
             environment=environment,
+            web_environment=web_environment,
+            force_publish_enabled=(
+                web_environment.is_production and backend_selection.requires_sharepoint
+            ),
         )
         manager_surface = ManagerSurface(
             build_configuration_manager_surface(

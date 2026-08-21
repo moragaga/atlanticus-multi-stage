@@ -12,7 +12,8 @@ def test_workflow_callbacks_keep_match_scoped_outputs_per_module() -> None:
 
     assert 'Output(REFRESH_SIGNAL_ID' not in source
     assert source.count("Input(REFRESH_SIGNAL_ID, 'data')") == 2
-    assert source.count("Output(workflow_refresh_signal_id(MATCH), 'data'") == 2
+    assert source.count("Output(workflow_refresh_signal_id(MATCH), 'data'") == 4
+    assert "Output(workflow_refresh_signal_id(ALL), 'data'" not in source
     assert "Input(workflow_refresh_signal_id(ALL), 'data')" in source
 
 
@@ -34,6 +35,8 @@ def test_lifecycle_actions_require_explicit_clicks_and_history_only_loads_draft(
     assert 'def validate_configuration(' in source
     assert 'def publish_configuration(' in source
     assert 'def project_configuration(' in source
+    assert 'def update_from_source(' in source
+    assert 'def force_publish_configuration(' in source
     assert 'def load_history_as_draft(' in source
     assert 'restore_revision' not in source
     assert "State(history_load_id(MATCH, ALL, ALL), 'id')" in source
@@ -63,3 +66,19 @@ def test_successful_workflow_actions_use_state_instead_of_persistent_success_ban
     assert 'render_projection_result' not in source
     assert 'def clear_transient_validation(' in source
     assert "Output(workflow_validation_id(ALL), 'data', allow_duplicate=True)" in source
+
+
+def test_source_conflicts_refresh_status_without_automatic_projection() -> None:
+    source = _source()
+
+    assert 'ManagerSourceConflictError' in source
+    assert 'coordinator.load_current_source(' in source
+    assert 'coordinator.force_publish_draft(' in source
+    assert "workflow_action_id(MATCH, 'update-source')" in source
+    assert "workflow_action_id(MATCH, 'force-publish')" in source
+    assert "'source_actor': status.source_audit.actor" in source
+    assert "'source_occurred_at': (" in source
+    force_start = source.index('def force_publish_configuration(')
+    force_end = source.index('def load_history_as_draft(', force_start)
+    force_callback = source[force_start:force_end]
+    assert 'coordinator.project(' not in force_callback

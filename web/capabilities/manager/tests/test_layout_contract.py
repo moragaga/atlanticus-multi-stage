@@ -25,8 +25,12 @@ def test_manager_lifecycle_exposes_draft_validate_publish_and_project() -> None:
     assert "workflow_action_id(module.key, 'validate')" in layout
     assert "workflow_action_id(module.key, 'publish')" in layout
     assert "workflow_action_id(module.key, 'project')" in layout
+    assert "workflow_action_id(module.key, 'update-source')" in layout
+    assert "workflow_action_id(module.key, 'force-publish')" in layout
     assert "f'Guardar en {module.source_name}'" in layout
+    assert "f'Actualizar desde {module.source_name}'" in layout
     assert "f'Proyectar en {module.projection_name}'" in layout
+    assert 'module.force_publish_enabled' in layout
 
 
 def test_source_audit_is_specific_and_history_loads_as_browser_draft() -> None:
@@ -71,3 +75,14 @@ def test_traceability_is_grouped_as_a_four_stage_pipeline() -> None:
     assert '.atlanticus-manager__workflow-stage-grid' in css
     assert '.atlanticus-manager__workflow-action-grid' in css
     assert '.atlanticus-manager__history-row--header' in css
+
+
+def test_source_conflict_is_rendered_as_functional_state_with_actor_and_revisions() -> None:
+    root = Path(__file__).parents[1]
+    layout = (root / 'src/atlanticus/web/manager/web/layout.py').read_text(encoding='utf-8')
+
+    assert "'La fuente cambió mientras estabas trabajando.'" in layout
+    assert "'Base de tu borrador'" in layout
+    assert "'Fuente actual'" in layout
+    assert 'source_actor' in layout
+    assert 'source_occurred_at' in layout

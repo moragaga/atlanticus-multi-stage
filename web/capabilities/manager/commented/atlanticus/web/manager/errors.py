@@ -1,7 +1,4 @@
-# Espejo pedagógico: este archivo conserva exactamente la lógica del código productivo.
-# Capability genérica del Configuration Manager de Atlanticus. Mantiene contratos y UI administrativa sin conocer dominios ni persistencias concretas.
-# Los comentarios explican la intención arquitectónica; no agregan ramas, estado ni comportamiento.
-
+# Distingue errores funcionales del Manager y el conflicto optimista de revisión de la fuente.
 class ManagerError(Exception):
     pass
 
@@ -15,4 +12,8 @@ class ManagerAuthorizationError(ManagerError):
 
 
 class ManagerProjectionError(ManagerError):
+    pass
+
+
+class ManagerSourceConflictError(ManagerProjectionError):
     pass

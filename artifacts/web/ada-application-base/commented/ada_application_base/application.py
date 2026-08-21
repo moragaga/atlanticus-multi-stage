@@ -1,6 +1,5 @@
+# Espejo pedagógico: misma implementación productiva, acompañada por esta nota en español.
 from __future__ import annotations
-
-# Espejo comentado: misma lógica productiva con notas pedagógicas en español.
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -65,7 +64,6 @@ class AdaApplicationBaseRuntime:
             raise manager_error
 
 
-# La aplicación resuelve una sola vez la proyección seleccionada y la comparte con el bootstrap.
 def create_application_runtime() -> AdaApplicationBaseRuntime:
     environment = EnvironmentReader()
     web_environment = resolve_environment()
@@ -103,6 +101,10 @@ def create_application_runtime() -> AdaApplicationBaseRuntime:
             filenames=deployment_definition.configuration_filenames,
             principal_provider=principal_provider,
             environment=environment,
+            web_environment=web_environment,
+            force_publish_enabled=(
+                web_environment.is_production and backend_selection.requires_sharepoint
+            ),
         )
         manager_surface = ManagerSurface(
             build_configuration_manager_surface(

@@ -108,6 +108,7 @@ def build_configuration_manager_surface(
                 content_section_title='Configuración de herramienta',
                 source_name=dependencies.tools_source_name,
                 projection_name=dependencies.tools_projection_name,
+                force_publish_enabled=dependencies.force_publish_enabled,
             ),
             ManagerModule(
                 key='users',
@@ -129,6 +130,7 @@ def build_configuration_manager_surface(
                 content_section_title='Usuarios y perfiles',
                 source_name=dependencies.users_source_name,
                 projection_name=dependencies.users_projection_name,
+                force_publish_enabled=dependencies.force_publish_enabled,
             ),
             ManagerModule(
                 key='navigation',
@@ -150,6 +152,7 @@ def build_configuration_manager_surface(
                 content_section_title='Navegación',
                 source_name=dependencies.navigation_source_name,
                 projection_name=dependencies.navigation_projection_name,
+                force_publish_enabled=dependencies.force_publish_enabled,
             ),
         ),
         default_module_key='tools',

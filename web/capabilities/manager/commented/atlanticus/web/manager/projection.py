@@ -1,6 +1,4 @@
-# Espejo pedagógico: conserva la misma lógica del archivo productivo.
-# Los comentarios documentan la responsabilidad sin cambiar el comportamiento.
-# Modela draft, publicación y proyección como estados distintos del ciclo de vida.
+# Mantiene separados borrador, fuente publicada y proyección; SourceSnapshot representa la fuente exacta cargada.
 from __future__ import annotations
 
 import hashlib
@@ -138,6 +136,18 @@ class ManagerDraft:
             )
         except (KeyError, TypeError, ValueError) as error:
             raise ManagerProjectionError('Manager draft contract is invalid') from error
+
+
+@dataclass(frozen=True, slots=True)
+class SourceSnapshot:
+    revision: str
+    audit: ProjectionAuditRecord
+    payload: dict[str, object]
+
+    def __post_init__(self) -> None:
+        if not self.revision.strip():
+            raise ManagerProjectionError('Source snapshot revision must not be empty')
+        object.__setattr__(self, 'payload', dict(self.payload))
 
 
 @dataclass(frozen=True, slots=True)

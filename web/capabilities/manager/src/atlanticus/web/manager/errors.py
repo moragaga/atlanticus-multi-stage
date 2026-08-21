@@ -12,3 +12,7 @@ class ManagerAuthorizationError(ManagerError):
 
 class ManagerProjectionError(ManagerError):
     pass
+
+
+class ManagerSourceConflictError(ManagerProjectionError):
+    pass

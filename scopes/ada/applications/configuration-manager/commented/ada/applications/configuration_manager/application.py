@@ -1,6 +1,5 @@
+# El preview local conserva force publish deshabilitado y solo actualiza su versión.
 from __future__ import annotations
-
-# Espejo comentado: misma lógica productiva con notas pedagógicas en español.
 
 from pathlib import Path
 
@@ -62,7 +61,7 @@ def build_configuration_manager_definition(
         metadata=ApplicationMetadata(
             application_id='ada-configuration-manager',
             display_name='Gestor de configuración ADA',
-            version='0.2.3',
+            version='0.2.4',
         ),
         publications_root=Path(publications_root),
         surface=build_configuration_manager_surface(

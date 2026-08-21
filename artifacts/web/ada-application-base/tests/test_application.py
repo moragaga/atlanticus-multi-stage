@@ -128,6 +128,7 @@ def test_create_application_runtime_mounts_manager_in_same_web_runtime(
     assert captured['manager_dependencies_call']['bindings'] == 'bindings'
     assert captured['manager_dependencies_call']['filenames'] == 'filenames'
     assert captured['manager_dependencies_call']['principal_provider'] is principal_provider
+    assert captured['manager_dependencies_call']['force_publish_enabled'] is False
     assert captured['surface_call'] == {
         'dependencies': manager_dependencies,
         'route_prefix': '/manager',
@@ -152,6 +153,11 @@ def test_create_application_runtime_opens_sharepoint_only_for_manager_history(mo
     manager_sharepoint = Mock()
     captured = {}
 
+    monkeypatch.setattr(
+        application,
+        'resolve_environment',
+        lambda: SimpleNamespace(is_production=True),
+    )
     monkeypatch.setattr(
         application,
         'build_deployment_definition',
@@ -183,10 +189,15 @@ def test_create_application_runtime_opens_sharepoint_only_for_manager_history(mo
         'open_configuration_manager_sharepoint_infrastructure',
         open_manager_sharepoint,
     )
+
+    def create_manager_dependencies(**kwargs):
+        captured['manager_dependencies_call'] = kwargs
+        raise RuntimeError('stop after manager infrastructure')
+
     monkeypatch.setattr(
         application,
         'create_configuration_manager_dependencies',
-        Mock(side_effect=RuntimeError('stop after manager infrastructure')),
+        create_manager_dependencies,
     )
 
     with pytest.raises(RuntimeError, match='stop after manager infrastructure'):
@@ -195,6 +206,8 @@ def test_create_application_runtime_opens_sharepoint_only_for_manager_history(mo
     assert 'include_sharepoint' not in captured['deployment_call']
     assert captured['manager_sharepoint_call']['selection'] is backend_selection
     assert captured['manager_sharepoint_call']['definition'] == 'sharepoint-definition'
+    assert captured['manager_dependencies_call']['web_environment'].is_production is True
+    assert captured['manager_dependencies_call']['force_publish_enabled'] is True
     manager_sharepoint.close.assert_called_once_with()
     deployment.close.assert_called_once_with()
 

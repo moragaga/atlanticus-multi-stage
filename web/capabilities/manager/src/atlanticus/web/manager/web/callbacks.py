@@ -4,7 +4,11 @@ from dash import ALL, MATCH, Input, Output, State, ctx, no_update
 
 from atlanticus.web.manager.authorization import ManagerAuthorizationPolicy
 from atlanticus.web.manager.coordinator import ManagerProjectionCoordinator
-from atlanticus.web.manager.errors import ManagerError, ManagerProjectionError
+from atlanticus.web.manager.errors import (
+    ManagerError,
+    ManagerProjectionError,
+    ManagerSourceConflictError,
+)
 from atlanticus.web.manager.models import ManagerPrincipal, ManagerSurfaceDefinition
 from atlanticus.web.manager.projection import (
     ManagerDraft,
@@ -31,6 +35,8 @@ from atlanticus.web.manager.web.ids import (
     module_section_store_id,
     module_status_id,
     workflow_action_id,
+    workflow_conflict_details_id,
+    workflow_conflict_id,
     workflow_draft_id,
     workflow_draft_status_id,
     workflow_history_id,
@@ -44,6 +50,7 @@ from atlanticus.web.manager.web.ids import (
 from atlanticus.web.manager.web.layout import (
     build_module_content,
     build_sidebar_modules,
+    build_source_conflict_content,
     build_summary,
     build_workflow_draft_content,
     build_workflow_history_content,
@@ -132,8 +139,7 @@ def register_manager_callbacks(
             registry=registry,
             modules=registry.visible_modules(principal, authorization),
             current_path=(
-                pathname
-                or registry.route_for(registry.require(definition.default_module_key))
+                pathname or registry.route_for(registry.require(definition.default_module_key))
             ),
             states=states,
         )
@@ -246,6 +252,9 @@ def register_manager_callbacks(
         Output(workflow_draft_status_id(MATCH), 'children'),
         Output(workflow_action_id(MATCH, 'validate'), 'disabled'),
         Output(workflow_action_id(MATCH, 'publish'), 'disabled'),
+        Output(workflow_conflict_id(MATCH), 'hidden'),
+        Output(workflow_conflict_details_id(MATCH), 'children'),
+        Output(workflow_action_id(MATCH, 'force-publish'), 'disabled'),
         Input(workflow_draft_id(MATCH), 'data'),
         Input(workflow_validation_id(MATCH), 'data'),
         Input(workflow_revision_id(MATCH), 'data'),
@@ -259,7 +268,16 @@ def register_manager_callbacks(
         draft = _safe_draft(draft_data, principal)
         source_revision = _source_revision(revision_state)
         validation_current = _validation_is_current(draft, validation_data)
-        publication_pending = bool(draft is not None and draft.revision != source_revision)
+        content_changed = bool(draft is not None and draft.revision != source_revision)
+        conflict = _has_source_conflict(draft, source_revision)
+        conflict_content = None
+        if conflict and draft is not None and source_revision is not None:
+            conflict_content = build_source_conflict_content(
+                draft=draft,
+                source_revision=source_revision,
+                source_actor=_source_actor(revision_state),
+                source_occurred_at=_source_occurred_at(revision_state),
+            )
         return (
             build_workflow_draft_content(
                 draft=draft,
@@ -267,8 +285,11 @@ def register_manager_callbacks(
                 principal=principal,
                 source_revision=source_revision,
             ),
-            draft is None,
-            not validation_current or not publication_pending,
+            draft is None or not content_changed,
+            not validation_current or not content_changed or conflict,
+            not conflict,
+            conflict_content,
+            not validation_current or not conflict,
         )
 
     @app.callback(
@@ -342,6 +363,15 @@ def register_manager_callbacks(
                 draft.base_source_revision,
             )
             updated_draft = draft.with_base_source_revision(result.source_revision)
+        except ManagerSourceConflictError:
+            return (
+                _notice_message(
+                    'La fuente cambió mientras estabas trabajando. '
+                    'Revisa el detalle antes de continuar.'
+                ),
+                int(refresh_signal or 0) + 1,
+                no_update,
+            )
         except ManagerError as error:
             return _error_message(str(error)), no_update, no_update
         except Exception:
@@ -351,6 +381,107 @@ def register_manager_callbacks(
             int(refresh_signal or 0) + 1,
             updated_draft.to_document(),
         )
+
+    @app.callback(
+        Output(workflow_result_id(MATCH), 'children', allow_duplicate=True),
+        Output(workflow_draft_id(MATCH), 'data', allow_duplicate=True),
+        Output(workflow_validation_id(MATCH), 'data', allow_duplicate=True),
+        Output(workflow_refresh_signal_id(MATCH), 'data', allow_duplicate=True),
+        Input(workflow_action_id(MATCH, 'update-source'), 'n_clicks'),
+        State(workflow_refresh_signal_id(MATCH), 'data'),
+        prevent_initial_call=True,
+    )
+    def update_from_source(clicks: int, refresh_signal: int | None):
+        trigger = ctx.triggered_id
+        if not isinstance(trigger, dict) or not _click_is_real(clicks):
+            return no_update, no_update, no_update, no_update
+        principal = definition.principal_provider()
+        try:
+            snapshot = coordinator.load_current_source(
+                str(trigger.get('module', '')),
+                principal,
+            )
+            draft = ManagerDraft.create(
+                owner_subject_id=principal.subject_id,
+                payload=snapshot.payload,
+                base_source_revision=snapshot.revision,
+            )
+        except ManagerSourceConflictError:
+            return (
+                _notice_message(
+                    'La fuente volvió a cambiar mientras se actualizaba. '
+                    'Revisa la revisión actual e inténtalo nuevamente.'
+                ),
+                no_update,
+                no_update,
+                int(refresh_signal or 0) + 1,
+            )
+        except ManagerError as error:
+            return _error_message(str(error)), no_update, no_update, no_update
+        except Exception:
+            return (
+                _error_message('Current source could not be loaded'),
+                no_update,
+                no_update,
+                no_update,
+            )
+        return None, draft.to_document(), None, int(refresh_signal or 0) + 1
+
+    @app.callback(
+        Output(workflow_result_id(MATCH), 'children', allow_duplicate=True),
+        Output(workflow_refresh_signal_id(MATCH), 'data', allow_duplicate=True),
+        Output(workflow_draft_id(MATCH), 'data', allow_duplicate=True),
+        Input(workflow_action_id(MATCH, 'force-publish'), 'n_clicks'),
+        State(workflow_draft_id(MATCH), 'data'),
+        State(workflow_validation_id(MATCH), 'data'),
+        State(workflow_revision_id(MATCH), 'data'),
+        State(workflow_refresh_signal_id(MATCH), 'data'),
+        prevent_initial_call=True,
+    )
+    def force_publish_configuration(
+        clicks: int,
+        draft_data: dict[str, object] | None,
+        validation_data: dict[str, object] | None,
+        revision_state: dict[str, object] | None,
+        refresh_signal: int | None,
+    ):
+        trigger = ctx.triggered_id
+        if not isinstance(trigger, dict) or not _click_is_real(clicks):
+            return no_update, no_update, no_update
+        principal = definition.principal_provider()
+        source_revision = _source_revision(revision_state)
+        if source_revision is None:
+            return _error_message('A published source revision is required'), no_update, no_update
+        try:
+            draft = _require_draft(draft_data, principal)
+            if not _validation_is_current(draft, validation_data):
+                raise ManagerProjectionError('A successful draft validation is required')
+            result = coordinator.force_publish_draft(
+                str(trigger.get('module', '')),
+                principal,
+                draft.payload,
+                base_source_revision=draft.base_source_revision,
+                expected_source_revision=source_revision,
+            )
+            updated_draft = draft.with_base_source_revision(result.source_revision)
+        except ManagerSourceConflictError:
+            return (
+                _notice_message(
+                    'La fuente volvió a cambiar antes de completar la publicación. '
+                    'Revisa el nuevo cambio antes de decidir.'
+                ),
+                int(refresh_signal or 0) + 1,
+                no_update,
+            )
+        except ManagerError as error:
+            return _error_message(str(error)), no_update, no_update
+        except Exception:
+            return (
+                _error_message('Configuration could not be force published'),
+                no_update,
+                no_update,
+            )
+        return None, int(refresh_signal or 0) + 1, updated_draft.to_document()
 
     @app.callback(
         Output(workflow_result_id(MATCH), 'children', allow_duplicate=True),
@@ -502,6 +633,30 @@ def _source_revision(revision_state: dict[str, object] | None) -> str | None:
     return normalized or None
 
 
+def _has_source_conflict(draft: ManagerDraft | None, source_revision: str | None) -> bool:
+    return bool(
+        draft is not None
+        and draft.revision != source_revision
+        and draft.base_source_revision != source_revision
+    )
+
+
+def _source_actor(revision_state: dict[str, object] | None) -> str | None:
+    if not revision_state:
+        return None
+    value = revision_state.get('source_actor')
+    if value is None:
+        return None
+    normalized = str(value).strip()
+    return normalized or None
+
+
+def _source_occurred_at(revision_state: dict[str, object] | None) -> object:
+    if not revision_state:
+        return None
+    return revision_state.get('source_occurred_at')
+
+
 def _issue_document(issue: ProjectionIssue) -> dict[str, object]:
     return {
         'code': issue.code,
@@ -509,6 +664,15 @@ def _issue_document(issue: ProjectionIssue) -> dict[str, object]:
         'level': issue.level,
         'path': issue.path,
     }
+
+
+def _notice_message(message: str):
+    from dash import html
+
+    return html.Div(
+        message,
+        className='atlanticus-manager__message atlanticus-manager__message--notice',
+    )
 
 
 def _error_message(message: str):
@@ -545,6 +709,10 @@ def _workflow_revision_state(
         return None
     return {
         'source_revision': status.source_revision,
+        'source_actor': status.source_audit.actor if status.source_audit is not None else None,
+        'source_occurred_at': (
+            status.source_audit.occurred_at.isoformat() if status.source_audit is not None else None
+        ),
         'active_source_revision': status.active_source_revision,
     }
 

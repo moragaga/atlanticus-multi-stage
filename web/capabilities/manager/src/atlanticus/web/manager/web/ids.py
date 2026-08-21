@@ -47,6 +47,20 @@ def workflow_draft_status_id(module_key: str) -> dict[str, str]:
     }
 
 
+def workflow_conflict_id(module_key: str) -> dict[str, str]:
+    return {
+        'type': 'atlanticus-manager-workflow-conflict',
+        'module': module_key,
+    }
+
+
+def workflow_conflict_details_id(module_key: str) -> dict[str, str]:
+    return {
+        'type': 'atlanticus-manager-workflow-conflict-details',
+        'module': module_key,
+    }
+
+
 def workflow_history_id(module_key: str) -> dict[str, str]:
     return {
         'type': 'atlanticus-manager-workflow-history',

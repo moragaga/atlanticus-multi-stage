@@ -44,9 +44,7 @@ class ManagerSurface:
 
     @property
     def default_path(self) -> str:
-        return self._registry.route_for(
-            self._registry.require(self._definition.default_module_key)
-        )
+        return self._registry.route_for(self._registry.require(self._definition.default_module_key))
 
     @property
     def web_modules(self) -> tuple[WebModule, ...]:
@@ -77,8 +75,6 @@ class ManagerSurface:
             register_callbacks=register_callbacks,
         )
         module_web_modules = tuple(
-            module.web_module
-            for module in self._registry.modules
-            if module.web_module is not None
+            module.web_module for module in self._registry.modules if module.web_module is not None
         )
         return self._definition.web_modules + module_web_modules + (manager_module,)

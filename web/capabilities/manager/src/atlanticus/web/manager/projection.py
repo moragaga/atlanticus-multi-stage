@@ -138,6 +138,18 @@ class ManagerDraft:
 
 
 @dataclass(frozen=True, slots=True)
+class SourceSnapshot:
+    revision: str
+    audit: ProjectionAuditRecord
+    payload: dict[str, object]
+
+    def __post_init__(self) -> None:
+        if not self.revision.strip():
+            raise ManagerProjectionError('Source snapshot revision must not be empty')
+        object.__setattr__(self, 'payload', dict(self.payload))
+
+
+@dataclass(frozen=True, slots=True)
 class ProjectionStatus:
     source_revision: str | None = None
     source_audit: ProjectionAuditRecord | None = None

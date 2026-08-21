@@ -1,4 +1,4 @@
-# El layout separa el header del preview standalone de la Surface reutilizable que ADA podrá montar bajo su header global.
+# Espejo pedagógico: misma implementación productiva, acompañada por esta nota en español.
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -45,6 +45,8 @@ from atlanticus.web.manager.web.ids import (
     module_section_store_id,
     module_status_id,
     workflow_action_id,
+    workflow_conflict_details_id,
+    workflow_conflict_id,
     workflow_draft_id,
     workflow_draft_status_id,
     workflow_history_id,
@@ -65,7 +67,6 @@ _STATE_LABELS = {
 }
 
 
-# Este header pertenece únicamente al host standalone/preview y no forma parte de ManagerSurface.
 def build_manager_header(
     *,
     definition: ManagerApplicationDefinition,
@@ -96,7 +97,6 @@ def build_manager_header(
     )
 
 
-# La Surface contiene navegación interna, estado y contenido administrativo, pero no crea un segundo header ni un page_container.
 def build_manager_surface(
     *,
     definition: ManagerSurfaceDefinition,
@@ -530,6 +530,44 @@ def build_workflow_draft_content(
     )
 
 
+def build_source_conflict_content(
+    *,
+    draft: ManagerDraft,
+    source_revision: str,
+    source_actor: str | None,
+    source_occurred_at: object,
+) -> object:
+    actor = (source_actor or '').strip() or 'Otro usuario'
+    occurred_at = _format_optional_datetime(source_occurred_at)
+    return html.Div(
+        [
+            html.Strong('La fuente cambió mientras estabas trabajando.'),
+            html.P(
+                f'{actor} publicó una revisión nueva el {occurred_at}. '
+                'Tu borrador se conserva sin cambios.'
+            ),
+            html.Div(
+                [
+                    html.Span(
+                        [
+                            html.Small('Base de tu borrador'),
+                            html.Code(_short_revision(draft.base_source_revision)),
+                        ]
+                    ),
+                    html.Span(
+                        [
+                            html.Small('Fuente actual'),
+                            html.Code(_short_revision(source_revision)),
+                        ]
+                    ),
+                ],
+                className='atlanticus-manager__conflict-revisions',
+            ),
+        ],
+        className='atlanticus-manager__conflict-details',
+    )
+
+
 def build_workflow_history_content(
     *,
     module: ManagerModule,
@@ -552,6 +590,12 @@ def _workflow_revision_state(status: ProjectionStatus | None) -> dict[str, objec
         return None
     return {
         'source_revision': status.source_revision,
+        'source_actor': status.source_audit.actor if status.source_audit is not None else None,
+        'source_occurred_at': (
+            status.source_audit.occurred_at.isoformat()
+            if status.source_audit is not None
+            else None
+        ),
         'active_source_revision': status.active_source_revision,
     }
 
@@ -644,6 +688,39 @@ def _build_workflow_actions(
             _workflow_group_header(
                 'Flujo de publicación',
                 'Avanza en orden: guardar, validar, publicar y finalmente proyectar.',
+            ),
+            html.Section(
+                [
+                    html.Div(id=workflow_conflict_details_id(module.key)),
+                    html.Div(
+                        [
+                            html.Button(
+                                f'Actualizar desde {module.source_name}',
+                                id=workflow_action_id(module.key, 'update-source'),
+                                n_clicks=0,
+                                className=(
+                                    'atlanticus-manager__button '
+                                    'atlanticus-manager__button--secondary'
+                                ),
+                            ),
+                            html.Button(
+                                'Forzar publicación',
+                                id=workflow_action_id(module.key, 'force-publish'),
+                                n_clicks=0,
+                                className=(
+                                    'atlanticus-manager__button '
+                                    'atlanticus-manager__button--danger'
+                                ),
+                                disabled=True,
+                                hidden=not module.force_publish_enabled,
+                            ),
+                        ],
+                        className='atlanticus-manager__conflict-actions',
+                    ),
+                ],
+                id=workflow_conflict_id(module.key),
+                className='atlanticus-manager__conflict',
+                hidden=True,
             ),
             html.Div(
                 [

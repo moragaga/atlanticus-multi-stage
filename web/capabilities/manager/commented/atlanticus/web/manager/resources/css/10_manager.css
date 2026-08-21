@@ -1,4 +1,4 @@
-/* La Surface no fuerza el viewport; el host standalone conserva la altura completa. */
+/* Estados visuales para conflictos de revisión y acciones explícitas. */
 html,
 body,
 #react-entry-point,
@@ -999,5 +999,82 @@ body,
 
     .atlanticus-manager__summary-detail {
         white-space: normal;
+    }
+}
+
+.atlanticus-manager__button--danger {
+    color: var(--atlanticus-manager-danger);
+    background: var(--atlanticus-manager-danger-soft);
+    border-color: rgba(198, 40, 40, .32);
+}
+
+.atlanticus-manager__button--danger:hover:not(:disabled),
+.atlanticus-manager__button--danger:focus-visible:not(:disabled) {
+    color: #FFFFFF;
+    background: var(--atlanticus-manager-danger);
+    border-color: var(--atlanticus-manager-danger);
+    box-shadow: var(--atlanticus-admin-focus-ring);
+    outline: none;
+}
+
+.atlanticus-manager__message--notice {
+    color: var(--atlanticus-manager-warning);
+    background: var(--atlanticus-manager-warning-soft);
+    border-color: rgba(201, 162, 75, .32);
+}
+
+.atlanticus-manager__conflict {
+    display: grid;
+    gap: .8rem;
+    padding: .9rem;
+    background: var(--atlanticus-manager-warning-soft);
+    border: 1px solid rgba(201, 162, 75, .38);
+    border-radius: .75rem;
+}
+
+.atlanticus-manager__conflict[hidden] {
+    display: none;
+}
+
+.atlanticus-manager__conflict-details {
+    display: grid;
+    gap: .35rem;
+    color: var(--atlanticus-manager-color-primary-ink);
+    font-size: .76rem;
+}
+
+.atlanticus-manager__conflict-details p {
+    margin: 0;
+    color: var(--atlanticus-manager-text-muted);
+    line-height: 1.4;
+}
+
+.atlanticus-manager__conflict-revisions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .55rem;
+}
+
+.atlanticus-manager__conflict-revisions span {
+    display: grid;
+    gap: .15rem;
+    padding: .55rem;
+    background: rgba(255, 255, 255, .62);
+    border-radius: .55rem;
+}
+
+.atlanticus-manager__conflict-revisions small {
+    color: var(--atlanticus-manager-text-muted);
+}
+
+.atlanticus-manager__conflict-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .55rem;
+}
+
+@media (max-width: 38rem) {
+    .atlanticus-manager__conflict-revisions {
+        grid-template-columns: 1fr;
     }
 }

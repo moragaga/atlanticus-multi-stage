@@ -107,6 +107,7 @@ class ManagerModule:
     default_section: str = 'content'
     source_name: str = 'Source'
     projection_name: str = 'Projection'
+    force_publish_enabled: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -120,9 +121,7 @@ class ManagerSurfaceDefinition:
 
     def __post_init__(self) -> None:
         prefix = self.route_prefix
-        if prefix and (
-            not _ROUTE_PREFIX_PATTERN.fullmatch(prefix) or prefix.endswith('/')
-        ):
+        if prefix and (not _ROUTE_PREFIX_PATTERN.fullmatch(prefix) or prefix.endswith('/')):
             raise ManagerDefinitionError('Manager route prefix has an invalid format')
         if not self.default_module_key.strip():
             raise ManagerDefinitionError('Manager default module key must not be empty')
