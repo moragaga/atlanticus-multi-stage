@@ -3,10 +3,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from ada.applications.configuration_manager.dependencies import (
-    ConfigurationManagerDependencies,
-    local_manager_principal,
-)
+from ada.compositions.configuration_manager import ConfigurationManagerDependencies
 from ada.configuration.tools import compose_tool_configuration_services
 from ada.configuration.tools.adapters.file import (
     FileToolConfigurationSettings,
@@ -14,6 +11,7 @@ from ada.configuration.tools.adapters.file import (
     FileToolProjectionRepository,
     FileToolProjectionSettings,
 )
+from atlanticus.web.manager import ManagerPrincipal
 from atlanticus.web.navigation.configuration import compose_navigation_configuration_services
 from atlanticus.web.navigation.configuration.adapters.file import (
     FileNavigationConfigurationSettings,
@@ -81,13 +79,22 @@ def build_local_dependencies(
         tools=tools,
         users=users,
         navigation=navigation,
-        principal_provider=local_manager_principal,
+        principal_provider=_local_manager_principal,
         tools_source_name='Archivo local',
         tools_projection_name='Archivo local',
         users_source_name='Archivo local',
         users_projection_name='Archivo local',
         navigation_source_name='Archivo local',
         navigation_projection_name='Archivo local',
+    )
+
+
+def _local_manager_principal() -> ManagerPrincipal:
+    return ManagerPrincipal(
+        subject_id='local',
+        display_name='Administrador local',
+        profile_keys=('administrator',),
+        is_local=True,
     )
 
 

@@ -5,30 +5,27 @@ import pytest
 pytest.importorskip('dash')
 
 from ada.applications.configuration_manager.application import (
-    NAVIGATION_WORKFLOW_SERVICE,
-    TOOLS_WORKFLOW_SERVICE,
-    USERS_WORKFLOW_SERVICE,
     build_configuration_manager_definition,
 )
 from ada.applications.configuration_manager.local import build_local_dependencies
 from atlanticus.web.manager.application import build_manager_web_definition
 
 
-def test_configuration_manager_registers_tools_users_and_navigation(tmp_path) -> None:
+def test_configuration_manager_preview_wraps_reusable_surface(tmp_path) -> None:
     definition = build_configuration_manager_definition(
         dependencies=build_local_dependencies(runtime_root=tmp_path),
         publications_root=Path('.runtime/assets'),
     )
+    surface = definition.surface
+    tools, users, navigation = surface.modules
 
-    tools, users, navigation = definition.modules
-    assert definition.current_path == '/tools'
-    assert [item.key for item in definition.modules] == ['tools', 'users', 'navigation']
+    assert definition.metadata.version == '0.2.0'
+    assert surface.default_module_key == 'tools'
+    assert surface.route_prefix == ''
+    assert [item.key for item in surface.modules] == ['tools', 'users', 'navigation']
     assert tools.route == '/tools'
     assert users.route == '/users'
     assert navigation.route == '/navigation'
-    assert tools.workflow_service == TOOLS_WORKFLOW_SERVICE
-    assert users.workflow_service == USERS_WORKFLOW_SERVICE
-    assert navigation.workflow_service == NAVIGATION_WORKFLOW_SERVICE
     assert tools.content_section_title == 'Configuración de herramienta'
     assert users.content_section_title == 'Usuarios y perfiles'
     assert navigation.content_section_title == 'Navegación'
@@ -44,7 +41,7 @@ def test_configuration_manager_registers_tools_users_and_navigation(tmp_path) ->
     assert navigation.access.publish == 'navigation.manage'
 
 
-def test_configuration_manager_keeps_atlanticus_brand_and_navigation_slots(tmp_path) -> None:
+def test_configuration_manager_keeps_standalone_brand_and_navigation_slots(tmp_path) -> None:
     definition = build_configuration_manager_definition(
         dependencies=build_local_dependencies(runtime_root=tmp_path),
         publications_root=Path('.runtime/assets'),
@@ -60,14 +57,19 @@ def test_configuration_manager_keeps_atlanticus_brand_and_navigation_slots(tmp_p
     assert 'Cinzel' in definition.dash.external_stylesheets[0]
 
 
-def test_configuration_manager_asset_layer_orders_are_unique(tmp_path) -> None:
+def test_configuration_manager_standalone_host_registers_pages_separately(tmp_path) -> None:
     definition = build_configuration_manager_definition(
         dependencies=build_local_dependencies(runtime_root=tmp_path),
         publications_root=tmp_path / 'assets',
     )
     web_definition = build_manager_web_definition(definition)
+    module_by_name = {module.name: module for module in web_definition.modules}
     load_orders = [
         layer.load_order for module in web_definition.modules for layer in module.asset_layers
     ]
 
+    assert module_by_name['manager-standalone-host'].page_packages == (
+        'atlanticus.web.manager.pages',
+    )
+    assert module_by_name['manager-surface'].page_packages == ()
     assert len(load_orders) == len(set(load_orders))

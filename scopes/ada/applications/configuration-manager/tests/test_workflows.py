@@ -1,7 +1,7 @@
 from dataclasses import replace
 
 from ada.applications.configuration_manager.local import build_local_dependencies
-from ada.applications.configuration_manager.workflows import (
+from ada.compositions.configuration_manager import (
     NavigationManagerWorkflowAdapter,
     ToolManagerWorkflowAdapter,
     UsersManagerWorkflowAdapter,

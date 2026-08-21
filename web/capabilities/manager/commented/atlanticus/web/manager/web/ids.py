@@ -1,6 +1,4 @@
-# Espejo pedagógico: conserva la misma lógica del archivo productivo.
-# Los comentarios documentan la responsabilidad sin cambiar el comportamiento.
-# Centraliza IDs Dash estables para evitar acoplamiento entre callbacks.
+# Los IDs del Manager están namespaced; REFRESH_SIGNAL_ID desacopla la Surface del botón de recarga propio del host standalone.
 LOCATION_ID = 'atlanticus-manager-location'
 SUMMARY_ID = 'atlanticus-manager-summary'
 SIDEBAR_ID = 'atlanticus-manager-sidebar'
@@ -12,7 +10,6 @@ CONTENT_ID = 'atlanticus-manager-content'
 REFRESH_BUTTON_ID = 'atlanticus-manager-refresh'
 STATUS_STORE_ID = 'atlanticus-manager-status-store'
 REFRESH_SIGNAL_ID = 'atlanticus-manager-refresh-signal'
-PAGE_CONTAINER_ID = 'atlanticus-manager-page-container'
 
 
 def workflow_action_id(module_key: str, action: str) -> dict[str, str]:

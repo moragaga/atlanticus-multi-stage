@@ -87,3 +87,45 @@ def test_default_authorization_allows_local_administrator() -> None:
     )
 
     assert DefaultManagerAuthorizationPolicy().can_view(principal, module)
+
+
+def test_registry_applies_host_route_prefix_without_changing_module_route() -> None:
+    module = ManagerModule(
+        key='tools',
+        group_key='configuration',
+        title='Herramientas',
+        route='/tools',
+        order=10,
+        layout=_layout,
+        workflow_service='tools.workflow',
+    )
+    registry = ManagerModuleRegistry(
+        groups=(ManagerModuleGroup('configuration', 'Configuraciones', 10),),
+        modules=(module,),
+        route_prefix='/manager',
+    )
+
+    assert module.route == '/tools'
+    assert registry.root_route == '/manager'
+    assert registry.route_for(module) == '/manager/tools'
+    assert registry.find_by_route('/manager/tools') is module
+    assert registry.find_by_route('/tools') is None
+
+
+def test_registry_rejects_invalid_route_prefix() -> None:
+    with pytest.raises(ManagerDefinitionError, match='route prefix'):
+        ManagerModuleRegistry(
+            groups=(ManagerModuleGroup('configuration', 'Configuraciones', 10),),
+            modules=(
+                ManagerModule(
+                    key='tools',
+                    group_key='configuration',
+                    title='Herramientas',
+                    route='/tools',
+                    order=10,
+                    layout=_layout,
+                    workflow_service='tools.workflow',
+                ),
+            ),
+            route_prefix='/manager/',
+        )

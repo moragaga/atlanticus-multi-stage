@@ -2,23 +2,17 @@ import ast
 from pathlib import Path
 
 
-def test_application_host_does_not_own_sharepoint_or_cosmos_contracts() -> None:
-    root = Path(__file__).parents[1] / 'src/ada/applications/configuration_manager'
+def test_configuration_manager_composition_does_not_own_web_application_host() -> None:
+    root = Path(__file__).parents[1] / 'src/ada/compositions/configuration_manager'
     product = '\n'.join(path.read_text(encoding='utf-8') for path in root.glob('*.py'))
 
-    assert 'SharePoint' not in product
-    assert 'Cosmos' not in product
-
-
-def test_application_host_does_not_own_manager_module_workflows() -> None:
-    root = Path(__file__).parents[1] / 'src/ada/applications/configuration_manager'
-    application = (root / 'application.py').read_text(encoding='utf-8')
-
-    assert 'ToolManagerWorkflowAdapter' not in application
-    assert 'UsersManagerWorkflowAdapter' not in application
-    assert 'NavigationManagerWorkflowAdapter' not in application
-    assert 'ManagerModule(' not in application
-    assert 'build_configuration_manager_surface' in application
+    assert 'create_web_application' not in product
+    assert 'create_manager_application' not in product
+    assert 'WebApplicationDefinition' not in product
+    assert 'ApplicationMetadata' not in product
+    assert 'DashSettings' not in product
+    assert 'ManagerBrand' not in product
+    assert 'ada.ui.' not in product
 
 
 def test_commented_mirror_matches_productive_ast() -> None:

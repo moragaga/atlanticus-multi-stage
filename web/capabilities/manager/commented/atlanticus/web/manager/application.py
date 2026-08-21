@@ -1,23 +1,15 @@
-# Espejo pedagógico: este archivo conserva exactamente la lógica del código productivo.
-# Capability genérica del Configuration Manager de Atlanticus. Mantiene contratos y UI administrativa sin conocer dominios ni persistencias concretas.
-# Los comentarios explican la intención arquitectónica; no agregan ramas, estado ni comportamiento.
+# Este archivo conserva únicamente el host standalone del Manager; toda la lógica reutilizable se delega a ManagerSurface.
+from dash import Input, Output, State, html, no_update, page_container
 
 from atlanticus.web.application import create_web_application
-from atlanticus.web.manager.authorization import (
-    DefaultManagerAuthorizationPolicy,
-    ManagerAuthorizationPolicy,
-)
+from atlanticus.web.manager.authorization import ManagerAuthorizationPolicy
 from atlanticus.web.manager.errors import ManagerDefinitionError
 from atlanticus.web.manager.models import ManagerApplicationDefinition
-from atlanticus.web.manager.registry import ManagerModuleRegistry
-from atlanticus.web.manager.web import (
-    build_manager_shell,
-    manager_asset_layer,
-    register_manager_callbacks,
-)
+from atlanticus.web.manager.surface import ManagerSurface
+from atlanticus.web.manager.web.ids import REFRESH_BUTTON_ID, REFRESH_SIGNAL_ID
+from atlanticus.web.manager.web.layout import build_manager_header
 from atlanticus.web.models import WebApplicationDefinition, WebApplicationRuntime
 from atlanticus.web.modules import WebModule
-from atlanticus.web.services import ServiceRegistry
 
 
 def build_manager_web_definition(
@@ -27,41 +19,49 @@ def build_manager_web_definition(
 ) -> WebApplicationDefinition:
     if not definition.subtitle.strip():
         raise ManagerDefinitionError('Manager application subtitle must not be empty')
-    if not definition.current_path.startswith('/'):
-        raise ManagerDefinitionError('Manager application path must start with slash')
-    registry = ManagerModuleRegistry(definition.groups, definition.modules)
-    policy = authorization or DefaultManagerAuthorizationPolicy()
+# El preview standalone conserva sus rutas históricas raíz y rechaza una Surface ya namespaced.
+    if definition.surface.route_prefix:
+        raise ManagerDefinitionError('Standalone manager route prefix must be empty')
+    surface = ManagerSurface(definition.surface, authorization=authorization)
 
-    def register_callbacks(app: object, services: ServiceRegistry) -> None:
-        register_manager_callbacks(
-            app,
-            definition=definition,
-            registry=registry,
-            services=services,
-            authorization=policy,
+    def register_host_callbacks(app: object, _services: object) -> None:
+        @app.callback(
+            Output(REFRESH_SIGNAL_ID, 'data'),
+            Input(REFRESH_BUTTON_ID, 'n_clicks'),
+            State(REFRESH_SIGNAL_ID, 'data'),
+            prevent_initial_call=True,
+        )
+        def request_refresh(clicks: int | None, current: int | None):
+            if not isinstance(clicks, int) or isinstance(clicks, bool) or clicks <= 0:
+                return no_update
+            return int(current or 0) + 1
+
+# Solo el host standalone registra las páginas genéricas de Dash y el botón global de recarga.
+    host_module = WebModule(
+        name='manager-standalone-host',
+        page_packages=('atlanticus.web.manager.pages',),
+        register_callbacks=register_host_callbacks,
+    )
+
+    def layout(services):
+        return html.Div(
+            [
+                build_manager_header(definition=definition, services=services),
+                *surface.layout(services).children,
+                definition.shell_overlays(services)
+                if definition.shell_overlays is not None
+                else None,
+                html.Div(page_container, hidden=True),
+            ],
+            className='atlanticus-manager atlanticus-manager--standalone',
         )
 
-    manager_module = WebModule(
-        name='manager',
-        page_packages=('atlanticus.web.manager.pages',),
-        asset_layers=(manager_asset_layer(),),
-        register_callbacks=register_callbacks,
-    )
-    module_web_modules = tuple(
-        module.web_module for module in registry.modules if module.web_module is not None
-    )
     return WebApplicationDefinition(
         import_name=definition.import_name,
         metadata=definition.metadata,
         publications_root=definition.publications_root,
-        layout=lambda services: build_manager_shell(
-            definition=definition,
-            registry=registry,
-            services=services,
-            principal=definition.principal_provider(),
-            authorization=policy,
-        ),
-        modules=definition.web_modules + module_web_modules + (manager_module,),
+        layout=layout,
+        modules=definition.web_modules + surface.web_modules + (host_module,),
         index=definition.index,
         dash=definition.dash,
         flask_config=definition.flask_config,

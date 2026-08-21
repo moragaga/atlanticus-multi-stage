@@ -1,6 +1,4 @@
-# Espejo pedagógico: conserva la misma lógica del archivo productivo.
-# Los comentarios documentan la responsabilidad sin cambiar el comportamiento.
-# Declara la composición genérica de módulos del gestor.
+# Separa la definición embebible de la Surface de la definición del host standalone que crea una aplicación Web completa.
 import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
@@ -19,6 +17,7 @@ ManagerLayoutFactory = Callable[[ServiceRegistry], object]
 ManagerPrincipalProvider = Callable[[], 'ManagerPrincipal']
 
 _PROFILE_KEY_PATTERN = re.compile(r'^[a-z0-9][a-z0-9._-]*$')
+_ROUTE_PREFIX_PATTERN = re.compile(r'^/[a-z0-9][a-z0-9/_-]*$')
 _BRAND_MARK_ROLES = frozenset({'product', 'framework', 'organization'})
 
 
@@ -112,15 +111,33 @@ class ManagerModule:
 
 
 @dataclass(frozen=True, slots=True)
+# La Surface declara módulos y un prefijo de montaje, pero no conoce Flask, Dash ni branding del host.
+class ManagerSurfaceDefinition:
+    principal_provider: ManagerPrincipalProvider
+    groups: tuple[ManagerModuleGroup, ...]
+    modules: tuple[ManagerModule, ...]
+    default_module_key: str
+    route_prefix: str = ''
+    web_modules: tuple[WebModule, ...] = ()
+
+    def __post_init__(self) -> None:
+        prefix = self.route_prefix
+        if prefix and (
+            not _ROUTE_PREFIX_PATTERN.fullmatch(prefix) or prefix.endswith('/')
+        ):
+            raise ManagerDefinitionError('Manager route prefix has an invalid format')
+        if not self.default_module_key.strip():
+            raise ManagerDefinitionError('Manager default module key must not be empty')
+
+
+@dataclass(frozen=True, slots=True)
+# El host standalone envuelve una Surface y conserva solo metadatos y elementos visuales propios del preview.
 class ManagerApplicationDefinition:
     import_name: str
     metadata: ApplicationMetadata
     publications_root: Path
-    principal_provider: ManagerPrincipalProvider
-    groups: tuple[ManagerModuleGroup, ...]
-    modules: tuple[ManagerModule, ...]
+    surface: ManagerSurfaceDefinition
     subtitle: str = 'Gestión de configuraciones y proyecciones'
-    current_path: str = '/'
     brand: ManagerBrand | None = None
     web_modules: tuple[WebModule, ...] = ()
     index: IndexPageDefinition = field(default_factory=IndexPageDefinition)

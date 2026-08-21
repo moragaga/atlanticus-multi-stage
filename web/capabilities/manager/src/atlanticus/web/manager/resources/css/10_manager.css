@@ -17,8 +17,6 @@ body,
 .atlanticus-manager {
     width: 100%;
     min-width: 0;
-    min-height: 100vh;
-    min-height: 100dvh;
     margin: 0;
     overflow-x: hidden;
     background: var(--atlanticus-manager-background);
@@ -26,6 +24,15 @@ body,
     font-family: var(--atlanticus-manager-font);
     -webkit-user-select: none;
     user-select: none;
+}
+
+.atlanticus-manager--standalone {
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+
+.atlanticus-manager--surface {
+    min-height: 100%;
 }
 
 .atlanticus-manager input,

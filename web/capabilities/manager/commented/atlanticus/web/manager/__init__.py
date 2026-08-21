@@ -1,6 +1,4 @@
-# Espejo pedagógico: conserva la misma lógica del archivo productivo.
-# Los comentarios documentan la responsabilidad sin cambiar el comportamiento.
-# Expone únicamente la API pública del capability Manager.
+# Exporta los contratos públicos del Manager; ManagerSurface es la frontera reutilizable y ManagerApplicationDefinition queda para hosts standalone.
 from atlanticus.web.manager.authorization import (
     DefaultManagerAuthorizationPolicy,
     ManagerAuthorizationPolicy,
@@ -21,6 +19,7 @@ from atlanticus.web.manager.models import (
     ManagerModuleGroup,
     ManagerPrincipal,
     ManagerPrincipalProvider,
+    ManagerSurfaceDefinition,
 )
 from atlanticus.web.manager.projection import (
     ConfigurationLifecycleWorkflow,
@@ -39,6 +38,7 @@ from atlanticus.web.manager.projection import (
     resolve_projection_state,
 )
 from atlanticus.web.manager.registry import ManagerModuleRegistry
+from atlanticus.web.manager.surface import ManagerSurface
 
 __all__ = [
     'ConfigurationLifecycleWorkflow',
@@ -58,6 +58,8 @@ __all__ = [
     'ManagerModuleRegistry',
     'ManagerPrincipal',
     'ManagerPrincipalProvider',
+    'ManagerSurface',
+    'ManagerSurfaceDefinition',
     'ManagerProjectionCoordinator',
     'ManagerProjectionError',
     'ProjectionAuditRecord',

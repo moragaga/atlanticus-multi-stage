@@ -9,7 +9,6 @@ CONTENT_ID = 'atlanticus-manager-content'
 REFRESH_BUTTON_ID = 'atlanticus-manager-refresh'
 STATUS_STORE_ID = 'atlanticus-manager-status-store'
 REFRESH_SIGNAL_ID = 'atlanticus-manager-refresh-signal'
-PAGE_CONTAINER_ID = 'atlanticus-manager-page-container'
 
 
 def workflow_action_id(module_key: str, action: str) -> dict[str, str]:

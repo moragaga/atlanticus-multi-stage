@@ -1,7 +1,8 @@
+# Agrupa dependencias ya compuestas; esta frontera no crea clientes ni conoce SharePoint, Cosmos o el ciclo de vida del host.
 from dataclasses import dataclass
 
 from ada.configuration.tools import ToolConfigurationServices
-from atlanticus.web.manager import ManagerPrincipal, ManagerPrincipalProvider
+from atlanticus.web.manager import ManagerPrincipalProvider
 from atlanticus.web.navigation.configuration import NavigationConfigurationServices
 from atlanticus.web.users.configuration import UsersConfigurationServices
 
@@ -18,12 +19,3 @@ class ConfigurationManagerDependencies:
     users_projection_name: str = 'Projection'
     navigation_source_name: str = 'Source'
     navigation_projection_name: str = 'Projection'
-
-
-def local_manager_principal() -> ManagerPrincipal:
-    return ManagerPrincipal(
-        subject_id='local',
-        display_name='Administrador local',
-        profile_keys=('administrator',),
-        is_local=True,
-    )

@@ -1,7 +1,4 @@
-# Espejo pedagógico: este archivo conserva exactamente la lógica del código productivo.
-# Capability genérica del Configuration Manager de Atlanticus. Mantiene contratos y UI administrativa sin conocer dominios ni persistencias concretas.
-# Los comentarios explican la intención arquitectónica; no agregan ramas, estado ni comportamiento.
-
+# El registry conserva las rutas lógicas de los módulos y aplica el prefijo definido por el host al resolver URLs efectivas.
 import re
 
 from atlanticus.web.manager.authorization import ManagerAuthorizationPolicy
@@ -10,6 +7,7 @@ from atlanticus.web.manager.models import ManagerModule, ManagerModuleGroup, Man
 
 _MODULE_KEY_PATTERN = re.compile(r'^[a-z0-9][a-z0-9._-]*$')
 _ROUTE_PATTERN = re.compile(r'^/[a-z0-9][a-z0-9/_-]*$')
+_ROUTE_PREFIX_PATTERN = re.compile(r'^/[a-z0-9][a-z0-9/_-]*$')
 _ACCESS_KEY_PATTERN = re.compile(r'^[a-z0-9][a-z0-9._-]*$')
 
 
@@ -18,7 +16,14 @@ class ManagerModuleRegistry:
         self,
         groups: tuple[ManagerModuleGroup, ...],
         modules: tuple[ManagerModule, ...],
+        *,
+        route_prefix: str = '',
     ) -> None:
+        if route_prefix and (
+            not _ROUTE_PREFIX_PATTERN.fullmatch(route_prefix) or route_prefix.endswith('/')
+        ):
+            raise ManagerDefinitionError('Manager route prefix has an invalid format')
+        self._route_prefix = route_prefix
         self._groups = self._validate_groups(groups)
         self._group_by_key = {group.key: group for group in self._groups}
         self._modules = self._validate_modules(modules)
@@ -39,8 +44,29 @@ class ManagerModuleRegistry:
             raise ManagerDefinitionError(f'Manager module is not registered: {normalized}')
         return self._by_key[normalized]
 
+    @property
+    def route_prefix(self) -> str:
+        return self._route_prefix
+
+    @property
+    def root_route(self) -> str:
+        return self._route_prefix or '/'
+
+# El prefijo se aplica al montar la Surface; el ManagerModule sigue siendo reutilizable y no cambia su route.
+    def route_for(self, module: ManagerModule) -> str:
+        if self._route_prefix:
+            return f'{self._route_prefix}{module.route}'
+        return module.route
+
+# La búsqueda exige el namespace del host cuando existe, evitando aceptar rutas globales por accidente.
     def find_by_route(self, route: str) -> ManagerModule | None:
-        return self._by_route.get(route)
+        normalized = route
+        if self._route_prefix:
+            prefix = f'{self._route_prefix}/'
+            if not normalized.startswith(prefix):
+                return None
+            normalized = normalized[len(self._route_prefix) :]
+        return self._by_route.get(normalized)
 
     def visible_modules(
         self,

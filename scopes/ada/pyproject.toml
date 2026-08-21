@@ -10,7 +10,8 @@ dependencies = [
     "ada-composition-web-application==0.1.0",
     "ada-composition-web-bootstrap==0.1.0",
     "ada-composition-web-deployment==0.1.0",
-    "ada-application-configuration-manager==0.1.0",
+    "ada-application-configuration-manager==0.2.0",
+    "ada-composition-configuration-manager==0.1.0",
     "ada-composition-process==0.1.0",
     "ada-composition-integrated-operations==0.1.0",
 ]
@@ -32,6 +33,7 @@ ada-composition-integrated-operations = { workspace = true }
 ada-composition-process = { workspace = true }
 ada-application-reference = { workspace = true }
 ada-application-configuration-manager = { workspace = true }
+ada-composition-configuration-manager = { workspace = true }
 ada-configuration-tools = { workspace = true }
 ada-contracts-tool-manifest = { workspace = true }
 ada-runtime-web = { workspace = true }
@@ -78,6 +80,7 @@ members = [
     "compositions/web-application",
     "compositions/web-bootstrap",
     "compositions/web-deployment",
+    "compositions/configuration-manager",
     "compositions/process",
     "compositions/integrated-operations",
     "ui/framework/core",
@@ -130,6 +133,7 @@ testpaths = [
     "compositions/web-application/tests",
     "compositions/web-bootstrap/tests",
     "compositions/web-deployment/tests",
+    "compositions/configuration-manager/tests",
     "compositions/process/tests",
     "compositions/integrated-operations/tests",
     "ui/framework/core/tests",

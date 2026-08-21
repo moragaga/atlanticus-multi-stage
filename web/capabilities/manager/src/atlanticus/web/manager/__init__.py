@@ -18,6 +18,7 @@ from atlanticus.web.manager.models import (
     ManagerModuleGroup,
     ManagerPrincipal,
     ManagerPrincipalProvider,
+    ManagerSurfaceDefinition,
 )
 from atlanticus.web.manager.projection import (
     ConfigurationLifecycleWorkflow,
@@ -36,6 +37,7 @@ from atlanticus.web.manager.projection import (
     resolve_projection_state,
 )
 from atlanticus.web.manager.registry import ManagerModuleRegistry
+from atlanticus.web.manager.surface import ManagerSurface
 
 __all__ = [
     'ConfigurationLifecycleWorkflow',
@@ -55,6 +57,8 @@ __all__ = [
     'ManagerModuleRegistry',
     'ManagerPrincipal',
     'ManagerPrincipalProvider',
+    'ManagerSurface',
+    'ManagerSurfaceDefinition',
     'ManagerProjectionCoordinator',
     'ManagerProjectionError',
     'ProjectionAuditRecord',

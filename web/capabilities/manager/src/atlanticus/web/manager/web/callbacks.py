@@ -5,7 +5,7 @@ from dash import ALL, MATCH, Input, Output, State, ctx, no_update
 from atlanticus.web.manager.authorization import ManagerAuthorizationPolicy
 from atlanticus.web.manager.coordinator import ManagerProjectionCoordinator
 from atlanticus.web.manager.errors import ManagerError, ManagerProjectionError
-from atlanticus.web.manager.models import ManagerApplicationDefinition, ManagerPrincipal
+from atlanticus.web.manager.models import ManagerPrincipal, ManagerSurfaceDefinition
 from atlanticus.web.manager.projection import (
     ManagerDraft,
     ProjectionIssue,
@@ -17,7 +17,7 @@ from atlanticus.web.manager.registry import ManagerModuleRegistry
 from atlanticus.web.manager.web.ids import (
     CONTENT_ID,
     LOCATION_ID,
-    REFRESH_BUTTON_ID,
+    REFRESH_SIGNAL_ID,
     SIDEBAR_BACKDROP_ID,
     SIDEBAR_CLOSE_ID,
     SIDEBAR_ID,
@@ -55,7 +55,7 @@ from atlanticus.web.services import ServiceRegistry
 def register_manager_callbacks(
     app: object,
     *,
-    definition: ManagerApplicationDefinition,
+    definition: ManagerSurfaceDefinition,
     registry: ManagerModuleRegistry,
     services: ServiceRegistry,
     authorization: ManagerAuthorizationPolicy,
@@ -92,7 +92,7 @@ def register_manager_callbacks(
     @app.callback(
         Output(STATUS_STORE_ID, 'data'),
         Output(SUMMARY_ID, 'children'),
-        Input(REFRESH_BUTTON_ID, 'n_clicks'),
+        Input(REFRESH_SIGNAL_ID, 'data'),
         Input(workflow_refresh_signal_id(ALL), 'data'),
         *source_inputs,
     )
@@ -110,7 +110,7 @@ def register_manager_callbacks(
 
     @app.callback(
         Output(workflow_validation_id(ALL), 'data', allow_duplicate=True),
-        Input(REFRESH_BUTTON_ID, 'n_clicks'),
+        Input(REFRESH_SIGNAL_ID, 'data'),
         prevent_initial_call=True,
     )
     def clear_transient_validation(clicks: int):
@@ -129,9 +129,12 @@ def register_manager_callbacks(
         principal = definition.principal_provider()
         states = {key: _safe_state(value) for key, value in (states_data or {}).items()}
         return build_sidebar_modules(
+            registry=registry,
             modules=registry.visible_modules(principal, authorization),
-            groups=registry.groups,
-            current_path=pathname or definition.current_path,
+            current_path=(
+                pathname
+                or registry.route_for(registry.require(definition.default_module_key))
+            ),
             states=states,
         )
 
@@ -444,13 +447,14 @@ def _load_workflow_state(
 
 def _active_module(
     registry: ManagerModuleRegistry,
-    definition: ManagerApplicationDefinition,
+    definition: ManagerSurfaceDefinition,
     pathname: str | None,
 ):
-    route = pathname or definition.current_path
+    default_module = registry.require(definition.default_module_key)
+    route = pathname or registry.route_for(default_module)
     module = registry.find_by_route(route)
-    if module is None and route == '/':
-        module = registry.find_by_route(definition.current_path)
+    if module is None and route == registry.root_route:
+        module = default_module
     return module
 
 

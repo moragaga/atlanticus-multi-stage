@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from datetime import datetime
 
-from dash import dcc, html, page_container
+from dash import dcc, html
 
 from atlanticus.web.manager.authorization import ManagerAuthorizationPolicy
 from atlanticus.web.manager.coordinator import ManagerProjectionCoordinator
@@ -14,6 +14,7 @@ from atlanticus.web.manager.models import (
     ManagerBrandMark,
     ManagerModule,
     ManagerPrincipal,
+    ManagerSurfaceDefinition,
 )
 from atlanticus.web.manager.projection import (
     ManagerDraft,
@@ -28,8 +29,8 @@ from atlanticus.web.manager.registry import ManagerModuleRegistry
 from atlanticus.web.manager.web.ids import (
     CONTENT_ID,
     LOCATION_ID,
-    PAGE_CONTAINER_ID,
     REFRESH_BUTTON_ID,
+    REFRESH_SIGNAL_ID,
     SIDEBAR_BACKDROP_ID,
     SIDEBAR_CLOSE_ID,
     SIDEBAR_ID,
@@ -63,19 +64,51 @@ _STATE_LABELS = {
 }
 
 
-def build_manager_shell(
+def build_manager_header(
     *,
     definition: ManagerApplicationDefinition,
+    services: ServiceRegistry,
+) -> object:
+    return html.Header(
+        [
+            _build_header_identity(
+                definition.brand,
+                title=definition.metadata.display_name,
+                subtitle=definition.subtitle,
+            ),
+            html.Div(
+                [
+                    html.Button(
+                        'Recargar',
+                        id=REFRESH_BUTTON_ID,
+                        className='atlanticus-manager__button atlanticus-manager__button--header',
+                    ),
+                    definition.header_actions(services)
+                    if definition.header_actions is not None
+                    else None,
+                ],
+                className='atlanticus-manager__header-actions',
+            ),
+        ],
+        className='atlanticus-manager__header',
+    )
+
+
+def build_manager_surface(
+    *,
+    definition: ManagerSurfaceDefinition,
     registry: ManagerModuleRegistry,
     services: ServiceRegistry,
     principal: ManagerPrincipal,
     authorization: ManagerAuthorizationPolicy,
 ) -> object:
     visible_modules = registry.visible_modules(principal, authorization)
+    current_path = registry.route_for(registry.require(definition.default_module_key))
     return html.Div(
         [
             dcc.Location(id=LOCATION_ID, refresh=False),
             dcc.Store(id=STATUS_STORE_ID, storage_type='memory'),
+            dcc.Store(id=REFRESH_SIGNAL_ID, data=0, storage_type='memory'),
             *[
                 dcc.Store(id=module.source_signal_id, storage_type='memory')
                 for module in visible_modules
@@ -110,31 +143,6 @@ def build_manager_shell(
                 )
                 for module in visible_modules
             ],
-            html.Header(
-                [
-                    _build_header_identity(
-                        definition.brand,
-                        title=definition.metadata.display_name,
-                        subtitle=definition.subtitle,
-                    ),
-                    html.Div(
-                        [
-                            html.Button(
-                                'Recargar',
-                                id=REFRESH_BUTTON_ID,
-                                className=(
-                                    'atlanticus-manager__button atlanticus-manager__button--header'
-                                ),
-                            ),
-                            definition.header_actions(services)
-                            if definition.header_actions is not None
-                            else None,
-                        ],
-                        className='atlanticus-manager__header-actions',
-                    ),
-                ],
-                className='atlanticus-manager__header',
-            ),
             html.Section(id=SUMMARY_ID, className='atlanticus-manager__summary'),
             html.Button(
                 '⚙',
@@ -166,9 +174,9 @@ def build_manager_shell(
                     html.Div(
                         id=SIDEBAR_MODULES_ID,
                         children=build_sidebar_modules(
+                            registry=registry,
                             modules=visible_modules,
-                            groups=registry.groups,
-                            current_path=definition.current_path,
+                            current_path=current_path,
                             states={},
                         ),
                         className='atlanticus-manager__sidebar-modules',
@@ -182,10 +190,8 @@ def build_manager_shell(
                 className='atlanticus-manager__sidebar-backdrop',
                 **{'aria-label': 'Cerrar configuraciones'},
             ),
-            definition.shell_overlays(services) if definition.shell_overlays is not None else None,
-            html.Div(page_container, id=PAGE_CONTAINER_ID, hidden=True),
         ],
-        className='atlanticus-manager',
+        className='atlanticus-manager atlanticus-manager--surface',
     )
 
 
@@ -222,13 +228,13 @@ def build_summary(states: Mapping[str, ProjectionState]) -> object:
 
 def build_sidebar_modules(
     *,
+    registry: ManagerModuleRegistry,
     modules: tuple[ManagerModule, ...],
-    groups: tuple[object, ...],
     current_path: str,
     states: Mapping[str, ProjectionState],
 ) -> tuple[object, ...]:
     result: list[object] = []
-    for group in groups:
+    for group in registry.groups:
         group_modules = tuple(module for module in modules if module.group_key == group.key)
         if not group_modules:
             continue
@@ -236,7 +242,8 @@ def build_sidebar_modules(
         for module in group_modules:
             state = states.get(module.key, ProjectionState.UNAVAILABLE)
             class_name = 'atlanticus-manager__sidebar-link'
-            if module.route == current_path:
+            module_route = registry.route_for(module)
+            if module_route == current_path:
                 class_name += ' atlanticus-manager__sidebar-link--active'
             result.append(
                 dcc.Link(
@@ -255,7 +262,7 @@ def build_sidebar_modules(
                             ),
                         ),
                     ],
-                    href=module.route,
+                    href=module_route,
                     className=class_name,
                 )
             )

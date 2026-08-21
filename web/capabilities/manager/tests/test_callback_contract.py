@@ -11,6 +11,7 @@ def test_workflow_callbacks_keep_match_scoped_outputs_per_module() -> None:
     source = _source()
 
     assert 'Output(REFRESH_SIGNAL_ID' not in source
+    assert source.count("Input(REFRESH_SIGNAL_ID, 'data')") == 2
     assert source.count("Output(workflow_refresh_signal_id(MATCH), 'data'") == 2
     assert "Input(workflow_refresh_signal_id(ALL), 'data')" in source
 

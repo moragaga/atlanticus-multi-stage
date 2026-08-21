@@ -1,12 +1,10 @@
+# El preview local conserva adapters de archivo y una identidad local fija; estas dependencias no se trasladan al runtime productivo de ADA.
 from __future__ import annotations
 
 import os
 from pathlib import Path
 
-from ada.applications.configuration_manager.dependencies import (
-    ConfigurationManagerDependencies,
-    local_manager_principal,
-)
+from ada.compositions.configuration_manager import ConfigurationManagerDependencies
 from ada.configuration.tools import compose_tool_configuration_services
 from ada.configuration.tools.adapters.file import (
     FileToolConfigurationSettings,
@@ -14,6 +12,7 @@ from ada.configuration.tools.adapters.file import (
     FileToolProjectionRepository,
     FileToolProjectionSettings,
 )
+from atlanticus.web.manager import ManagerPrincipal
 from atlanticus.web.navigation.configuration import compose_navigation_configuration_services
 from atlanticus.web.navigation.configuration.adapters.file import (
     FileNavigationConfigurationSettings,
@@ -22,9 +21,9 @@ from atlanticus.web.navigation.configuration.adapters.file import (
     FileNavigationProjectionSettings,
 )
 from atlanticus.web.users.configuration import (
+    DiscoveredUser,
     build_user_key,
     compose_users_configuration_services,
-    DiscoveredUser,
 )
 from atlanticus.web.users.configuration.adapters.file import (
     FileUsersConfigurationSettings,
@@ -34,7 +33,6 @@ from atlanticus.web.users.configuration.adapters.file import (
 from atlanticus.web.users.configuration.adapters.memory import MemoryDiscoveredUsersSource
 
 
-# Resuelve `build local dependencies` manteniendo validación y estado explícitos.
 def build_local_dependencies(
     *,
     runtime_root: str | Path | None = None,
@@ -82,7 +80,7 @@ def build_local_dependencies(
         tools=tools,
         users=users,
         navigation=navigation,
-        principal_provider=local_manager_principal,
+        principal_provider=_local_manager_principal,
         tools_source_name='Archivo local',
         tools_projection_name='Archivo local',
         users_source_name='Archivo local',
@@ -92,7 +90,16 @@ def build_local_dependencies(
     )
 
 
-# Resuelve `preview discovered users` manteniendo validación y estado explícitos.
+# La identidad fija existe solo para el preview; ADA usará un adapter desde su EffectiveUser en un incremento posterior.
+def _local_manager_principal() -> ManagerPrincipal:
+    return ManagerPrincipal(
+        subject_id='local',
+        display_name='Administrador local',
+        profile_keys=('administrator',),
+        is_local=True,
+    )
+
+
 def _preview_discovered_users() -> tuple[DiscoveredUser, ...]:
     identities = (
         (
@@ -122,7 +129,6 @@ def _preview_discovered_users() -> tuple[DiscoveredUser, ...]:
     )
 
 
-# Resuelve `runtime root` manteniendo validación y estado explícitos.
 def _runtime_root() -> Path:
     configured = os.environ.get('CONFIGURATION_RUNTIME_PATH')
     if configured:
