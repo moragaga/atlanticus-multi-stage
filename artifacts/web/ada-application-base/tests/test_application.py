@@ -16,7 +16,6 @@ def test_create_application_runtime_composes_deployment_modules(monkeypatch, tmp
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv('ATLANTICUS_FLASK_SECRET_KEY', 'artifact-session-secret')
-    monkeypatch.setattr(application, 'build_identity_provider', lambda: 'provider')
 
     def open_deployment(**kwargs):
         captured['deployment_call'] = kwargs
@@ -35,7 +34,7 @@ def test_create_application_runtime_composes_deployment_modules(monkeypatch, tmp
     assert runtime.deployment is deployment
     assert runtime.web is web
     assert runtime.server is server
-    assert captured['deployment_call']['identity_provider'] == 'provider'
+    assert 'identity_provider' not in captured['deployment_call']
     assert isinstance(captured['deployment_call']['environment'], application.EnvironmentReader)
     definition = captured['web_definition']
     assert definition.modules == deployment.bootstrap.modules
@@ -49,7 +48,6 @@ def test_create_application_runtime_closes_deployment_when_web_composition_fails
 ) -> None:
     deployment = Mock()
     deployment.bootstrap.modules = ()
-    monkeypatch.setattr(application, 'build_identity_provider', lambda: 'provider')
     monkeypatch.setattr(
         application,
         'open_ada_web_deployment_runtime',

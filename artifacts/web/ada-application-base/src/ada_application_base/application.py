@@ -14,7 +14,6 @@ from ada_application_base.definition import (
     build_flask_config,
     build_metadata,
 )
-from ada_application_base.identity import build_identity_provider
 from atlanticus.web.application import create_web_application
 from atlanticus.web.environment import EnvironmentReader
 from atlanticus.web.index import IndexPageDefinition
@@ -40,7 +39,6 @@ def create_application_runtime() -> AdaApplicationBaseRuntime:
     deployment = open_ada_web_deployment_runtime(
         definition=build_deployment_definition(environment),
         metadata=metadata,
-        identity_provider=build_identity_provider(),
         environment=environment,
     )
     try:

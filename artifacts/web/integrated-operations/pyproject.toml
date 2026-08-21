@@ -10,6 +10,7 @@ requires-python = "==3.14.2"
 classifiers = ["Private :: Do Not Upload"]
 dependencies = [
     "ada-composition-integrated-operations==0.1.0",
+    "ada-composition-web-bootstrap==0.1.0",
     "ada-composition-web-deployment==0.1.0",
     "ada-contracts-tool-manifest==0.1.0",
     "ada-feature-alarms==0.1.0",
@@ -20,8 +21,10 @@ dependencies = [
     "ada-ui-shell-header==0.1.0",
     "ada-ui-shell-time-status==0.1.0",
     "atlanticus-web==0.1.0",
-    "atlanticus-web-identity-app-service==0.1.0",
+    "atlanticus-web-identity==0.1.0",
     "atlanticus-web-identity-local==0.1.0",
+    "atlanticus-web-users-cosmos==0.1.0",
+    "atlanticus-web-users-local==0.1.0",
     "dash==4.4.1",
     "gunicorn==26.0.0",
 ]
@@ -55,6 +58,7 @@ find-links = ["wheels"]
 
 [tool.uv.sources]
 ada-composition-integrated-operations = { path = "wheels/ada_composition_integrated_operations-0.1.0-py3-none-any.whl" }
+ada-composition-web-bootstrap = { path = "wheels/ada_composition_web_bootstrap-0.1.0-py3-none-any.whl" }
 ada-composition-web-deployment = { path = "wheels/ada_composition_web_deployment-0.1.0-py3-none-any.whl" }
 ada-contracts-tool-manifest = { path = "wheels/ada_contracts_tool_manifest-0.1.0-py3-none-any.whl" }
 ada-feature-alarms = { path = "wheels/ada_feature_alarms-0.1.0-py3-none-any.whl" }
@@ -65,8 +69,10 @@ ada-ui-component-global-indicator = { path = "wheels/ada_ui_component_global_ind
 ada-ui-shell-header = { path = "wheels/ada_ui_shell_header-0.1.0-py3-none-any.whl" }
 ada-ui-shell-time-status = { path = "wheels/ada_ui_shell_time_status-0.1.0-py3-none-any.whl" }
 atlanticus-web = { path = "wheels/atlanticus_web-0.1.0-py3-none-any.whl" }
-atlanticus-web-identity-app-service = { path = "wheels/atlanticus_web_identity_app_service-0.1.0-py3-none-any.whl" }
+atlanticus-web-identity = { path = "wheels/atlanticus_web_identity-0.1.0-py3-none-any.whl" }
 atlanticus-web-identity-local = { path = "wheels/atlanticus_web_identity_local-0.1.0-py3-none-any.whl" }
+atlanticus-web-users-cosmos = { path = "wheels/atlanticus_web_users_cosmos-0.1.0-py3-none-any.whl" }
+atlanticus-web-users-local = { path = "wheels/atlanticus_web_users_local-0.1.0-py3-none-any.whl" }
 
 [tool.ruff]
 line-length = 100

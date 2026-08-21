@@ -9,10 +9,13 @@ description = "Aplicación base deployable de ADA sobre Atlanticus Web"
 requires-python = "==3.14.2"
 classifiers = ["Private :: Do Not Upload"]
 dependencies = [
+    "ada-composition-web-bootstrap==0.1.0",
     "ada-composition-web-deployment==0.1.0",
     "atlanticus-web==0.1.0",
-    "atlanticus-web-identity-app-service==0.1.0",
+    "atlanticus-web-identity==0.1.0",
     "atlanticus-web-identity-local==0.1.0",
+    "atlanticus-web-users-cosmos==0.1.0",
+    "atlanticus-web-users-local==0.1.0",
     "dash==4.4.1",
     "gunicorn==26.0.0",
 ]
@@ -41,10 +44,13 @@ include = ["ada_application_base*"]
 find-links = ["wheels"]
 
 [tool.uv.sources]
+ada-composition-web-bootstrap = { path = "wheels/ada_composition_web_bootstrap-0.1.0-py3-none-any.whl" }
 ada-composition-web-deployment = { path = "wheels/ada_composition_web_deployment-0.1.0-py3-none-any.whl" }
 atlanticus-web = { path = "wheels/atlanticus_web-0.1.0-py3-none-any.whl" }
-atlanticus-web-identity-app-service = { path = "wheels/atlanticus_web_identity_app_service-0.1.0-py3-none-any.whl" }
+atlanticus-web-identity = { path = "wheels/atlanticus_web_identity-0.1.0-py3-none-any.whl" }
 atlanticus-web-identity-local = { path = "wheels/atlanticus_web_identity_local-0.1.0-py3-none-any.whl" }
+atlanticus-web-users-cosmos = { path = "wheels/atlanticus_web_users_cosmos-0.1.0-py3-none-any.whl" }
+atlanticus-web-users-local = { path = "wheels/atlanticus_web_users_local-0.1.0-py3-none-any.whl" }
 
 [tool.ruff]
 line-length = 100

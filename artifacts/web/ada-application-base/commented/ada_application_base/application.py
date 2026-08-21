@@ -9,17 +9,16 @@ from ada.compositions.web_deployment import (
     AdaWebDeploymentRuntime,
     open_ada_web_deployment_runtime,
 )
-from atlanticus.web.application import create_web_application
-from atlanticus.web.environment import EnvironmentReader
-from atlanticus.web.index import IndexPageDefinition
-from atlanticus.web.models import WebApplicationDefinition, WebApplicationRuntime
-
 from ada_application_base.definition import (
     build_deployment_definition,
     build_flask_config,
     build_metadata,
 )
-from ada_application_base.identity import build_identity_provider
+
+from atlanticus.web.application import create_web_application
+from atlanticus.web.environment import EnvironmentReader
+from atlanticus.web.index import IndexPageDefinition
+from atlanticus.web.models import WebApplicationDefinition, WebApplicationRuntime
 
 
 @dataclass(slots=True)
@@ -42,11 +41,10 @@ def create_application_runtime() -> AdaApplicationBaseRuntime:
     # Toma un snapshot único del entorno para resolver de forma coherente este runtime.
     environment = EnvironmentReader()
     metadata = build_metadata()
-    # Esta fase sólo abre runtime; SharePoint/provisioning/sync pertenecen a prepare.
+    # Esta fase sólo abre runtime; deployment resuelve Identity/Users desde ATLANTICUS_ENVIRONMENT.
     deployment = open_ada_web_deployment_runtime(
         definition=build_deployment_definition(environment),
         metadata=metadata,
-        identity_provider=build_identity_provider(),
         environment=environment,
     )
     try:

@@ -56,3 +56,11 @@ def test_artifact_does_not_embed_secrets_or_signed_endpoints() -> None:
     assert 'sig=' not in content
     assert 'AccountKey=' not in content
     assert 'ATLANTICUS_COSMOS_KEY=' not in content
+
+
+def test_artifact_does_not_use_legacy_identity_selector() -> None:
+    paths = [ROOT / 'app.py', *(ROOT / 'src').rglob('*.py')]
+    content = '\n'.join(path.read_text(encoding='utf-8') for path in paths)
+
+    assert 'ATLANTICUS_IDENTITY_PROVIDER' not in content
+    assert 'resolve_identity_provider_key' not in content

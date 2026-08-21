@@ -79,7 +79,6 @@ rm -f "$ENV_FILE"
 umask 077
 {
     printf 'ATLANTICUS_ENVIRONMENT=production\n'
-    printf 'ATLANTICUS_IDENTITY_PROVIDER=app_service\n'
     printf 'ATLANTICUS_COSMOS_READY_URL=http://cosmos-emulator:8080/ready\n'
     printf 'ATLANTICUS_COSMOS_ENDPOINT=http://cosmos-emulator:8081\n'
     printf 'ATLANTICUS_COSMOS_KEY=%s\n' "$COSMOS_KEY"

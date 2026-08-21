@@ -15,7 +15,6 @@ from integrated_operations.deployment.definition import (
     build_flask_config,
     build_metadata,
 )
-from integrated_operations.deployment.identity import build_identity_provider
 
 
 @dataclass(slots=True)
@@ -37,7 +36,6 @@ def create_application_runtime() -> IntegratedOperationsApplicationRuntime:
     deployment = open_ada_web_deployment_runtime(
         definition=build_deployment_definition(environment),
         metadata=metadata,
-        identity_provider=build_identity_provider(),
         environment=environment,
     )
     try:

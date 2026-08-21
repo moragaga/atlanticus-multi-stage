@@ -1,3 +1,4 @@
+import tomllib
 from email import message_from_bytes
 from pathlib import Path
 from zipfile import ZipFile
@@ -29,6 +30,16 @@ EXPECTED_INTERNAL_PACKAGES = {
     'atlanticus-web-users-activity',
     'atlanticus-web-users-configuration',
     'atlanticus-web-users-cosmos',
+    'atlanticus-web-users-local',
+}
+
+CRITICAL_PATH_PINNED_WHEELS = {
+    'ada-composition-web-bootstrap': 'ada_composition_web_bootstrap-0.1.0-py3-none-any.whl',
+    'ada-composition-web-deployment': 'ada_composition_web_deployment-0.1.0-py3-none-any.whl',
+    'atlanticus-web-identity': 'atlanticus_web_identity-0.1.0-py3-none-any.whl',
+    'atlanticus-web-identity-local': 'atlanticus_web_identity_local-0.1.0-py3-none-any.whl',
+    'atlanticus-web-users-cosmos': 'atlanticus_web_users_cosmos-0.1.0-py3-none-any.whl',
+    'atlanticus-web-users-local': 'atlanticus_web_users_local-0.1.0-py3-none-any.whl',
 }
 
 
@@ -43,6 +54,20 @@ def test_internal_wheels_target_python_3142() -> None:
     for wheel in WHEELS.glob('*.whl'):
         metadata = _wheel_metadata(wheel)
         assert metadata['Requires-Python'] == '==3.14.2'
+
+
+def test_critical_internal_wheels_are_path_pinned() -> None:
+    project = tomllib.loads((ROOT / 'pyproject.toml').read_text(encoding='utf-8'))
+    dependencies = set(project['project']['dependencies'])
+    sources = project['tool']['uv']['sources']
+    lock = tomllib.loads((ROOT / 'uv.lock').read_text(encoding='utf-8'))
+    locked_packages = {package['name']: package for package in lock['package']}
+
+    for package, filename in CRITICAL_PATH_PINNED_WHEELS.items():
+        assert f'{package}==0.1.0' in dependencies
+        expected_source = {'path': f'wheels/{filename}'}
+        assert sources[package] == expected_source
+        assert locked_packages[package]['source'] == expected_source
 
 
 def _wheel_metadata(path: Path):
