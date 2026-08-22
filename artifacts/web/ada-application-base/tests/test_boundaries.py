@@ -48,11 +48,9 @@ def test_artifact_does_not_use_legacy_identity_selector() -> None:
 
 
 def test_manager_is_embedded_without_standalone_manager_application() -> None:
-    source = '\n'.join(
-        path.read_text(encoding='utf-8') for path in (ROOT / 'src').rglob('*.py')
-    )
+    source = '\n'.join(path.read_text(encoding='utf-8') for path in (ROOT / 'src').rglob('*.py'))
 
     assert 'create_manager_application' not in source
-    assert "route_prefix=_MANAGER_ROUTE_PREFIX" in source
+    assert 'route_prefix=_MANAGER_ROUTE_PREFIX' in source
     assert "path='/manager'" in source
     assert "path_template='/manager/<module>'" in source

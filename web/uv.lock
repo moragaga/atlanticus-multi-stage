@@ -230,7 +230,7 @@ requires-dist = [
 
 [[package]]
 name = "atlanticus-web-manager"
-version = "0.3.3"
+version = "0.3.4"
 source = { editable = "capabilities/manager" }
 dependencies = [
     { name = "atlanticus-web" },
@@ -256,7 +256,7 @@ requires-dist = [{ name = "atlanticus-web", editable = "framework/core" }]
 
 [[package]]
 name = "atlanticus-web-navigation-configuration"
-version = "0.1.3"
+version = "0.1.4"
 source = { editable = "capabilities/navigation/configuration" }
 dependencies = [
     { name = "atlanticus-web-navigation" },
@@ -352,7 +352,7 @@ requires-dist = [
 
 [[package]]
 name = "atlanticus-web-users-configuration"
-version = "0.1.4"
+version = "0.1.5"
 source = { editable = "capabilities/users/configuration" }
 dependencies = [
     { name = "atlanticus-web-users" },
@@ -374,7 +374,7 @@ provides-extras = ["web"]
 
 [[package]]
 name = "atlanticus-web-users-cosmos"
-version = "0.1.4"
+version = "0.1.5"
 source = { editable = "capabilities/users/cosmos" }
 dependencies = [
     { name = "atlanticus-web-users" },

@@ -11,14 +11,14 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "atlanticus-web-navigation-configuration==0.1.3",
+    "atlanticus-web-navigation-configuration==0.1.4",
     "atlanticus-web-composition-navigation-activity==0.1.0",
     "atlanticus-web-composition-runtime-infrastructure==0.1.0",
     "atlanticus-web-composition-sharepoint-http==0.1.0",
-    "atlanticus-web-users-cosmos==0.1.4",
-    "atlanticus-web-users-configuration==0.1.4",
+    "atlanticus-web-users-cosmos==0.1.5",
+    "atlanticus-web-users-configuration==0.1.5",
     "atlanticus-web-users-activity==0.1.0",
-    "atlanticus-web-manager==0.3.3",
+    "atlanticus-web-manager==0.3.4",
     "pytest==9.1.1",
     "ruff==0.15.22",
 ]

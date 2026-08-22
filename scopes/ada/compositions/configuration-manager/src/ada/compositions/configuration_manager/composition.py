@@ -9,6 +9,7 @@ from ada.compositions.configuration_manager.workflows import (
 from ada.configuration.tools.web import (
     ToolAdminWebContext,
     build_tool_admin_configuration,
+    build_tool_history_preview,
     create_tool_admin_web_module,
 )
 from atlanticus.web.manager import (
@@ -29,12 +30,14 @@ from atlanticus.web.navigation.configuration import NavigationProfileOption
 from atlanticus.web.navigation.configuration.web import (
     NavigationAdminWebContext,
     build_navigation_admin_configuration,
+    build_navigation_history_preview,
     create_navigation_admin_web_module,
 )
 from atlanticus.web.services import ServiceRegistry
 from atlanticus.web.users.configuration.web import (
     UsersAdminWebContext,
     build_users_admin_configuration,
+    build_users_history_preview,
     create_users_admin_web_module,
 )
 
@@ -100,6 +103,7 @@ def build_configuration_manager_surface(
                 order=10,
                 description='Estructura base de las herramientas ADA.',
                 layout=lambda _services: build_tool_admin_configuration(tool_context),
+                history_preview_renderer=build_tool_history_preview,
                 workflow_service=TOOLS_WORKFLOW_SERVICE,
                 access=ManagerModuleAccess(
                     view='tools.manage',
@@ -122,6 +126,7 @@ def build_configuration_manager_surface(
                 order=20,
                 description='Perfiles, usuarios y descubrimiento de identidades Atlanticus.',
                 layout=lambda _services: build_users_admin_configuration(users_context),
+                history_preview_renderer=build_users_history_preview,
                 workflow_service=USERS_WORKFLOW_SERVICE,
                 access=ManagerModuleAccess(
                     view='users.manage',
@@ -144,6 +149,7 @@ def build_configuration_manager_surface(
                 order=30,
                 description='Rutas, secciones y políticas de acceso de Navigation.',
                 layout=lambda _services: build_navigation_admin_configuration(navigation_context),
+                history_preview_renderer=build_navigation_history_preview,
                 workflow_service=NAVIGATION_WORKFLOW_SERVICE,
                 access=ManagerModuleAccess(
                     view='navigation.manage',

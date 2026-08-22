@@ -129,3 +129,22 @@ def test_registry_rejects_invalid_route_prefix() -> None:
             ),
             route_prefix='/manager/',
         )
+
+
+def test_registry_rejects_non_callable_history_preview_renderer() -> None:
+    with pytest.raises(ManagerDefinitionError, match='history preview renderer'):
+        ManagerModuleRegistry(
+            groups=(ManagerModuleGroup('configuration', 'Configuraciones', 10),),
+            modules=(
+                ManagerModule(
+                    key='tools',
+                    group_key='configuration',
+                    title='Herramientas',
+                    route='/tools',
+                    order=10,
+                    layout=_layout,
+                    workflow_service='tools.workflow',
+                    history_preview_renderer='invalid',
+                ),
+            ),
+        )

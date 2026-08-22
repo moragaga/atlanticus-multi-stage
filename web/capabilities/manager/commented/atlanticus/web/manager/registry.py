@@ -1,4 +1,6 @@
-# El registry conserva las rutas lógicas de los módulos y aplica el prefijo definido por el host al resolver URLs efectivas.
+# Valida que cualquier renderer histórico declarado por un módulo sea invocable.
+# La validación falla temprano ante una definición de módulo inválida.
+
 import re
 
 from atlanticus.web.manager.authorization import ManagerAuthorizationPolicy
@@ -52,13 +54,11 @@ class ManagerModuleRegistry:
     def root_route(self) -> str:
         return self._route_prefix or '/'
 
-# El prefijo se aplica al montar la Surface; el ManagerModule sigue siendo reutilizable y no cambia su route.
     def route_for(self, module: ManagerModule) -> str:
         if self._route_prefix:
             return f'{self._route_prefix}{module.route}'
         return module.route
 
-# La búsqueda exige el namespace del host cuando existe, evitando aceptar rutas globales por accidente.
     def find_by_route(self, route: str) -> ManagerModule | None:
         normalized = route
         if self._route_prefix:
@@ -119,6 +119,10 @@ class ManagerModuleRegistry:
                 raise ManagerDefinitionError('Manager module layout must be callable')
             if module.preamble is not None and not callable(module.preamble):
                 raise ManagerDefinitionError('Manager module preamble must be callable')
+            if module.history_preview_renderer is not None and not callable(
+                module.history_preview_renderer
+            ):
+                raise ManagerDefinitionError('Manager history preview renderer must be callable')
             if module.default_section not in {'workflow', 'content'}:
                 raise ManagerDefinitionError('Manager module default section is invalid')
             if not module.workflow_section_title.strip():

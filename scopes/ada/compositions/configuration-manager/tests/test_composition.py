@@ -64,3 +64,16 @@ def test_force_publication_capability_is_explicitly_propagated_to_all_modules() 
     )
 
     assert all(module.force_publish_enabled for module in surface.modules)
+
+
+def test_configuration_manager_surface_registers_semantic_history_previews() -> None:
+    surface = build_configuration_manager_surface(dependencies=_dependencies())
+
+    renderers = {module.key: module.history_preview_renderer for module in surface.modules}
+
+    assert renderers['tools'] is not None
+    assert renderers['users'] is not None
+    assert renderers['navigation'] is not None
+    assert renderers['tools'].__name__ == 'build_tool_history_preview'
+    assert renderers['users'].__name__ == 'build_users_history_preview'
+    assert renderers['navigation'].__name__ == 'build_navigation_history_preview'

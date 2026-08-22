@@ -13,6 +13,7 @@ from atlanticus.web.modules import WebModule
 from atlanticus.web.services import ServiceRegistry
 
 ManagerLayoutFactory = Callable[[ServiceRegistry], object]
+ManagerHistoryPreviewRenderer = Callable[[dict[str, object]], object]
 ManagerPrincipalProvider = Callable[[], 'ManagerPrincipal']
 
 _PROFILE_KEY_PATTERN = re.compile(r'^[a-z0-9][a-z0-9._-]*$')
@@ -108,6 +109,7 @@ class ManagerModule:
     source_name: str = 'Source'
     projection_name: str = 'Projection'
     force_publish_enabled: bool = False
+    history_preview_renderer: ManagerHistoryPreviewRenderer | None = None
 
 
 @dataclass(frozen=True, slots=True)

@@ -116,6 +116,10 @@ class ManagerModuleRegistry:
                 raise ManagerDefinitionError('Manager module layout must be callable')
             if module.preamble is not None and not callable(module.preamble):
                 raise ManagerDefinitionError('Manager module preamble must be callable')
+            if module.history_preview_renderer is not None and not callable(
+                module.history_preview_renderer
+            ):
+                raise ManagerDefinitionError('Manager history preview renderer must be callable')
             if module.default_section not in {'workflow', 'content'}:
                 raise ManagerDefinitionError('Manager module default section is invalid')
             if not module.workflow_section_title.strip():

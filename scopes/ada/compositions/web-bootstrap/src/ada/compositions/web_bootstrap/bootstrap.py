@@ -91,9 +91,7 @@ def create_ada_web_bootstrap(
                 )
             ),
         )
-        navigation_provider = create_projected_navigation_definition_provider(
-            navigation_projection
-        )
+        navigation_provider = create_projected_navigation_definition_provider(navigation_projection)
     else:
         navigation_provider = runtime_projection.navigation_provider
     activity_repository = CosmosUserActivityRepository(

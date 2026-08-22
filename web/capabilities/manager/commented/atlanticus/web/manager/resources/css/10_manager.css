@@ -1,4 +1,5 @@
-/* Estilos del workspace local y del diálogo de confirmación para descartar o recargar sin mezclar Source y Projection. */
+/* Estilos genéricos del modal y de las estructuras semánticas usadas por las vistas previas históricas. */
+/* La presentación permanece en Manager mientras el contenido concreto es producido por cada módulo. */
 
 html,
 body,
@@ -859,7 +860,7 @@ body,
     font-weight: 700;
 }
 
-.atlanticus-manager__history-restore {
+.atlanticus-manager__history-preview-open {
     justify-self: end;
 }
 
@@ -947,7 +948,7 @@ body,
         display: none;
     }
 
-    .atlanticus-manager__history-restore {
+    .atlanticus-manager__history-preview-open {
         justify-self: start;
     }
 }
@@ -1138,4 +1139,221 @@ body,
     display: flex;
     justify-content: flex-end;
     gap: .55rem;
+}
+
+.atlanticus-manager__history-preview {
+    position: fixed;
+    z-index: 2200;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(7, 21, 34, .52);
+}
+
+.atlanticus-manager__history-preview[hidden] {
+    display: none;
+}
+
+.atlanticus-manager__history-preview-card {
+    display: grid;
+    width: min(100%, 72rem);
+    max-height: min(88vh, 54rem);
+    grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+    gap: .8rem;
+    padding: 1rem;
+    overflow: hidden;
+    background: var(--atlanticus-manager-surface);
+    border: 1px solid var(--atlanticus-manager-border);
+    border-radius: .9rem;
+    box-shadow: 0 1.4rem 4rem rgba(7, 21, 34, .24);
+}
+
+.atlanticus-manager__history-preview-header h3,
+.atlanticus-manager__history-preview-header p,
+.atlanticus-manager__history-preview-help {
+    margin: 0;
+}
+
+.atlanticus-manager__history-preview-header h3 {
+    color: var(--atlanticus-manager-color-primary-ink);
+    font-size: 1rem;
+}
+
+.atlanticus-manager__history-preview-meta-grid,
+.atlanticus-manager__preview-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .55rem;
+}
+
+.atlanticus-manager__history-preview-meta-item,
+.atlanticus-manager__preview-summary-item {
+    display: grid;
+    gap: .18rem;
+    padding: .65rem .7rem;
+    background: var(--atlanticus-manager-surface-muted);
+    border: 1px solid var(--atlanticus-manager-border);
+    border-radius: .65rem;
+}
+
+.atlanticus-manager__history-preview-meta-item small,
+.atlanticus-manager__preview-summary-item small {
+    color: var(--atlanticus-manager-text-muted);
+    font-size: .64rem;
+}
+
+.atlanticus-manager__history-preview-meta-item strong,
+.atlanticus-manager__preview-summary-item strong {
+    color: var(--atlanticus-manager-color-primary-ink);
+    font-size: .76rem;
+}
+
+.atlanticus-manager__history-preview-body {
+    min-height: 0;
+    overflow: auto;
+    padding: .15rem .15rem .15rem 0;
+}
+
+.atlanticus-manager__history-preview-help {
+    color: var(--atlanticus-manager-text-muted);
+    font-size: .72rem;
+    line-height: 1.45;
+}
+
+.atlanticus-manager__history-preview-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: .55rem;
+}
+
+.atlanticus-manager__preview-content,
+.atlanticus-manager__preview-tree,
+.atlanticus-manager__preview-list,
+.atlanticus-manager__preview-children,
+.atlanticus-manager__preview-subcomponents,
+.atlanticus-manager__preview-sources {
+    display: grid;
+    gap: .65rem;
+}
+
+.atlanticus-manager__preview-content {
+    gap: .85rem;
+}
+
+.atlanticus-manager__preview-section {
+    display: grid;
+    gap: .65rem;
+    padding: .8rem;
+    background: var(--atlanticus-manager-surface);
+    border: 1px solid var(--atlanticus-manager-border);
+    border-radius: .75rem;
+}
+
+.atlanticus-manager__preview-section h4 {
+    margin: 0;
+    color: var(--atlanticus-manager-color-primary-ink);
+    font-size: .82rem;
+}
+
+.atlanticus-manager__preview-section-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: .7rem;
+}
+
+.atlanticus-manager__preview-section-copy,
+.atlanticus-manager__preview-entity-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .45rem;
+}
+
+.atlanticus-manager__preview-section-copy {
+    display: grid;
+    gap: .14rem;
+}
+
+.atlanticus-manager__preview-section-copy strong,
+.atlanticus-manager__preview-entity-title strong {
+    color: var(--atlanticus-manager-color-primary-ink);
+    font-size: .78rem;
+}
+
+.atlanticus-manager__preview-section-copy small,
+.atlanticus-manager__preview-detail {
+    color: var(--atlanticus-manager-text-muted);
+    font-size: .68rem;
+}
+
+.atlanticus-manager__preview-entity,
+.atlanticus-manager__preview-subcomponent,
+.atlanticus-manager__preview-source {
+    display: grid;
+    gap: .4rem;
+    padding: .65rem .7rem;
+    background: var(--atlanticus-manager-surface-muted);
+    border: 1px solid var(--atlanticus-manager-border);
+    border-radius: .65rem;
+}
+
+.atlanticus-manager__preview-children,
+.atlanticus-manager__preview-subcomponents {
+    padding-left: .75rem;
+    border-left: 2px solid var(--atlanticus-manager-border);
+}
+
+.atlanticus-manager__preview-url {
+    color: var(--atlanticus-manager-color-primary-dark);
+    font-family: monospace;
+    font-size: .7rem;
+    overflow-wrap: anywhere;
+}
+
+.atlanticus-manager__preview-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+}
+
+.atlanticus-manager__preview-badge {
+    padding: .2rem .42rem;
+    color: var(--atlanticus-manager-color-primary-dark);
+    background: var(--atlanticus-manager-color-primary-soft);
+    border-radius: 999px;
+    font-size: .62rem;
+    font-weight: 700;
+}
+
+.atlanticus-manager__preview-source {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+}
+
+.atlanticus-manager__preview-source span,
+.atlanticus-manager__preview-empty {
+    color: var(--atlanticus-manager-text-muted);
+    font-size: .68rem;
+}
+
+.atlanticus-manager__preview-empty {
+    margin: 0;
+}
+
+@media (max-width: 48rem) {
+    .atlanticus-manager__history-preview-meta-grid,
+    .atlanticus-manager__preview-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .atlanticus-manager__preview-section-heading,
+    .atlanticus-manager__preview-source {
+        grid-template-columns: 1fr;
+    }
+
+    .atlanticus-manager__preview-section-heading {
+        display: grid;
+    }
 }

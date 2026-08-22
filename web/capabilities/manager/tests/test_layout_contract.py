@@ -38,16 +38,18 @@ def test_manager_lifecycle_exposes_draft_validate_publish_and_project() -> None:
     assert 'module.force_publish_enabled' in layout
 
 
-def test_source_audit_is_specific_and_history_loads_as_browser_draft() -> None:
+def test_source_audit_is_specific_and_history_opens_preview_before_loading_draft() -> None:
     root = Path(__file__).parents[1]
     layout = (root / 'src/atlanticus/web/manager/web/layout.py').read_text(encoding='utf-8')
 
     assert "'Última publicación'" in layout
     assert "'Última proyección'" in layout
     assert "'Última validación'" not in layout
+    assert "'Ver revisión'" in layout
     assert "'Cargar como borrador'" in layout
-    assert 'history_load_id(' in layout
-    assert 'history_restore_id(' not in layout
+    assert 'history_preview_open_id(' in layout
+    assert 'workflow_history_preview_load_id(module.key)' in layout
+    assert 'history_load_id(' not in layout
 
 
 def test_header_keeps_atlanticus_identity_without_duplicate_user_identity() -> None:
@@ -90,8 +92,8 @@ def test_source_conflict_is_rendered_as_functional_state_with_actor_and_revision
     assert "'La fuente cambió mientras estabas trabajando.'" in layout
     assert "'Base de tu borrador'" in layout
     assert "'Fuente actual'" in layout
-    assert "source_actor" in layout
-    assert "source_occurred_at" in layout
+    assert 'source_actor' in layout
+    assert 'source_occurred_at' in layout
 
 
 def test_manager_tracks_editor_revision_and_source_verification_as_transient_state() -> None:
@@ -118,3 +120,14 @@ def test_workspace_actions_explain_refresh_and_post_publish_verification() -> No
     assert "'No requerida' if draft.revision == source_revision else 'Pendiente'" in layout
     assert 'workflow_workspace_confirmation_id(module.key)' in layout
     assert '.atlanticus-manager__workspace-confirm' in css
+
+
+def test_history_preview_is_non_destructive_until_explicit_load() -> None:
+    root = Path(__file__).parents[1]
+    layout = (root / 'src/atlanticus/web/manager/web/layout.py').read_text(encoding='utf-8')
+
+    assert "'Vista previa histórica'" in layout
+    assert "'Cargar esta revisión reemplazará el trabajo local actual del '" in layout
+    assert 'workflow_history_preview_store_id(module.key)' in layout
+    assert 'module.history_preview_renderer is not None' in layout
+    assert 'hidden=True' in layout

@@ -84,12 +84,10 @@ def create_application_runtime() -> AdaApplicationBaseRuntime:
     )
     manager_sharepoint_infrastructure = None
     try:
-        manager_sharepoint_infrastructure = (
-            open_configuration_manager_sharepoint_infrastructure(
-                selection=backend_selection,
-                environment=environment,
-                definition=deployment_definition.sharepoint,
-            )
+        manager_sharepoint_infrastructure = open_configuration_manager_sharepoint_infrastructure(
+            selection=backend_selection,
+            environment=environment,
+            definition=deployment_definition.sharepoint,
         )
         principal_provider = EffectiveUserManagerPrincipalProvider()
         manager_dependencies = create_configuration_manager_dependencies(
@@ -175,9 +173,7 @@ def _create_manager_host_module() -> WebModule:
 def _is_manager_route(pathname: str | None) -> bool:
     if not pathname:
         return False
-    return pathname == _MANAGER_ROUTE_PREFIX or pathname.startswith(
-        f'{_MANAGER_ROUTE_PREFIX}/'
-    )
+    return pathname == _MANAGER_ROUTE_PREFIX or pathname.startswith(f'{_MANAGER_ROUTE_PREFIX}/')
 
 
 def _close_quietly(infrastructure: WebRuntimeInfrastructure) -> None:

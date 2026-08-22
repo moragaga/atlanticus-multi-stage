@@ -42,9 +42,7 @@ def resolve_manager_lifecycle(
         and source_verification.draft_revision == draft.revision
     )
     verification_matches = bool(
-        current_verification
-        and source_verification is not None
-        and source_verification.matches
+        current_verification and source_verification is not None and source_verification.matches
     )
     conflict = bool(current_verification and not verification_matches)
     return ManagerLifecycleState(
@@ -55,7 +53,9 @@ def resolve_manager_lifecycle(
         verification_current=current_verification,
         source_conflict=conflict,
         can_save_draft=dirty,
-        can_validate=bool(draft is not None and not dirty and not published and not current_validation),
+        can_validate=bool(
+            draft is not None and not dirty and not published and not current_validation
+        ),
         can_verify_source=bool(current_validation and not published and not current_verification),
         can_publish=bool(verification_matches and not published),
         can_force_publish=bool(current_validation and conflict),

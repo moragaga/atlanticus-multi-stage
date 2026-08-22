@@ -180,9 +180,7 @@ def create_configuration_runtime_projection(
     )
     return AdaRuntimeProjection(
         profiles=FileUsersProjectionProfileCatalog(users_projection),
-        navigation_provider=create_projected_navigation_definition_provider(
-            navigation_projection
-        ),
+        navigation_provider=create_projected_navigation_definition_provider(navigation_projection),
     )
 
 

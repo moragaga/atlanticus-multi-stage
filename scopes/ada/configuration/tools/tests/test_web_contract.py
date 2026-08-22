@@ -120,11 +120,17 @@ def test_tool_workspace_starts_empty_and_does_not_read_source_implicitly() -> No
     assert 'catalog = ToolConfigurationCatalog(())' in layout
     assert 'data=None' in layout
     assert 'def refresh_source_revision(' not in callbacks
-    assert 'if draft_data is None:' in callbacks[
-        callbacks.index('def load_browser_draft(') : callbacks.index('def track_editor_revision(')
-    ]
+    assert (
+        'if draft_data is None:'
+        in callbacks[
+            callbacks.index('def load_browser_draft(') : callbacks.index(
+                'def track_editor_revision('
+            )
+        ]
+    )
     tracker = callbacks[
-        callbacks.index("Output(context.editor_revision_store_id, 'data')") :
-        callbacks.index('def track_editor_revision(')
+        callbacks.index("Output(context.editor_revision_store_id, 'data')") : callbacks.index(
+            'def track_editor_revision('
+        )
     ]
     assert 'prevent_initial_call=True' in tracker

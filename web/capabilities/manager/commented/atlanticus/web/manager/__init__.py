@@ -1,5 +1,5 @@
-# Expone el estado y resolver del lifecycle explícito como parte de la API pública reutilizable de Manager.
-# El facade evita dependencias directas de consumidores sobre módulos internos.
+# Expone el contrato público del renderer opcional de vista previa histórica por módulo.
+# El contrato permite extender Manager sin acoplarlo a la semántica de Tools, Users o Navigation.
 
 from atlanticus.web.manager.authorization import (
     DefaultManagerAuthorizationPolicy,
@@ -18,6 +18,7 @@ from atlanticus.web.manager.models import (
     ManagerApplicationDefinition,
     ManagerBrand,
     ManagerBrandMark,
+    ManagerHistoryPreviewRenderer,
     ManagerModule,
     ManagerModuleAccess,
     ManagerModuleGroup,
@@ -58,6 +59,7 @@ __all__ = [
     'ManagerDefinitionError',
     'ManagerDraft',
     'ManagerError',
+    'ManagerHistoryPreviewRenderer',
     'ManagerLifecycleState',
     'ManagerModule',
     'ManagerModuleAccess',

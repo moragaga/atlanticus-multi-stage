@@ -1,5 +1,5 @@
-# Declara identificadores por módulo para comandos, confirmación y señal de reset del workspace local.
-# Los IDs MATCH mantienen aislado el estado de Tools, Users y Navigation.
+# Declara identificadores aislados por módulo para abrir, cerrar y confirmar la vista previa histórica.
+# Los IDs pattern-matching mantienen separadas las revisiones y superficies del Manager.
 
 LOCATION_ID = 'atlanticus-manager-location'
 SUMMARY_ID = 'atlanticus-manager-summary'
@@ -50,7 +50,6 @@ def workflow_draft_status_id(module_key: str) -> dict[str, str]:
     }
 
 
-
 def workflow_conflict_id(module_key: str) -> dict[str, str]:
     return {
         'type': 'atlanticus-manager-workflow-conflict',
@@ -63,6 +62,7 @@ def workflow_conflict_details_id(module_key: str) -> dict[str, str]:
         'type': 'atlanticus-manager-workflow-conflict-details',
         'module': module_key,
     }
+
 
 def workflow_history_id(module_key: str) -> dict[str, str]:
     return {
@@ -120,7 +120,6 @@ def workflow_editor_revision_id(module_key: str) -> dict[str, str]:
     }
 
 
-
 def workflow_workspace_reset_signal_id(module_key: str) -> dict[str, str]:
     return {
         'type': 'atlanticus-manager-workspace-reset-signal',
@@ -155,6 +154,7 @@ def workflow_workspace_confirmation_message_id(module_key: str) -> dict[str, str
         'module': module_key,
     }
 
+
 def module_section_store_id(module_key: str) -> dict[str, str]:
     return {
         'type': 'atlanticus-manager-module-section-store',
@@ -178,14 +178,72 @@ def module_section_panel_id(module_key: str, section: str) -> dict[str, str]:
     }
 
 
-def history_load_id(
+def history_preview_open_id(
     module_key: str,
     revision: str,
     occurrence: str,
-) -> dict[str, str]:
+    *,
+    saved_by: str,
+    saved_at: str,
+    current: bool,
+    active: bool,
+) -> dict[str, object]:
     return {
-        'type': 'atlanticus-manager-history-load',
+        'type': 'atlanticus-manager-history-preview-open',
         'module': module_key,
         'revision': revision,
         'occurrence': occurrence,
+        'saved_by': saved_by,
+        'saved_at': saved_at,
+        'current': current,
+        'active': active,
+    }
+
+
+def workflow_history_preview_id(module_key: str) -> dict[str, str]:
+    return {
+        'type': 'atlanticus-manager-history-preview',
+        'module': module_key,
+    }
+
+
+def workflow_history_preview_store_id(module_key: str) -> dict[str, str]:
+    return {
+        'type': 'atlanticus-manager-history-preview-store',
+        'module': module_key,
+    }
+
+
+def workflow_history_preview_heading_id(module_key: str) -> dict[str, str]:
+    return {
+        'type': 'atlanticus-manager-history-preview-heading',
+        'module': module_key,
+    }
+
+
+def workflow_history_preview_meta_id(module_key: str) -> dict[str, str]:
+    return {
+        'type': 'atlanticus-manager-history-preview-meta',
+        'module': module_key,
+    }
+
+
+def workflow_history_preview_body_id(module_key: str) -> dict[str, str]:
+    return {
+        'type': 'atlanticus-manager-history-preview-body',
+        'module': module_key,
+    }
+
+
+def workflow_history_preview_close_id(module_key: str) -> dict[str, str]:
+    return {
+        'type': 'atlanticus-manager-history-preview-close',
+        'module': module_key,
+    }
+
+
+def workflow_history_preview_load_id(module_key: str) -> dict[str, str]:
+    return {
+        'type': 'atlanticus-manager-history-preview-load',
+        'module': module_key,
     }

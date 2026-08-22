@@ -1,5 +1,5 @@
-# Presenta las acciones explícitas Cargar configuración desde Source, Descartar trabajo local y Recargar junto al lifecycle de publicación.
-# Después de publicar, la verificación de Source se muestra como no requerida cuando el draft ya coincide con la fuente.
+# Sustituye la carga histórica directa por una acción de inspección y un modal genérico de confirmación.
+# Cerrar la vista previa no modifica el workspace; cargar como borrador sigue siendo una decisión explícita.
 
 from __future__ import annotations
 
@@ -42,7 +42,7 @@ from atlanticus.web.manager.web.ids import (
     SIDEBAR_TOGGLE_ID,
     STATUS_STORE_ID,
     SUMMARY_ID,
-    history_load_id,
+    history_preview_open_id,
     module_section_button_id,
     module_section_panel_id,
     module_section_store_id,
@@ -54,6 +54,13 @@ from atlanticus.web.manager.web.ids import (
     workflow_draft_status_id,
     workflow_editor_revision_id,
     workflow_history_id,
+    workflow_history_preview_body_id,
+    workflow_history_preview_close_id,
+    workflow_history_preview_heading_id,
+    workflow_history_preview_id,
+    workflow_history_preview_load_id,
+    workflow_history_preview_meta_id,
+    workflow_history_preview_store_id,
     workflow_projection_signal_id,
     workflow_refresh_signal_id,
     workflow_result_id,
@@ -437,6 +444,7 @@ def build_workflow_panel(
                 ),
                 id=workflow_history_id(module.key),
             ),
+            _build_history_preview_shell(module),
         ],
         className='atlanticus-manager__workflow',
     )
@@ -605,9 +613,7 @@ def build_source_conflict_content(
     verification: SourceVerificationResult,
 ) -> object:
     actor = (
-        verification.source_audit.actor
-        if verification.source_audit is not None
-        else 'Otro usuario'
+        verification.source_audit.actor if verification.source_audit is not None else 'Otro usuario'
     )
     occurred_at = (
         _format_datetime(verification.source_audit.occurred_at)
@@ -655,7 +661,7 @@ def build_workflow_history_content(
         return None
     return _build_history(
         history,
-        module_key=module.key,
+        module=module,
         can_load_history=can_load_history,
     )
 
@@ -667,9 +673,7 @@ def _workflow_revision_state(status: ProjectionStatus | None) -> dict[str, objec
         'source_revision': status.source_revision,
         'source_actor': status.source_audit.actor if status.source_audit is not None else None,
         'source_occurred_at': (
-            status.source_audit.occurred_at.isoformat()
-            if status.source_audit is not None
-            else None
+            status.source_audit.occurred_at.isoformat() if status.source_audit is not None else None
         ),
         'active_source_revision': status.active_source_revision,
     }
@@ -948,8 +952,7 @@ def _workspace_confirmation(module: ManagerModule) -> object:
                             id=workflow_action_id(module.key, 'workspace-cancel'),
                             n_clicks=0,
                             className=(
-                                'atlanticus-manager__button '
-                                'atlanticus-manager__button--secondary'
+                                'atlanticus-manager__button atlanticus-manager__button--secondary'
                             ),
                         ),
                         html.Button(
@@ -957,8 +960,7 @@ def _workspace_confirmation(module: ManagerModule) -> object:
                             id=workflow_action_id(module.key, 'workspace-confirm'),
                             n_clicks=0,
                             className=(
-                                'atlanticus-manager__button '
-                                'atlanticus-manager__button--danger'
+                                'atlanticus-manager__button atlanticus-manager__button--danger'
                             ),
                         ),
                     ],
@@ -971,6 +973,7 @@ def _workspace_confirmation(module: ManagerModule) -> object:
         className='atlanticus-manager__workspace-confirm',
         hidden=True,
     )
+
 
 def _workflow_action_step(
     step: str,
@@ -1058,7 +1061,7 @@ def _audit_value(audit) -> str:
 def _build_history(
     history: tuple[RevisionHistoryEntry, ...],
     *,
-    module_key: str,
+    module: ManagerModule,
     can_load_history: bool,
 ) -> object:
     rows = []
@@ -1070,19 +1073,23 @@ def _build_history(
             labels.append('Proyección activa')
         status = ' · '.join(labels) if labels else 'Histórica'
         action = None
-        if can_load_history:
+        if can_load_history and module.history_preview_renderer is not None:
             action = html.Button(
-                'Cargar como borrador',
-                id=history_load_id(
-                    module_key,
+                'Ver revisión',
+                id=history_preview_open_id(
+                    module.key,
                     entry.revision,
                     f'{index}-{entry.saved_at.isoformat()}',
+                    saved_by=entry.saved_by,
+                    saved_at=_format_datetime(entry.saved_at),
+                    current=entry.current,
+                    active=entry.active,
                 ),
                 n_clicks=0,
                 className=(
                     'atlanticus-manager__button '
                     'atlanticus-manager__button--secondary '
-                    'atlanticus-manager__history-restore'
+                    'atlanticus-manager__history-preview-open'
                 ),
             )
         rows.append(
@@ -1112,12 +1119,91 @@ def _build_history(
             html.H3('Historial publicado'),
             html.P(
                 'Solo aparecen revisiones publicadas en la fuente de verdad. '
-                'Una revisión histórica se recupera primero como borrador local.'
+                'Abre una revisión para inspeccionarla antes de cargarla como borrador local.'
             ),
             header if rows else None,
             html.Div(rows) if rows else html.Div('Sin revisiones históricas.'),
         ],
         className='atlanticus-manager__history',
+    )
+
+
+def _build_history_preview_shell(module: ManagerModule) -> object:
+    return html.Div(
+        [
+            dcc.Store(
+                id=workflow_history_preview_store_id(module.key),
+                storage_type='memory',
+            ),
+            html.Div(
+                [
+                    html.Section(
+                        [
+                            html.Header(
+                                [
+                                    html.Div(
+                                        [
+                                            html.P(
+                                                'Vista previa histórica',
+                                                className='atlanticus-manager__eyebrow',
+                                            ),
+                                            html.H3(
+                                                id=workflow_history_preview_heading_id(module.key)
+                                            ),
+                                        ]
+                                    ),
+                                ],
+                                className='atlanticus-manager__history-preview-header',
+                            ),
+                            html.Div(
+                                id=workflow_history_preview_meta_id(module.key),
+                                className='atlanticus-manager__history-preview-meta',
+                            ),
+                            html.Div(
+                                id=workflow_history_preview_body_id(module.key),
+                                className='atlanticus-manager__history-preview-body',
+                            ),
+                            html.P(
+                                (
+                                    'Cargar esta revisión reemplazará el trabajo local actual del '
+                                    'módulo. La fuente de verdad y la proyección no se modificarán.'
+                                ),
+                                className='atlanticus-manager__history-preview-help',
+                            ),
+                            html.Div(
+                                [
+                                    html.Button(
+                                        'Cerrar',
+                                        id=workflow_history_preview_close_id(module.key),
+                                        n_clicks=0,
+                                        className=(
+                                            'atlanticus-manager__button '
+                                            'atlanticus-manager__button--secondary'
+                                        ),
+                                    ),
+                                    html.Button(
+                                        'Cargar como borrador',
+                                        id=workflow_history_preview_load_id(module.key),
+                                        n_clicks=0,
+                                        className='atlanticus-manager__button',
+                                    ),
+                                ],
+                                className='atlanticus-manager__history-preview-actions',
+                            ),
+                        ],
+                        className='atlanticus-manager__history-preview-card',
+                        **{
+                            'role': 'dialog',
+                            'aria-modal': 'true',
+                            'aria-label': f'Vista previa histórica de {module.title}',
+                        },
+                    )
+                ],
+                id=workflow_history_preview_id(module.key),
+                hidden=True,
+                className='atlanticus-manager__history-preview',
+            ),
+        ]
     )
 
 

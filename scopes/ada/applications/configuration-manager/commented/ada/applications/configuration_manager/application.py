@@ -1,5 +1,5 @@
-# Compone el host standalone de preview y QA con la misma superficie reutilizable del Configuration Manager.
-# La versión se mantiene alineada con los contratos de workspace consumidos por el host.
+# Mantiene alineada la versión del host standalone de preview y QA con la superficie del Configuration Manager.
+# La aplicación consume la misma composición reutilizable que luego se incrusta en ADA.
 
 from __future__ import annotations
 
@@ -63,7 +63,7 @@ def build_configuration_manager_definition(
         metadata=ApplicationMetadata(
             application_id='ada-configuration-manager',
             display_name='Gestor de configuración ADA',
-            version='0.2.7',
+            version='0.2.9',
         ),
         publications_root=Path(publications_root),
         surface=build_configuration_manager_surface(

@@ -1,9 +1,9 @@
-# Orquesta cargar Source, descartar el workspace y recargar profundamente el estado remoto como operaciones distintas.
-# Descartar reconstruye solo el editor local; Recargar además vuelve a consultar Source, History y Projection sin publicar ni proyectar.
+# Abre una vista previa histórica sin modificar el workspace y carga el payload como draft solo tras confirmación explícita.
+# El payload inspeccionado se conserva en memoria durante el modal para evitar una segunda lectura remota innecesaria.
 
 from __future__ import annotations
 
-from dash import ALL, MATCH, Input, Output, State, ctx, no_update
+from dash import ALL, MATCH, Input, Output, State, ctx, html, no_update
 
 from atlanticus.web.manager.authorization import ManagerAuthorizationPolicy
 from atlanticus.web.manager.coordinator import ManagerProjectionCoordinator
@@ -34,7 +34,7 @@ from atlanticus.web.manager.web.ids import (
     SIDEBAR_TOGGLE_ID,
     STATUS_STORE_ID,
     SUMMARY_ID,
-    history_load_id,
+    history_preview_open_id,
     module_section_button_id,
     module_section_panel_id,
     module_section_store_id,
@@ -46,6 +46,13 @@ from atlanticus.web.manager.web.ids import (
     workflow_draft_status_id,
     workflow_editor_revision_id,
     workflow_history_id,
+    workflow_history_preview_body_id,
+    workflow_history_preview_close_id,
+    workflow_history_preview_heading_id,
+    workflow_history_preview_id,
+    workflow_history_preview_load_id,
+    workflow_history_preview_meta_id,
+    workflow_history_preview_store_id,
     workflow_projection_signal_id,
     workflow_refresh_signal_id,
     workflow_result_id,
@@ -153,8 +160,7 @@ def register_manager_callbacks(
             registry=registry,
             modules=registry.visible_modules(principal, authorization),
             current_path=(
-                pathname
-                or registry.route_for(registry.require(definition.default_module_key))
+                pathname or registry.route_for(registry.require(definition.default_module_key))
             ),
             states=states,
         )
@@ -367,7 +373,9 @@ def register_manager_callbacks(
         try:
             draft = _require_draft(draft_data, principal)
             if _editor_revision(editor_revision) != draft.revision:
-                raise ManagerProjectionError('Current editor changes must be saved before validation')
+                raise ManagerProjectionError(
+                    'Current editor changes must be saved before validation'
+                )
             result = coordinator.validate_draft(
                 str(trigger.get('module', '')),
                 principal,
@@ -415,7 +423,9 @@ def register_manager_callbacks(
         try:
             draft = _require_draft(draft_data, principal)
             if _editor_revision(editor_revision) != draft.revision:
-                raise ManagerProjectionError('Current editor changes must be saved before verification')
+                raise ManagerProjectionError(
+                    'Current editor changes must be saved before verification'
+                )
             if not _validation_is_current(draft, validation_data):
                 raise ManagerProjectionError('A successful draft validation is required')
             result = coordinator.verify_source(
@@ -427,7 +437,11 @@ def register_manager_callbacks(
         except ManagerError as error:
             return _error_message(str(error)), no_update, no_update
         except Exception:
-            return _error_message('Source verification could not be completed'), no_update, no_update
+            return (
+                _error_message('Source verification could not be completed'),
+                no_update,
+                no_update,
+            )
         return None, result.to_document(), int(refresh_signal or 0) + 1
 
     @app.callback(
@@ -459,7 +473,9 @@ def register_manager_callbacks(
         try:
             draft = _require_draft(draft_data, principal)
             if _editor_revision(editor_revision) != draft.revision:
-                raise ManagerProjectionError('Current editor changes must be saved before publication')
+                raise ManagerProjectionError(
+                    'Current editor changes must be saved before publication'
+                )
             if not _validation_is_current(draft, validation_data):
                 raise ManagerProjectionError('A successful draft validation is required')
             verification = _require_source_verification(verification_data, draft)
@@ -552,7 +568,12 @@ def register_manager_callbacks(
         except ManagerError as error:
             return _error_message(str(error)), no_update, no_update, no_update
         except Exception:
-            return _error_message('Current source could not be loaded'), no_update, no_update, no_update
+            return (
+                _error_message('Current source could not be loaded'),
+                no_update,
+                no_update,
+                no_update,
+            )
         return None, draft.to_document(), None, None
 
     @app.callback(
@@ -632,7 +653,9 @@ def register_manager_callbacks(
         try:
             draft = _require_draft(draft_data, principal)
             if _editor_revision(editor_revision) != draft.revision:
-                raise ManagerProjectionError('Current editor changes must be saved before publication')
+                raise ManagerProjectionError(
+                    'Current editor changes must be saved before publication'
+                )
             if not _validation_is_current(draft, validation_data):
                 raise ManagerProjectionError('A successful draft validation is required')
             verification = _require_source_verification(verification_data, draft)
@@ -718,7 +741,19 @@ def register_manager_callbacks(
         if not _click_is_real(clicks):
             return (no_update,) * 11
         if action == 'workspace-cancel':
-            return True, None, None, None, no_update, no_update, no_update, no_update, no_update, no_update, no_update
+            return (
+                True,
+                None,
+                None,
+                None,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+            )
         has_local_work = _has_local_work(draft_data, editor_revision)
         if action == 'discard-local':
             if not has_local_work:
@@ -792,30 +827,110 @@ def register_manager_callbacks(
         )
 
     @app.callback(
+        Output(workflow_history_preview_id(MATCH), 'hidden'),
+        Output(workflow_history_preview_heading_id(MATCH), 'children'),
+        Output(workflow_history_preview_meta_id(MATCH), 'children'),
+        Output(workflow_history_preview_body_id(MATCH), 'children'),
+        Output(workflow_history_preview_store_id(MATCH), 'data'),
+        Output(workflow_result_id(MATCH), 'children', allow_duplicate=True),
+        Input(
+            history_preview_open_id(
+                MATCH, ALL, ALL, saved_by=ALL, saved_at=ALL, current=ALL, active=ALL
+            ),
+            'n_clicks',
+        ),
+        Input(workflow_history_preview_close_id(MATCH), 'n_clicks'),
+        State(
+            history_preview_open_id(
+                MATCH, ALL, ALL, saved_by=ALL, saved_at=ALL, current=ALL, active=ALL
+            ),
+            'id',
+        ),
+        prevent_initial_call=True,
+    )
+    def manage_history_preview(
+        clicks: list[int],
+        close_clicks: int,
+        preview_ids: list[dict[str, object]],
+    ):
+        trigger = ctx.triggered_id
+        if (
+            isinstance(trigger, dict)
+            and trigger.get('type') == 'atlanticus-manager-history-preview-close'
+        ):
+            if not _click_is_real(close_clicks):
+                return (no_update,) * 6
+            return True, None, None, None, None, no_update
+        if not _pattern_click_is_real(trigger, clicks, preview_ids):
+            return (no_update,) * 6
+        module_key = str(trigger.get('module', ''))
+        revision = str(trigger.get('revision', '')).strip()
+        principal = definition.principal_provider()
+        try:
+            module = registry.require(module_key)
+            renderer = module.history_preview_renderer
+            if renderer is None:
+                raise ManagerProjectionError('Manager module does not support history preview')
+            payload = coordinator.load_history_revision(module_key, principal, revision)
+            preview = renderer(payload)
+        except ManagerError as error:
+            return True, None, None, None, None, _error_message(str(error))
+        except Exception:
+            return (
+                True,
+                None,
+                None,
+                None,
+                None,
+                _error_message('History revision preview could not be loaded'),
+            )
+        labels = []
+        if bool(trigger.get('current')):
+            labels.append('Fuente actual')
+        if bool(trigger.get('active')):
+            labels.append('Proyección activa')
+        status = ' · '.join(labels) if labels else 'Histórica'
+        metadata = html.Div(
+            [
+                _history_preview_meta_item('Revisión', revision[:12]),
+                _history_preview_meta_item('Publicado por', str(trigger.get('saved_by', '—'))),
+                _history_preview_meta_item('Fecha', str(trigger.get('saved_at', '—'))),
+                _history_preview_meta_item('Estado', status),
+            ],
+            className='atlanticus-manager__history-preview-meta-grid',
+        )
+        preview_state = {
+            'schema_version': 1,
+            'module_key': module_key,
+            'revision': revision,
+            'payload': payload,
+        }
+        return False, f'Revisión {revision[:12]}', metadata, preview, preview_state, None
+
+    @app.callback(
         Output(workflow_result_id(MATCH), 'children', allow_duplicate=True),
         Output(workflow_draft_id(MATCH), 'data', allow_duplicate=True),
         Output(workflow_validation_id(MATCH), 'data', allow_duplicate=True),
         Output(workflow_source_verification_id(MATCH), 'data', allow_duplicate=True),
-        Input(history_load_id(MATCH, ALL, ALL), 'n_clicks'),
-        State(history_load_id(MATCH, ALL, ALL), 'id'),
+        Output(workflow_history_preview_id(MATCH), 'hidden', allow_duplicate=True),
+        Output(workflow_history_preview_store_id(MATCH), 'data', allow_duplicate=True),
+        Input(workflow_history_preview_load_id(MATCH), 'n_clicks'),
+        State(workflow_history_preview_store_id(MATCH), 'data'),
         State(workflow_revision_id(MATCH), 'data'),
         prevent_initial_call=True,
     )
-    def load_history_as_draft(
-        clicks: list[int],
-        load_ids: list[dict[str, object]],
+    def load_history_preview_as_draft(
+        clicks: int,
+        preview_data: dict[str, object] | None,
         revision_state: dict[str, object] | None,
     ):
         trigger = ctx.triggered_id
-        if not _pattern_click_is_real(trigger, clicks, load_ids):
-            return no_update, no_update, no_update, no_update
+        if not isinstance(trigger, dict) or not _click_is_real(clicks):
+            return (no_update,) * 6
+        module_key = str(trigger.get('module', ''))
         principal = definition.principal_provider()
         try:
-            payload = coordinator.load_history_revision(
-                str(trigger.get('module', '')),
-                principal,
-                str(trigger.get('revision', '')),
-            )
+            payload = _history_preview_payload(preview_data, module_key)
             base_source_revision = None
             if revision_state:
                 raw = revision_state.get('source_revision')
@@ -826,10 +941,17 @@ def register_manager_callbacks(
                 base_source_revision=base_source_revision,
             )
         except ManagerError as error:
-            return _error_message(str(error)), no_update, no_update, no_update
+            return _error_message(str(error)), no_update, no_update, no_update, no_update, no_update
         except Exception:
-            return _error_message('History revision could not be loaded'), no_update, no_update, no_update
-        return None, draft.to_document(), None, None
+            return (
+                _error_message('History revision could not be loaded as a draft'),
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+            )
+        return None, draft.to_document(), None, None, True, None
 
     @app.callback(
         Output(workflow_result_id(MATCH), 'children', allow_duplicate=True),
@@ -867,6 +989,27 @@ def register_manager_callbacks(
             'projection_revision': result.projection_revision,
         }
         return None, int(refresh_signal or 0) + 1, signal
+
+
+def _history_preview_meta_item(label: str, value: str) -> object:
+    return html.Div(
+        [html.Small(label), html.Strong(value)],
+        className='atlanticus-manager__history-preview-meta-item',
+    )
+
+
+def _history_preview_payload(
+    data: dict[str, object] | None,
+    module_key: str,
+) -> dict[str, object]:
+    if not isinstance(data, dict) or data.get('schema_version') != 1:
+        raise ManagerProjectionError('History preview is not available')
+    if str(data.get('module_key', '')) != module_key:
+        raise ManagerProjectionError('History preview belongs to another module')
+    payload = data.get('payload')
+    if not isinstance(payload, dict):
+        raise ManagerProjectionError('History preview payload is invalid')
+    return dict(payload)
 
 
 def _load_workflow_state(
@@ -999,6 +1142,7 @@ def _refresh_source_verification(
     except ManagerError:
         return None
 
+
 def _issue_document(issue: ProjectionIssue) -> dict[str, object]:
     return {
         'code': issue.code,
@@ -1053,9 +1197,7 @@ def _workflow_revision_state(
         'source_revision': status.source_revision,
         'source_actor': status.source_audit.actor if status.source_audit is not None else None,
         'source_occurred_at': (
-            status.source_audit.occurred_at.isoformat()
-            if status.source_audit is not None
-            else None
+            status.source_audit.occurred_at.isoformat() if status.source_audit is not None else None
         ),
         'active_source_revision': status.active_source_revision,
     }

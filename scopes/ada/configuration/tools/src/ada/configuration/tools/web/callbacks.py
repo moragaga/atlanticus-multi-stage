@@ -129,6 +129,7 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         Input(context.draft_store_id, 'data'),
         State(SELECTED_TOOL_ID, 'value'),
         State(DRAFT_LOAD_SIGNAL_ID, 'data'),
+        prevent_initial_call='initial_duplicate',
     )
     def load_browser_draft(
         draft_data: dict[str, object] | None,
@@ -162,7 +163,6 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
                 fallback=None,
             ),
         )
-
 
     @app.callback(
         Output(context.editor_revision_store_id, 'data'),

@@ -1,4 +1,4 @@
-# Define la identidad versionada del artifact ADA que incorpora el lifecycle explícito del workspace del Manager.
+# Mantiene la identidad versionada del artifact ADA que incorpora la vista previa histórica del Configuration Manager.
 # El espejo conserva exactamente el comportamiento productivo y agrega solo contexto pedagógico.
 
 from ada.compositions.web_bootstrap import AdaCosmosBindings
@@ -22,7 +22,7 @@ def build_metadata() -> ApplicationMetadata:
     return ApplicationMetadata(
         application_id='ada-application-base',
         display_name='ADA',
-        version='0.2.6',
+        version='0.2.7',
     )
 
 

@@ -1,3 +1,4 @@
+import ast
 from pathlib import Path
 
 
@@ -41,10 +42,12 @@ def test_lifecycle_actions_require_explicit_clicks_and_history_only_loads_draft(
     assert 'def update_from_source(' in source
     assert 'def force_publish_configuration(' in source
     assert 'def manage_local_workspace(' in source
-    assert 'def load_history_as_draft(' in source
+    assert 'def manage_history_preview(' in source
+    assert 'def load_history_preview_as_draft(' in source
     assert 'restore_revision' not in source
-    assert "State(history_load_id(MATCH, ALL, ALL), 'id')" in source
-    assert 'not _pattern_click_is_real(trigger, clicks, load_ids)' in source
+    assert 'history_preview_open_id(' in source
+    assert 'workflow_history_preview_load_id(MATCH)' in source
+    assert 'not _pattern_click_is_real(trigger, clicks, preview_ids)' in source
     assert source.count('not _click_is_real(clicks)') >= 3
     assert 'ManagerDraft.create(' in source
 
@@ -86,15 +89,15 @@ def test_source_conflicts_refresh_status_without_automatic_projection() -> None:
     source = _source()
 
     assert 'ManagerSourceConflictError' in source
-    assert "coordinator.verify_source(" in source
-    assert "coordinator.load_current_source(" in source
-    assert "coordinator.force_publish_draft(" in source
+    assert 'coordinator.verify_source(' in source
+    assert 'coordinator.load_current_source(' in source
+    assert 'coordinator.force_publish_draft(' in source
     assert "workflow_action_id(MATCH, 'update-source')" in source
     assert "workflow_action_id(MATCH, 'force-publish')" in source
     assert "'source_actor': status.source_audit.actor" in source
     assert "'source_occurred_at': (" in source
     force_start = source.index('def force_publish_configuration(')
-    force_end = source.index('def load_history_as_draft(', force_start)
+    force_end = source.index('def manage_history_preview(', force_start)
     force_callback = source[force_start:force_end]
     assert 'coordinator.project(' not in force_callback
 
@@ -107,7 +110,12 @@ def test_explicit_lifecycle_requires_editor_revision_and_source_verification() -
     assert "workflow_action_id(MATCH, 'verify-source')" in source
     assert 'resolve_manager_lifecycle(' in source
     assert 'verification.source_revision' in source
-    assert 'draft.base_source_revision' not in source[source.index('def publish_configuration('):source.index('def update_from_source(')]
+    assert (
+        'draft.base_source_revision'
+        not in source[
+            source.index('def publish_configuration(') : source.index('def update_from_source(')
+        ]
+    )
 
 
 def test_dirty_editor_hides_stale_validation_and_source_verification_state() -> None:
@@ -123,15 +131,15 @@ def test_workspace_actions_are_module_scoped_and_reload_is_the_only_remote_refre
     assert "workflow_action_id(MATCH, 'load-source')" in source
     assert "workflow_action_id(MATCH, 'discard-local')" in source
     assert "workflow_action_id(MATCH, 'reload')" in source
-    assert "workflow_workspace_command_id(MATCH)" in source
-    assert "workflow_workspace_reset_signal_id(MATCH)" in source
+    assert 'workflow_workspace_command_id(MATCH)' in source
+    assert 'workflow_workspace_reset_signal_id(MATCH)' in source
     start = source.index('def manage_local_workspace(')
-    end = source.index('def load_history_as_draft(', start)
+    end = source.index('def manage_history_preview(', start)
     callback = source[start:end]
     assert "resolved_command == 'reload'" in callback
-    assert "int(refresh_signal or 0) + 1" in callback
-    assert "coordinator.project(" not in callback
-    assert "coordinator.publish_draft(" not in callback
+    assert 'int(refresh_signal or 0) + 1' in callback
+    assert 'coordinator.project(' not in callback
+    assert 'coordinator.publish_draft(' not in callback
 
 
 def test_workspace_reset_rebuilds_only_the_editor_surface_without_loading_source() -> None:
@@ -145,3 +153,23 @@ def test_workspace_reset_rebuilds_only_the_editor_surface_without_loading_source
     assert 'build_module_content(' not in reset_callback
     assert 'coordinator.get_status(' not in reset_callback
     assert 'coordinator.list_history(' not in reset_callback
+
+
+def test_history_preview_does_not_mutate_workspace_until_confirmed() -> None:
+    source = _source()
+    tree = ast.parse(source)
+    functions = {
+        node.name: node
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    preview_callback = ast.get_source_segment(source, functions['manage_history_preview']) or ''
+    load_callback = ast.get_source_segment(source, functions['load_history_preview_as_draft']) or ''
+
+    assert 'coordinator.load_history_revision(' in preview_callback
+    assert 'module.history_preview_renderer' in preview_callback
+    assert 'ManagerDraft.create(' not in preview_callback
+    assert 'workflow_draft_id' not in preview_callback
+    assert 'ManagerDraft.create(' in load_callback
+    assert '_history_preview_payload(' in load_callback
+    assert 'coordinator.load_history_revision(' not in load_callback

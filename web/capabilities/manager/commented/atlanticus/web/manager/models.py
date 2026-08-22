@@ -1,4 +1,6 @@
-# Define módulos y permite habilitar explícitamente la publicación forzada por host.
+# Declara el renderer opcional que cada módulo puede aportar para interpretar una revisión histórica.
+# La responsabilidad semántica permanece en el módulo mientras Manager conserva la orquestación genérica.
+
 import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
@@ -14,6 +16,7 @@ from atlanticus.web.modules import WebModule
 from atlanticus.web.services import ServiceRegistry
 
 ManagerLayoutFactory = Callable[[ServiceRegistry], object]
+ManagerHistoryPreviewRenderer = Callable[[dict[str, object]], object]
 ManagerPrincipalProvider = Callable[[], 'ManagerPrincipal']
 
 _PROFILE_KEY_PATTERN = re.compile(r'^[a-z0-9][a-z0-9._-]*$')
@@ -109,6 +112,7 @@ class ManagerModule:
     source_name: str = 'Source'
     projection_name: str = 'Projection'
     force_publish_enabled: bool = False
+    history_preview_renderer: ManagerHistoryPreviewRenderer | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -122,9 +126,7 @@ class ManagerSurfaceDefinition:
 
     def __post_init__(self) -> None:
         prefix = self.route_prefix
-        if prefix and (
-            not _ROUTE_PREFIX_PATTERN.fullmatch(prefix) or prefix.endswith('/')
-        ):
+        if prefix and (not _ROUTE_PREFIX_PATTERN.fullmatch(prefix) or prefix.endswith('/')):
             raise ManagerDefinitionError('Manager route prefix has an invalid format')
         if not self.default_module_key.strip():
             raise ManagerDefinitionError('Manager default module key must not be empty')

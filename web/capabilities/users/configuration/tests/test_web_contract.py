@@ -135,7 +135,8 @@ def test_users_workspace_starts_empty_and_does_not_read_source_implicitly() -> N
     assert 'data=None' in layout
     assert 'if draft_data is None:' in callbacks
     tracker = callbacks[
-        callbacks.index("Output(context.editor_revision_store_id, 'data')") :
-        callbacks.index('def track_editor_revision(')
+        callbacks.index("Output(context.editor_revision_store_id, 'data')") : callbacks.index(
+            'def track_editor_revision('
+        )
     ]
     assert 'prevent_initial_call=True' in tracker
