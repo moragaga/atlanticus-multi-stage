@@ -1,4 +1,6 @@
-# Centraliza IDs de Dash para el panel funcional de conflicto.
+# Centraliza los identificadores Dash de los estados transitorios de revisión de editor y verificación de Source.
+# Los IDs por módulo mantienen los callbacks MATCH aislados entre Tools, Users y Navigation.
+
 LOCATION_ID = 'atlanticus-manager-location'
 SUMMARY_ID = 'atlanticus-manager-summary'
 SIDEBAR_ID = 'atlanticus-manager-sidebar'
@@ -48,7 +50,6 @@ def workflow_draft_status_id(module_key: str) -> dict[str, str]:
     }
 
 
-
 def workflow_conflict_id(module_key: str) -> dict[str, str]:
     return {
         'type': 'atlanticus-manager-workflow-conflict',
@@ -61,6 +62,7 @@ def workflow_conflict_details_id(module_key: str) -> dict[str, str]:
         'type': 'atlanticus-manager-workflow-conflict-details',
         'module': module_key,
     }
+
 
 def workflow_history_id(module_key: str) -> dict[str, str]:
     return {
@@ -100,6 +102,20 @@ def workflow_draft_id(module_key: str) -> dict[str, str]:
 def workflow_validation_id(module_key: str) -> dict[str, str]:
     return {
         'type': 'atlanticus-manager-workflow-validation',
+        'module': module_key,
+    }
+
+
+def workflow_source_verification_id(module_key: str) -> dict[str, str]:
+    return {
+        'type': 'atlanticus-manager-workflow-source-verification',
+        'module': module_key,
+    }
+
+
+def workflow_editor_revision_id(module_key: str) -> dict[str, str]:
+    return {
+        'type': 'atlanticus-manager-workflow-editor-revision',
         'module': module_key,
     }
 

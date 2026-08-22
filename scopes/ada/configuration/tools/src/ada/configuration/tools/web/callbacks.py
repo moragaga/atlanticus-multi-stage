@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import base64
+import hashlib
+import json
 from datetime import UTC, datetime
 
 from dash import ALL, Input, Output, State, ctx, html, no_update
@@ -123,6 +125,7 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         Output(SELECTED_TOOL_ID, 'options', allow_duplicate=True),
         Output(SELECTED_TOOL_ID, 'value', allow_duplicate=True),
         Output(DRAFT_LOAD_SIGNAL_ID, 'data', allow_duplicate=True),
+        Output(SOURCE_REVISION_STORE_ID, 'data', allow_duplicate=True),
         Input(context.draft_store_id, 'data'),
         State(SELECTED_TOOL_ID, 'value'),
         State(DRAFT_LOAD_SIGNAL_ID, 'data'),
@@ -136,7 +139,7 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         try:
             catalog = _catalog_from_browser_draft(draft_data, context.draft_owner_provider())
         except Exception:
-            return no_update, no_update, no_update, no_update
+            return no_update, no_update, no_update, no_update, no_update
         selected = selected_tool
         if selected is None or not any(tool.tool_key == selected for tool in catalog.tools):
             selected = catalog.tools[0].tool_key if catalog.tools else None
@@ -145,6 +148,11 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
             _tool_options(catalog),
             selected,
             int(load_signal or 0) + 1,
+            _draft_base_source_revision(
+                draft_data,
+                owner_subject_id=context.draft_owner_provider(),
+                fallback=None,
+            ),
         )
 
     @app.callback(
@@ -158,6 +166,57 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         except Exception:
             return no_update
         return bundle.revision if bundle is not None else None
+
+    @app.callback(
+        Output(context.editor_revision_store_id, 'data'),
+        Input(SELECTED_TOOL_ID, 'value'),
+        Input(TOOL_NAME_ID, 'value'),
+        Input(TOOL_SCOPE_ID, 'value'),
+        Input(SOURCES_ID, 'value'),
+        Input(PI_FRESHNESS_ID, 'value'),
+        Input(DISPATCH_FRESHNESS_ID, 'value'),
+        Input(STRUCTURE_STORE_ID, 'data'),
+        Input(CATALOG_STORE_ID, 'data'),
+    )
+    def track_editor_revision(
+        tool_key: str | None,
+        display_name: str | None,
+        operational_scope: str | None,
+        source_values: list[str] | None,
+        pi_freshness: int | None,
+        dispatch_freshness: int | None,
+        structure_data: list[dict[str, object]] | None,
+        catalog_data: dict[str, object] | None,
+    ):
+        try:
+            catalog = _catalog(catalog_data)
+            if tool_key:
+                current = catalog.require(tool_key)
+                updated = catalog.replace(
+                    _build_tool_from_editor(
+                        current=current,
+                        display_name=str(display_name or ''),
+                        operational_scope=operational_scope,
+                        source_values=source_values or [],
+                        pi_freshness=pi_freshness,
+                        dispatch_freshness=dispatch_freshness,
+                        components=_structure_components(structure_data),
+                    )
+                )
+            else:
+                updated = catalog
+            return build_tool_configuration_digest(updated)
+        except Exception:
+            return _raw_editor_revision(
+                tool_key=tool_key,
+                display_name=display_name,
+                operational_scope=operational_scope,
+                source_values=source_values,
+                pi_freshness=pi_freshness,
+                dispatch_freshness=dispatch_freshness,
+                structure_data=structure_data,
+                catalog_data=catalog_data,
+            )
 
     @app.callback(
         Output(CREATE_MODAL_ID, 'className'),
@@ -861,6 +920,31 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
             None,
             draft,
         )
+
+
+def _raw_editor_revision(
+    *,
+    tool_key: str | None,
+    display_name: str | None,
+    operational_scope: str | None,
+    source_values: list[str] | None,
+    pi_freshness: int | None,
+    dispatch_freshness: int | None,
+    structure_data: list[dict[str, object]] | None,
+    catalog_data: dict[str, object] | None,
+) -> str:
+    document = {
+        'tool_key': tool_key,
+        'display_name': display_name,
+        'operational_scope': operational_scope,
+        'source_values': source_values or [],
+        'pi_freshness': pi_freshness,
+        'dispatch_freshness': dispatch_freshness,
+        'structure': structure_data or [],
+        'catalog': catalog_data or {},
+    }
+    encoded = json.dumps(document, sort_keys=True, separators=(',', ':')).encode('utf-8')
+    return f'editor:{hashlib.sha256(encoded).hexdigest()}'
 
 
 def _catalog_from_browser_draft(

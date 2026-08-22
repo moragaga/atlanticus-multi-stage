@@ -23,6 +23,7 @@ from atlanticus.web.manager.projection import (
     ProjectionStatus,
     ProjectionSummaryItem,
     RevisionHistoryEntry,
+    SourceVerificationResult,
     resolve_projection_state,
 )
 from atlanticus.web.manager.registry import ManagerModuleRegistry
@@ -48,11 +49,13 @@ from atlanticus.web.manager.web.ids import (
     workflow_conflict_id,
     workflow_draft_id,
     workflow_draft_status_id,
+    workflow_editor_revision_id,
     workflow_history_id,
     workflow_projection_signal_id,
     workflow_refresh_signal_id,
     workflow_result_id,
     workflow_revision_id,
+    workflow_source_verification_id,
     workflow_status_id,
     workflow_validation_id,
 )
@@ -141,6 +144,20 @@ def build_manager_surface(
             *[
                 dcc.Store(
                     id=workflow_validation_id(module.key),
+                    storage_type='memory',
+                )
+                for module in visible_modules
+            ],
+            *[
+                dcc.Store(
+                    id=workflow_source_verification_id(module.key),
+                    storage_type='memory',
+                )
+                for module in visible_modules
+            ],
+            *[
+                dcc.Store(
+                    id=workflow_editor_revision_id(module.key),
                     storage_type='memory',
                 )
                 for module in visible_modules
@@ -429,7 +446,7 @@ def build_workflow_status_content(
             html.Div(
                 [
                     _workflow_stage_card(
-                        step='3',
+                        step='4',
                         title='Fuente de verdad',
                         subtitle=module.source_name,
                         items=(
@@ -438,7 +455,7 @@ def build_workflow_status_content(
                         ),
                     ),
                     _workflow_stage_card(
-                        step='4',
+                        step='5',
                         title='Proyección runtime',
                         subtitle=module.projection_name,
                         items=(
@@ -461,6 +478,8 @@ def build_workflow_draft_content(
     *,
     draft: ManagerDraft | None,
     validation: dict[str, object] | None,
+    source_verification: SourceVerificationResult | None,
+    editor_dirty: bool,
     principal: ManagerPrincipal,
     source_revision: str | None = None,
 ) -> object:
@@ -483,16 +502,34 @@ def build_workflow_draft_content(
             'El borrador local pertenece a otro usuario.',
             className='atlanticus-manager__message atlanticus-manager__message--error',
         )
-    valid = _draft_validation_is_current(draft, validation)
+    validation_matches_draft = bool(
+        validation and validation.get('draft_revision') == draft.revision
+    )
+    current_validation = validation if validation_matches_draft else None
+    valid = _draft_validation_is_current(draft, current_validation)
     validation_label = 'Validado' if valid else 'Pendiente'
-    draft_state = 'Publicado' if draft.revision == source_revision else 'No publicado'
+    draft_state = (
+        'Cambios sin guardar'
+        if editor_dirty
+        else ('Publicado' if draft.revision == source_revision else 'No publicado')
+    )
     validated_by = '—'
     validated_at = '—'
-    if validation and validation.get('draft_revision') == draft.revision:
-        if validation.get('valid') is False:
+    if current_validation is not None:
+        if current_validation.get('valid') is False:
             validation_label = 'Con errores'
-        validated_by = str(validation.get('validated_by') or '—')
-        validated_at = _format_optional_datetime(validation.get('validated_at'))
+        validated_by = str(current_validation.get('validated_by') or '—')
+        validated_at = _format_optional_datetime(current_validation.get('validated_at'))
+    verification_label = 'Pendiente'
+    verification_revision = '—'
+    verification_actor = '—'
+    verification_at = '—'
+    if source_verification is not None and source_verification.draft_revision == draft.revision:
+        verification_label = 'Verificada' if source_verification.matches else 'Conflicto'
+        verification_revision = _short_revision(source_verification.source_revision)
+        if source_verification.source_audit is not None:
+            verification_actor = source_verification.source_audit.actor
+        verification_at = _format_datetime(source_verification.checked_at)
     return html.Section(
         [
             _workflow_group_header(
@@ -520,10 +557,20 @@ def build_workflow_draft_content(
                             ('Fecha', validated_at),
                         ),
                     ),
+                    _workflow_stage_card(
+                        step='3',
+                        title='Verificación de fuente',
+                        subtitle=verification_label,
+                        items=(
+                            ('Revisión comprobada', verification_revision),
+                            ('Actor fuente', verification_actor),
+                            ('Verificada', verification_at),
+                        ),
+                    ),
                 ],
                 className='atlanticus-manager__workflow-stage-grid',
             ),
-            _build_validation_issues(_validation_issues(validation)),
+            _build_validation_issues(_validation_issues(current_validation)),
         ],
         className='atlanticus-manager__workflow-group',
     )
@@ -532,12 +579,16 @@ def build_workflow_draft_content(
 def build_source_conflict_content(
     *,
     draft: ManagerDraft,
-    source_revision: str,
-    source_actor: str | None,
-    source_occurred_at: object,
+    verification: SourceVerificationResult,
 ) -> object:
-    actor = (source_actor or '').strip() or 'Otro usuario'
-    occurred_at = _format_optional_datetime(source_occurred_at)
+    actor = (
+        verification.source_audit.actor if verification.source_audit is not None else 'Otro usuario'
+    )
+    occurred_at = (
+        _format_datetime(verification.source_audit.occurred_at)
+        if verification.source_audit is not None
+        else '—'
+    )
     return html.Div(
         [
             html.Strong('La fuente cambió mientras estabas trabajando.'),
@@ -556,7 +607,7 @@ def build_source_conflict_content(
                     html.Span(
                         [
                             html.Small('Fuente actual'),
-                            html.Code(_short_revision(source_revision)),
+                            html.Code(_short_revision(verification.source_revision)),
                         ]
                     ),
                 ],
@@ -684,7 +735,7 @@ def _build_workflow_actions(
         [
             _workflow_group_header(
                 'Flujo de publicación',
-                'Avanza en orden: guardar, validar, publicar y finalmente proyectar.',
+                'Avanza en orden: guardar, validar, verificar la fuente y publicar.',
             ),
             html.Section(
                 [
@@ -731,6 +782,7 @@ def _build_workflow_actions(
                             className=(
                                 'atlanticus-manager__button atlanticus-manager__button--secondary'
                             ),
+                            disabled=True,
                         ),
                     ),
                     _workflow_action_step(
@@ -749,6 +801,20 @@ def _build_workflow_actions(
                     ),
                     _workflow_action_step(
                         '3',
+                        'Verificar fuente',
+                        f'Comprueba que {module.source_name} siga en la revisión base del borrador.',
+                        html.Button(
+                            f'Verificar {module.source_name}',
+                            id=workflow_action_id(module.key, 'verify-source'),
+                            n_clicks=0,
+                            className=(
+                                'atlanticus-manager__button atlanticus-manager__button--secondary'
+                            ),
+                            disabled=True,
+                        ),
+                    ),
+                    _workflow_action_step(
+                        '4',
                         'Publicar',
                         f'Guarda la revisión validada en {module.source_name}.',
                         html.Button(
@@ -762,9 +828,9 @@ def _build_workflow_actions(
                         ),
                     ),
                     _workflow_action_step(
-                        '4',
+                        '5',
                         'Proyectar',
-                        f'Actualiza el runtime disponible en {module.projection_name}.',
+                        f'Actualiza manualmente el runtime disponible en {module.projection_name}.',
                         html.Button(
                             f'Proyectar en {module.projection_name}',
                             id=workflow_action_id(module.key, 'project'),

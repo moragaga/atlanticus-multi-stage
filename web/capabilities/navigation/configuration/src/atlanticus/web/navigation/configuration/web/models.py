@@ -15,6 +15,7 @@ class NavigationAdminWebContext:
     draft_store_id: object
     draft_save_action_id: object
     workflow_refresh_signal_id: object
+    editor_revision_store_id: object
     draft_owner_provider: Callable[[], str]
     can_manage: Callable[[], bool] = lambda: True
     source_name: str = 'Source'

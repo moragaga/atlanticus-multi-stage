@@ -1,4 +1,6 @@
-# Propaga la política de force publish de forma uniforme a Tools, Users y Navigation.
+# Compone Tools, Users y Navigation con stores de revisión de editor independientes por módulo.
+# La composición conecta capacidades sin trasladar reglas de lifecycle a los módulos configurables.
+
 from ada.compositions.configuration_manager.dependencies import (
     ConfigurationManagerDependencies,
 )
@@ -22,6 +24,7 @@ from atlanticus.web.manager import (
 from atlanticus.web.manager.web.ids import (
     workflow_action_id,
     workflow_draft_id,
+    workflow_editor_revision_id,
     workflow_refresh_signal_id,
 )
 from atlanticus.web.modules import WebModule
@@ -53,6 +56,7 @@ def build_configuration_manager_surface(
         draft_store_id=workflow_draft_id('tools'),
         draft_save_action_id=workflow_action_id('tools', 'save-draft'),
         workflow_refresh_signal_id=workflow_refresh_signal_id('tools'),
+        editor_revision_store_id=workflow_editor_revision_id('tools'),
         draft_owner_provider=lambda: dependencies.principal_provider().subject_id,
         can_manage=lambda: _can_manage_tools(dependencies.principal_provider()),
         source_name=dependencies.tools_source_name,
@@ -63,6 +67,7 @@ def build_configuration_manager_surface(
         draft_store_id=workflow_draft_id('users'),
         draft_save_action_id=workflow_action_id('users', 'save-draft'),
         workflow_refresh_signal_id=workflow_refresh_signal_id('users'),
+        editor_revision_store_id=workflow_editor_revision_id('users'),
         draft_owner_provider=lambda: dependencies.principal_provider().subject_id,
         can_manage=lambda: _can_manage_users(dependencies.principal_provider()),
         source_name=dependencies.users_source_name,
@@ -73,6 +78,7 @@ def build_configuration_manager_surface(
         draft_store_id=workflow_draft_id('navigation'),
         draft_save_action_id=workflow_action_id('navigation', 'save-draft'),
         workflow_refresh_signal_id=workflow_refresh_signal_id('navigation'),
+        editor_revision_store_id=workflow_editor_revision_id('navigation'),
         draft_owner_provider=lambda: dependencies.principal_provider().subject_id,
         can_manage=lambda: _can_manage_navigation(dependencies.principal_provider()),
         source_name=dependencies.navigation_source_name,

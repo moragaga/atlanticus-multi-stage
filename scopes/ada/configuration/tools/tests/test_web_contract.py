@@ -99,3 +99,13 @@ def test_editor_success_messages_do_not_accumulate_after_structure_changes() -> 
     assert "_success('Componente eliminado del borrador.')" not in callbacks
     assert "_success('Subcomponente actualizado en el borrador.')" not in callbacks
     assert "_success('Subcomponente eliminado del borrador.')" not in callbacks
+
+
+def test_tool_editor_tracks_the_revision_of_the_content_that_save_draft_would_persist() -> None:
+    callbacks = _callbacks()
+
+    assert "Output(context.editor_revision_store_id, 'data')" in callbacks
+    assert 'def track_editor_revision(' in callbacks
+    assert 'build_tool_configuration_digest(updated)' in callbacks
+    assert '_raw_editor_revision(' in callbacks
+    assert "Output(SOURCE_REVISION_STORE_ID, 'data', allow_duplicate=True)" in callbacks

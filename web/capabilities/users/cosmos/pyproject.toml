@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "atlanticus-web-users-cosmos"
-version = "0.1.2"
+version = "0.1.3"
 description = "Fuente Cosmos DB de usuarios para aplicaciones web Atlanticus"
 requires-python = "==3.14.2"
 classifiers = [
@@ -12,7 +12,7 @@ classifiers = [
 ]
 dependencies = [
     "atlanticus-web-users==0.1.0",
-    "atlanticus-web-users-configuration==0.1.2",
+    "atlanticus-web-users-configuration==0.1.3",
 ]
 
 [tool.uv.sources]

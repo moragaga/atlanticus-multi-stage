@@ -108,8 +108,9 @@ def register_users_admin_callbacks(app: object, context: UsersAdminWebContext) -
         Output(ADMINISTRATOR_TEXT_COLOR_ID, 'value'),
         Output(GUEST_BACKGROUND_COLOR_ID, 'value'),
         Output(GUEST_TEXT_COLOR_ID, 'value'),
+        Output(SOURCE_REVISION_STORE_ID, 'data'),
         Input(MOUNT_STORE_ID, 'data'),
-        State(context.draft_store_id, 'data'),
+        Input(context.draft_store_id, 'data'),
     )
     def load_browser_draft(_mounted: object, draft_data: dict[str, object] | None):
         try:
@@ -117,15 +118,31 @@ def register_users_admin_callbacks(app: object, context: UsersAdminWebContext) -
                 draft_data,
                 context.draft_owner_provider(),
             )
+            base_source_revision = _draft_base_source_revision(
+                draft_data,
+                owner_subject_id=context.draft_owner_provider(),
+                fallback=None,
+            )
         except Exception:
-            return (no_update,) * 5
+            return (no_update,) * 6
         return (
             catalog.to_document(),
             catalog.administrator_background_color,
             catalog.administrator_text_color,
             catalog.guest_background_color,
             catalog.guest_text_color,
+            base_source_revision,
         )
+
+    @app.callback(
+        Output(context.editor_revision_store_id, 'data'),
+        Input(CATALOG_STORE_ID, 'data'),
+    )
+    def track_editor_revision(catalog_data: dict[str, object] | None):
+        try:
+            return build_users_configuration_digest(_catalog(catalog_data))
+        except Exception:
+            return None
 
     @app.callback(
         Output(SECTION_STORE_ID, 'data'),

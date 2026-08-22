@@ -1,5 +1,5 @@
-# Expone la API pública de Manager, incluido el resultado explícito de verificación de Source.
-# El facade evita que los consumidores dependan de módulos internos concretos.
+# Expone el estado y resolver del lifecycle explícito como parte de la API pública reutilizable de Manager.
+# El facade evita dependencias directas de consumidores sobre módulos internos.
 
 from atlanticus.web.manager.authorization import (
     DefaultManagerAuthorizationPolicy,
@@ -13,6 +13,7 @@ from atlanticus.web.manager.errors import (
     ManagerProjectionError,
     ManagerSourceConflictError,
 )
+from atlanticus.web.manager.lifecycle import ManagerLifecycleState, resolve_manager_lifecycle
 from atlanticus.web.manager.models import (
     ManagerApplicationDefinition,
     ManagerBrand,
@@ -57,6 +58,7 @@ __all__ = [
     'ManagerDefinitionError',
     'ManagerDraft',
     'ManagerError',
+    'ManagerLifecycleState',
     'ManagerModule',
     'ManagerModuleAccess',
     'ManagerModuleGroup',
@@ -80,5 +82,6 @@ __all__ = [
     'SourceSnapshot',
     'SourceVerificationResult',
     'build_draft_revision',
+    'resolve_manager_lifecycle',
     'resolve_projection_state',
 ]

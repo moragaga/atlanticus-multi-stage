@@ -1,9 +1,11 @@
-# Espejo pedagógico: conserva la misma lógica del archivo productivo.
-# Los comentarios documentan la responsabilidad sin cambiar el comportamiento.
-# Mantiene la edición en browser draft y deja los mensajes de éxito fuera del estado.
+# Gestiona el editor de Tools y publica una revisión determinística del contenido que Guardar borrador persistiría.
+# La señal permite al Manager distinguir cambios sin guardar sin mezclar esa responsabilidad con Source o Projection.
+
 from __future__ import annotations
 
 import base64
+import hashlib
+import json
 from datetime import UTC, datetime
 
 from dash import ALL, Input, Output, State, ctx, html, no_update
@@ -43,12 +45,12 @@ from ada.configuration.tools.web.ids import (
     CREATE_CANCEL_ID,
     CREATE_KIND_ID,
     CREATE_MODAL_ID,
-    CREATE_OPEN_ID,
     CREATE_NAME_ID,
+    CREATE_OPEN_ID,
     CREATE_RESULT_ID,
     DISPATCH_FRESHNESS_FIELD_ID,
-    DRAFT_LOAD_SIGNAL_ID,
     DISPATCH_FRESHNESS_ID,
+    DRAFT_LOAD_SIGNAL_ID,
     IMPORT_RESULT_ID,
     IMPORT_UPLOAD_ID,
     PI_FRESHNESS_FIELD_ID,
@@ -115,9 +117,7 @@ def _pattern_click_is_real(
         if dict(item_id) != target:
             continue
         return (
-            isinstance(click_count, int)
-            and not isinstance(click_count, bool)
-            and click_count > 0
+            isinstance(click_count, int) and not isinstance(click_count, bool) and click_count > 0
         )
     return False
 
@@ -128,6 +128,7 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         Output(SELECTED_TOOL_ID, 'options', allow_duplicate=True),
         Output(SELECTED_TOOL_ID, 'value', allow_duplicate=True),
         Output(DRAFT_LOAD_SIGNAL_ID, 'data', allow_duplicate=True),
+        Output(SOURCE_REVISION_STORE_ID, 'data', allow_duplicate=True),
         Input(context.draft_store_id, 'data'),
         State(SELECTED_TOOL_ID, 'value'),
         State(DRAFT_LOAD_SIGNAL_ID, 'data'),
@@ -141,7 +142,7 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         try:
             catalog = _catalog_from_browser_draft(draft_data, context.draft_owner_provider())
         except Exception:
-            return no_update, no_update, no_update, no_update
+            return no_update, no_update, no_update, no_update, no_update
         selected = selected_tool
         if selected is None or not any(tool.tool_key == selected for tool in catalog.tools):
             selected = catalog.tools[0].tool_key if catalog.tools else None
@@ -150,6 +151,11 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
             _tool_options(catalog),
             selected,
             int(load_signal or 0) + 1,
+            _draft_base_source_revision(
+                draft_data,
+                owner_subject_id=context.draft_owner_provider(),
+                fallback=None,
+            ),
         )
 
     @app.callback(
@@ -163,6 +169,57 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         except Exception:
             return no_update
         return bundle.revision if bundle is not None else None
+
+    @app.callback(
+        Output(context.editor_revision_store_id, 'data'),
+        Input(SELECTED_TOOL_ID, 'value'),
+        Input(TOOL_NAME_ID, 'value'),
+        Input(TOOL_SCOPE_ID, 'value'),
+        Input(SOURCES_ID, 'value'),
+        Input(PI_FRESHNESS_ID, 'value'),
+        Input(DISPATCH_FRESHNESS_ID, 'value'),
+        Input(STRUCTURE_STORE_ID, 'data'),
+        Input(CATALOG_STORE_ID, 'data'),
+    )
+    def track_editor_revision(
+        tool_key: str | None,
+        display_name: str | None,
+        operational_scope: str | None,
+        source_values: list[str] | None,
+        pi_freshness: int | None,
+        dispatch_freshness: int | None,
+        structure_data: list[dict[str, object]] | None,
+        catalog_data: dict[str, object] | None,
+    ):
+        try:
+            catalog = _catalog(catalog_data)
+            if tool_key:
+                current = catalog.require(tool_key)
+                updated = catalog.replace(
+                    _build_tool_from_editor(
+                        current=current,
+                        display_name=str(display_name or ''),
+                        operational_scope=operational_scope,
+                        source_values=source_values or [],
+                        pi_freshness=pi_freshness,
+                        dispatch_freshness=dispatch_freshness,
+                        components=_structure_components(structure_data),
+                    )
+                )
+            else:
+                updated = catalog
+            return build_tool_configuration_digest(updated)
+        except Exception:
+            return _raw_editor_revision(
+                tool_key=tool_key,
+                display_name=display_name,
+                operational_scope=operational_scope,
+                source_values=source_values,
+                pi_freshness=pi_freshness,
+                dispatch_freshness=dispatch_freshness,
+                structure_data=structure_data,
+                catalog_data=catalog_data,
+            )
 
     @app.callback(
         Output(CREATE_MODAL_ID, 'className'),
@@ -868,6 +925,31 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         )
 
 
+def _raw_editor_revision(
+    *,
+    tool_key: str | None,
+    display_name: str | None,
+    operational_scope: str | None,
+    source_values: list[str] | None,
+    pi_freshness: int | None,
+    dispatch_freshness: int | None,
+    structure_data: list[dict[str, object]] | None,
+    catalog_data: dict[str, object] | None,
+) -> str:
+    document = {
+        'tool_key': tool_key,
+        'display_name': display_name,
+        'operational_scope': operational_scope,
+        'source_values': source_values or [],
+        'pi_freshness': pi_freshness,
+        'dispatch_freshness': dispatch_freshness,
+        'structure': structure_data or [],
+        'catalog': catalog_data or {},
+    }
+    encoded = json.dumps(document, sort_keys=True, separators=(',', ':')).encode('utf-8')
+    return f'editor:{hashlib.sha256(encoded).hexdigest()}'
+
+
 def _catalog_from_browser_draft(
     data: dict[str, object] | None,
     owner_subject_id: str,
@@ -943,6 +1025,7 @@ def _save_draft_click_is_real(
 def _click_is_real(clicks: int | None) -> bool:
     return isinstance(clicks, int) and not isinstance(clicks, bool) and clicks > 0
 
+
 def _catalog(data: dict[str, object] | None) -> ToolConfigurationCatalog:
     if not isinstance(data, dict):
         return ToolConfigurationCatalog(())
@@ -962,10 +1045,7 @@ def _optional_tool(
 
 
 def _tool_options(catalog: ToolConfigurationCatalog) -> list[dict[str, str]]:
-    return [
-        {'label': item.display_name, 'value': item.tool_key}
-        for item in catalog.tools
-    ]
+    return [{'label': item.display_name, 'value': item.tool_key} for item in catalog.tools]
 
 
 def _scope_value(scope: ToolScope | None) -> str | None:
@@ -978,9 +1058,7 @@ def _structure_components(
     if not isinstance(data, list):
         return ()
     return tuple(
-        ToolComponentConfiguration.from_document(item)
-        for item in data
-        if isinstance(item, dict)
+        ToolComponentConfiguration.from_document(item) for item in data if isinstance(item, dict)
     )
 
 
@@ -1010,9 +1088,7 @@ def _render_component_list(
                         [
                             html.Strong(component.display_name),
                             html.Code(component.key),
-                            html.Span(
-                                f'{detail} · {len(component.subcomponents)} subcomponentes'
-                            ),
+                            html.Span(f'{detail} · {len(component.subcomponents)} subcomponentes'),
                         ],
                         className='ada-tools-admin__structure-copy',
                     ),
@@ -1096,8 +1172,7 @@ def _component_actions(key: str, index: int, total: int) -> object:
                 id=component_delete_id(key),
                 n_clicks=0,
                 className=(
-                    'ada-tools-admin__structure-action '
-                    'ada-tools-admin__structure-action--danger'
+                    'ada-tools-admin__structure-action ada-tools-admin__structure-action--danger'
                 ),
             ),
         ],
@@ -1140,8 +1215,7 @@ def _subcomponent_actions(
                 id=subcomponent_delete_id(component_key, key),
                 n_clicks=0,
                 className=(
-                    'ada-tools-admin__structure-action '
-                    'ada-tools-admin__structure-action--danger'
+                    'ada-tools-admin__structure-action ada-tools-admin__structure-action--danger'
                 ),
             ),
         ],
@@ -1186,10 +1260,7 @@ def _save_component_draft(
         if placement_value not in {'left', 'center', 'right', 'bottom'}:
             raise ValueError('Process component placement is required')
         placement = ProcessBodySection(placement_value)
-        if any(
-            item.key != key and item.layout_role is placement
-            for item in components
-        ):
+        if any(item.key != key and item.layout_role is placement for item in components):
             raise ValueError('Process component placement must be unique')
         replacement = ToolComponentConfiguration(
             key=key,
@@ -1264,9 +1335,7 @@ def _validate_shared_component_scopes(
                 if linked is None:
                     raise ValueError('Shared subcomponent references an unknown component')
                 if linked.scope is not component.scope:
-                    raise ValueError(
-                        'Shared subcomponents must link components from the same area'
-                    )
+                    raise ValueError('Shared subcomponents must link components from the same area')
 
 
 def _validate_linked_components(
@@ -1343,10 +1412,7 @@ def _move_item(items: list[object], item_key: str, direction: str, *, key) -> li
 def _component_options(
     components: list[ToolComponentConfiguration],
 ) -> list[dict[str, str]]:
-    return [
-        {'label': component.display_name, 'value': component.key}
-        for component in components
-    ]
+    return [{'label': component.display_name, 'value': component.key} for component in components]
 
 
 def _build_tool_from_editor(

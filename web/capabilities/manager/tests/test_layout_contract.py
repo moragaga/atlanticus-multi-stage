@@ -23,10 +23,12 @@ def test_manager_lifecycle_exposes_draft_validate_publish_and_project() -> None:
     assert "storage_type='local'" in layout
     assert "workflow_action_id(module.key, 'save-draft')" in layout
     assert "workflow_action_id(module.key, 'validate')" in layout
+    assert "workflow_action_id(module.key, 'verify-source')" in layout
     assert "workflow_action_id(module.key, 'publish')" in layout
     assert "workflow_action_id(module.key, 'project')" in layout
     assert "workflow_action_id(module.key, 'update-source')" in layout
     assert "workflow_action_id(module.key, 'force-publish')" in layout
+    assert "f'Verificar {module.source_name}'" in layout
     assert "f'Guardar en {module.source_name}'" in layout
     assert "f'Actualizar desde {module.source_name}'" in layout
     assert "f'Proyectar en {module.projection_name}'" in layout
@@ -58,7 +60,7 @@ def test_header_keeps_atlanticus_identity_without_duplicate_user_identity() -> N
     assert 'font-family: var(--atlanticus-manager-font-brand) !important' in css
 
 
-def test_traceability_is_grouped_as_a_four_stage_pipeline() -> None:
+def test_traceability_is_grouped_as_a_five_stage_pipeline() -> None:
     root = Path(__file__).parents[1]
     layout = (root / 'src/atlanticus/web/manager/web/layout.py').read_text(encoding='utf-8')
     css = (root / 'src/atlanticus/web/manager/resources/css/10_manager.css').read_text(
@@ -67,6 +69,7 @@ def test_traceability_is_grouped_as_a_four_stage_pipeline() -> None:
 
     assert "title='Borrador del navegador'" in layout
     assert "title='Validación'" in layout
+    assert "title='Verificación de fuente'" in layout
     assert "title='Fuente de verdad'" in layout
     assert "title='Proyección runtime'" in layout
     assert "'Flujo de publicación'" in layout
@@ -86,3 +89,13 @@ def test_source_conflict_is_rendered_as_functional_state_with_actor_and_revision
     assert "'Fuente actual'" in layout
     assert 'source_actor' in layout
     assert 'source_occurred_at' in layout
+
+
+def test_manager_tracks_editor_revision_and_source_verification_as_transient_state() -> None:
+    root = Path(__file__).parents[1]
+    layout = (root / 'src/atlanticus/web/manager/web/layout.py').read_text(encoding='utf-8')
+
+    assert 'workflow_editor_revision_id(module.key)' in layout
+    assert 'workflow_source_verification_id(module.key)' in layout
+    assert "storage_type='memory'" in layout
+    assert "'Cambios sin guardar'" in layout

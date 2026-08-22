@@ -1,5 +1,5 @@
-# Define el artifact ADA y fija las versiones exactas de las composiciones que forman su contrato transportable.
-# Este espejo conserva la misma lógica productiva; los comentarios solo explican las fronteras del ensamblaje.
+# Define la identidad del artifact ADA y mantiene alineada su versión con el lifecycle explícito del Manager.
+# Este espejo replica exactamente el código productivo y agrega solo contexto pedagógico.
 
 from ada.compositions.web_bootstrap import AdaCosmosBindings
 from ada.compositions.web_deployment import AdaWebDeploymentDefinition
@@ -22,7 +22,7 @@ def build_metadata() -> ApplicationMetadata:
     return ApplicationMetadata(
         application_id='ada-application-base',
         display_name='ADA',
-        version='0.2.4',
+        version='0.2.5',
     )
 
 

@@ -103,6 +103,20 @@ def workflow_validation_id(module_key: str) -> dict[str, str]:
     }
 
 
+def workflow_source_verification_id(module_key: str) -> dict[str, str]:
+    return {
+        'type': 'atlanticus-manager-workflow-source-verification',
+        'module': module_key,
+    }
+
+
+def workflow_editor_revision_id(module_key: str) -> dict[str, str]:
+    return {
+        'type': 'atlanticus-manager-workflow-editor-revision',
+        'module': module_key,
+    }
+
+
 def module_section_store_id(module_key: str) -> dict[str, str]:
     return {
         'type': 'atlanticus-manager-module-section-store',

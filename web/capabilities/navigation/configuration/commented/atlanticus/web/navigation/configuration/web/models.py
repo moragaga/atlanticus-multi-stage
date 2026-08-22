@@ -1,3 +1,6 @@
+# Declara el store de revisión del editor de Navigation recibido desde la composición del Manager.
+# La señal describe contenido editable y no introduce dependencias de Navigation hacia la máquina de estados.
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -10,12 +13,12 @@ NavigationProfileOptionsProvider = Callable[[], tuple[NavigationProfileOption, .
 
 
 @dataclass(frozen=True, slots=True)
-# Define `NavigationAdminWebContext` como responsabilidad aislada dentro de Atlanticus.
 class NavigationAdminWebContext:
     services: NavigationConfigurationServices
     draft_store_id: object
     draft_save_action_id: object
     workflow_refresh_signal_id: object
+    editor_revision_store_id: object
     draft_owner_provider: Callable[[], str]
     can_manage: Callable[[], bool] = lambda: True
     source_name: str = 'Source'

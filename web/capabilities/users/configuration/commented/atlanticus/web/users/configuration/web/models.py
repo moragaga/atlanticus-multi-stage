@@ -1,4 +1,6 @@
-# Define el contexto explícito que la UI necesita sin resolver infraestructura por sí misma.
+# Declara el store de revisión del editor de Users inyectado por la composición del Manager.
+# Users informa su estado editable y Manager conserva la responsabilidad de habilitar las acciones del lifecycle.
+
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -6,12 +8,12 @@ from atlanticus.web.users.configuration.services import UsersConfigurationServic
 
 
 @dataclass(frozen=True, slots=True)
-# UsersAdminWebContext: mantiene esta responsabilidad aislada y verificable.
 class UsersAdminWebContext:
     services: UsersConfigurationServices
     draft_store_id: object
     draft_save_action_id: object
     workflow_refresh_signal_id: object
+    editor_revision_store_id: object
     draft_owner_provider: Callable[[], str]
     can_manage: Callable[[], bool] = lambda: True
     source_name: str = 'Source'

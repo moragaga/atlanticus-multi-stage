@@ -10,6 +10,7 @@ from atlanticus.web.manager.errors import (
     ManagerProjectionError,
     ManagerSourceConflictError,
 )
+from atlanticus.web.manager.lifecycle import ManagerLifecycleState, resolve_manager_lifecycle
 from atlanticus.web.manager.models import (
     ManagerApplicationDefinition,
     ManagerBrand,
@@ -54,6 +55,7 @@ __all__ = [
     'ManagerDefinitionError',
     'ManagerDraft',
     'ManagerError',
+    'ManagerLifecycleState',
     'ManagerModule',
     'ManagerModuleAccess',
     'ManagerModuleGroup',
@@ -77,5 +79,6 @@ __all__ = [
     'SourceSnapshot',
     'SourceVerificationResult',
     'build_draft_revision',
+    'resolve_manager_lifecycle',
     'resolve_projection_state',
 ]

@@ -67,10 +67,12 @@ def test_users_admin_uses_native_browser_color_pickers() -> None:
 def test_users_admin_dynamic_layout_is_not_driven_by_global_manager_stores() -> None:
     callbacks = (WEB / 'callbacks.py').read_text(encoding='utf-8')
 
-    assert "Input(context.draft_store_id, 'data')" not in callbacks
+    assert "Input(context.draft_store_id, 'data')" in callbacks
     assert "Input(context.workflow_refresh_signal_id, 'data')" not in callbacks
     assert "Input(MOUNT_STORE_ID, 'data')" in callbacks
     assert "State(context.draft_store_id, 'data')" in callbacks
+    assert "Output(context.editor_revision_store_id, 'data')" in callbacks
+    assert 'build_users_configuration_digest(_catalog(catalog_data))' in callbacks
 
 
 def test_users_admin_browser_draft_matches_manager_contract() -> None:
@@ -111,3 +113,14 @@ def test_users_admin_keeps_source_revision_loaded_with_editor_content() -> None:
     assert 'SOURCE_REVISION_STORE_ID' in layout
     assert "State(SOURCE_REVISION_STORE_ID, 'data')" in callbacks
     assert '_current_source_revision' not in callbacks
+
+
+def test_users_admin_rehydrates_editor_from_manager_draft_without_page_reload() -> None:
+    callbacks = (WEB / 'callbacks.py').read_text(encoding='utf-8')
+
+    load_start = callbacks.index('def load_browser_draft(')
+    load_end = callbacks.index('def track_editor_revision(', load_start)
+    load = callbacks[load_start:load_end]
+    assert "Input(context.draft_store_id, 'data')" in callbacks[:load_start]
+    assert 'base_source_revision' in load
+    assert "Output(SOURCE_REVISION_STORE_ID, 'data')" in callbacks[:load_start]

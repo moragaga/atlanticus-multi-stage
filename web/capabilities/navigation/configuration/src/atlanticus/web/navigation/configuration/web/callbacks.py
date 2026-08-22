@@ -78,17 +78,34 @@ _ROOT_SECTION_VALUE = '__root__'
 def register_navigation_admin_callbacks(app: object, context: NavigationAdminWebContext) -> None:
     @app.callback(
         Output(CATALOG_STORE_ID, 'data'),
+        Output(SOURCE_REVISION_STORE_ID, 'data'),
         Input(MOUNT_STORE_ID, 'data'),
-        State(context.draft_store_id, 'data'),
+        Input(context.draft_store_id, 'data'),
     )
     def load_browser_draft(_mounted: object, draft_data: dict[str, object] | None):
         try:
-            return _catalog_from_browser_draft(
+            catalog = _catalog_from_browser_draft(
                 draft_data,
                 context.draft_owner_provider(),
-            ).to_document()
+            )
+            base_source_revision = _draft_base_source_revision(
+                draft_data,
+                owner_subject_id=context.draft_owner_provider(),
+                fallback=None,
+            )
         except Exception:
-            return no_update
+            return no_update, no_update
+        return catalog.to_document(), base_source_revision
+
+    @app.callback(
+        Output(context.editor_revision_store_id, 'data'),
+        Input(CATALOG_STORE_ID, 'data'),
+    )
+    def track_editor_revision(catalog_data: dict[str, object] | None):
+        try:
+            return build_navigation_configuration_digest(_catalog(catalog_data))
+        except Exception:
+            return None
 
     @app.callback(
         Output(STRUCTURE_ID, 'children'),
