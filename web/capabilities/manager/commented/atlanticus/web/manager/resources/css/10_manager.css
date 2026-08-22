@@ -1,4 +1,5 @@
-/* Estados visuales para conflictos de revisión y acciones explícitas. */
+/* Estilos del workspace local y del diálogo de confirmación para descartar o recargar sin mezclar Source y Projection. */
+
 html,
 body,
 #react-entry-point,
@@ -1077,4 +1078,64 @@ body,
     .atlanticus-manager__conflict-revisions {
         grid-template-columns: 1fr;
     }
+}
+
+.atlanticus-manager__workspace-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .55rem;
+}
+
+.atlanticus-manager__workspace-help {
+    margin: 0;
+    color: var(--atlanticus-manager-text-muted);
+    font-size: .7rem;
+    line-height: 1.4;
+}
+
+.atlanticus-manager__workspace-confirm {
+    position: fixed;
+    z-index: 2100;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(7, 21, 34, .42);
+}
+
+.atlanticus-manager__workspace-confirm[hidden] {
+    display: none;
+}
+
+.atlanticus-manager__workspace-confirm-card {
+    display: grid;
+    width: min(100%, 34rem);
+    gap: .75rem;
+    padding: 1rem;
+    background: var(--atlanticus-manager-surface);
+    border: 1px solid var(--atlanticus-manager-border);
+    border-radius: .85rem;
+    box-shadow: 0 1rem 3rem rgba(7, 21, 34, .18);
+}
+
+.atlanticus-manager__workspace-confirm-card h3,
+.atlanticus-manager__workspace-confirm-card p {
+    margin: 0;
+}
+
+.atlanticus-manager__workspace-confirm-card h3 {
+    color: var(--atlanticus-manager-color-primary-ink);
+    font-size: .9rem;
+}
+
+.atlanticus-manager__workspace-confirm-card p {
+    color: var(--atlanticus-manager-text-muted);
+    font-size: .76rem;
+    line-height: 1.45;
+}
+
+.atlanticus-manager__workspace-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: .55rem;
 }

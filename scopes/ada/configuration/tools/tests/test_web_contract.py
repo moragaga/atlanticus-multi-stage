@@ -13,7 +13,7 @@ def test_tool_editor_uses_controlled_structure_forms_and_reference_only_ids() ->
     callbacks = _callbacks()
 
     assert 'dash_table' not in layout
-    assert 'Cargar archivo de configuración local' in layout
+    assert 'Importar archivo de Tools' in layout
     assert "'label': 'Mina y Planta'" in layout
     assert 'CREATE_MODAL_ID' in layout
     assert 'COMPONENT_MODAL_ID' in layout
@@ -109,3 +109,22 @@ def test_tool_editor_tracks_the_revision_of_the_content_that_save_draft_would_pe
     assert 'build_tool_configuration_digest(updated)' in callbacks
     assert '_raw_editor_revision(' in callbacks
     assert "Output(SOURCE_REVISION_STORE_ID, 'data', allow_duplicate=True)" in callbacks
+
+
+def test_tool_workspace_starts_empty_and_does_not_read_source_implicitly() -> None:
+    root = Path(__file__).parents[1] / 'src/ada/configuration/tools/web'
+    layout = (root / 'layout.py').read_text(encoding='utf-8')
+    callbacks = _callbacks()
+
+    assert 'context.services.administration.load_source()' not in layout
+    assert 'catalog = ToolConfigurationCatalog(())' in layout
+    assert 'data=None' in layout
+    assert 'def refresh_source_revision(' not in callbacks
+    assert 'if draft_data is None:' in callbacks[
+        callbacks.index('def load_browser_draft(') : callbacks.index('def track_editor_revision(')
+    ]
+    tracker = callbacks[
+        callbacks.index("Output(context.editor_revision_store_id, 'data')") :
+        callbacks.index('def track_editor_revision(')
+    ]
+    assert 'prevent_initial_call=True' in tracker

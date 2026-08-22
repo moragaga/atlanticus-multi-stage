@@ -8,10 +8,10 @@ classifiers = [
 dependencies = [
     "ada-application-reference==0.1.0",
     "ada-composition-web-application==0.1.0",
-    "ada-composition-web-bootstrap==0.1.3",
-    "ada-composition-web-deployment==0.1.5",
-    "ada-application-configuration-manager==0.2.6",
-    "ada-composition-configuration-manager==0.1.6",
+    "ada-composition-web-bootstrap==0.1.4",
+    "ada-composition-web-deployment==0.1.6",
+    "ada-application-configuration-manager==0.2.7",
+    "ada-composition-configuration-manager==0.1.7",
     "ada-composition-process==0.1.0",
     "ada-composition-integrated-operations==0.1.0",
 ]

@@ -1,5 +1,5 @@
-# Define la identidad del artifact ADA y mantiene alineada su versión con el lifecycle explícito del Manager.
-# Este espejo replica exactamente el código productivo y agrega solo contexto pedagógico.
+# Define la identidad versionada del artifact ADA que incorpora el lifecycle explícito del workspace del Manager.
+# El espejo conserva exactamente el comportamiento productivo y agrega solo contexto pedagógico.
 
 from ada.compositions.web_bootstrap import AdaCosmosBindings
 from ada.compositions.web_deployment import AdaWebDeploymentDefinition
@@ -22,7 +22,7 @@ def build_metadata() -> ApplicationMetadata:
     return ApplicationMetadata(
         application_id='ada-application-base',
         display_name='ADA',
-        version='0.2.5',
+        version='0.2.6',
     )
 
 

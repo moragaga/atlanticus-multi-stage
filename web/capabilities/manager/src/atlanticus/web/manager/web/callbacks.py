@@ -50,6 +50,11 @@ from atlanticus.web.manager.web.ids import (
     workflow_source_verification_id,
     workflow_status_id,
     workflow_validation_id,
+    workflow_workspace_command_id,
+    workflow_workspace_confirmation_id,
+    workflow_workspace_confirmation_message_id,
+    workflow_workspace_confirmation_title_id,
+    workflow_workspace_reset_signal_id,
 )
 from atlanticus.web.manager.web.layout import (
     build_module_content,
@@ -145,7 +150,8 @@ def register_manager_callbacks(
             registry=registry,
             modules=registry.visible_modules(principal, authorization),
             current_path=(
-                pathname or registry.route_for(registry.require(definition.default_module_key))
+                pathname
+                or registry.route_for(registry.require(definition.default_module_key))
             ),
             states=states,
         )
@@ -170,6 +176,25 @@ def register_manager_callbacks(
             coordinator=coordinator,
             principal=principal,
         )
+
+    @app.callback(
+        Output(module_section_panel_id(MATCH, 'content'), 'children'),
+        Input(workflow_workspace_reset_signal_id(MATCH), 'data'),
+        prevent_initial_call=True,
+    )
+    def reset_editor_surface(_reset_signal: int | None):
+        trigger = ctx.triggered_id
+        if not isinstance(trigger, dict):
+            return no_update
+        module_key = str(trigger.get('module', ''))
+        try:
+            module = registry.require(module_key)
+        except ManagerError:
+            return no_update
+        principal = definition.principal_provider()
+        if not authorization.can_view(principal, module):
+            return no_update
+        return module.layout(services)
 
     @app.callback(
         Output(module_section_store_id(MATCH), 'data'),
@@ -214,10 +239,12 @@ def register_manager_callbacks(
         Output(module_status_id(ALL), 'className'),
         Input(STATUS_STORE_ID, 'data'),
         Input(LOCATION_ID, 'pathname'),
+        Input(workflow_refresh_signal_id(ALL), 'data'),
     )
     def refresh_active_workflow(
         _status_data: dict[str, str] | None,
         pathname: str | None,
+        _workflow_signals: list[object],
     ):
         principal = definition.principal_provider()
         module = _active_module(registry, definition, pathname)
@@ -260,6 +287,8 @@ def register_manager_callbacks(
         Output(workflow_action_id(MATCH, 'validate'), 'disabled'),
         Output(workflow_action_id(MATCH, 'verify-source'), 'disabled'),
         Output(workflow_action_id(MATCH, 'publish'), 'disabled'),
+        Output(workflow_action_id(MATCH, 'load-source'), 'disabled'),
+        Output(workflow_action_id(MATCH, 'discard-local'), 'disabled'),
         Output(workflow_conflict_id(MATCH), 'hidden'),
         Output(workflow_conflict_details_id(MATCH), 'children'),
         Output(workflow_action_id(MATCH, 'force-publish'), 'disabled'),
@@ -287,6 +316,7 @@ def register_manager_callbacks(
             validation_current=_validation_is_current(draft, validation_data),
             source_verification=verification,
         )
+        local_work_present = lifecycle.has_local_work or isinstance(draft_data, dict)
         conflict_content = None
         if lifecycle.source_conflict and draft is not None and verification is not None:
             conflict_content = build_source_conflict_content(
@@ -306,6 +336,8 @@ def register_manager_callbacks(
             not lifecycle.can_validate,
             not lifecycle.can_verify_source,
             not lifecycle.can_publish,
+            not (lifecycle.can_load_source and not isinstance(draft_data, dict)),
+            not local_work_present,
             not lifecycle.source_conflict,
             conflict_content,
             not lifecycle.can_force_publish,
@@ -332,9 +364,7 @@ def register_manager_callbacks(
         try:
             draft = _require_draft(draft_data, principal)
             if _editor_revision(editor_revision) != draft.revision:
-                raise ManagerProjectionError(
-                    'Current editor changes must be saved before validation'
-                )
+                raise ManagerProjectionError('Current editor changes must be saved before validation')
             result = coordinator.validate_draft(
                 str(trigger.get('module', '')),
                 principal,
@@ -382,9 +412,7 @@ def register_manager_callbacks(
         try:
             draft = _require_draft(draft_data, principal)
             if _editor_revision(editor_revision) != draft.revision:
-                raise ManagerProjectionError(
-                    'Current editor changes must be saved before verification'
-                )
+                raise ManagerProjectionError('Current editor changes must be saved before verification')
             if not _validation_is_current(draft, validation_data):
                 raise ManagerProjectionError('A successful draft validation is required')
             result = coordinator.verify_source(
@@ -396,11 +424,7 @@ def register_manager_callbacks(
         except ManagerError as error:
             return _error_message(str(error)), no_update, no_update
         except Exception:
-            return (
-                _error_message('Source verification could not be completed'),
-                no_update,
-                no_update,
-            )
+            return _error_message('Source verification could not be completed'), no_update, no_update
         return None, result.to_document(), int(refresh_signal or 0) + 1
 
     @app.callback(
@@ -432,9 +456,7 @@ def register_manager_callbacks(
         try:
             draft = _require_draft(draft_data, principal)
             if _editor_revision(editor_revision) != draft.revision:
-                raise ManagerProjectionError(
-                    'Current editor changes must be saved before publication'
-                )
+                raise ManagerProjectionError('Current editor changes must be saved before publication')
             if not _validation_is_current(draft, validation_data):
                 raise ManagerProjectionError('A successful draft validation is required')
             verification = _require_source_verification(verification_data, draft)
@@ -478,6 +500,57 @@ def register_manager_callbacks(
             updated_draft.to_document(),
             None,
         )
+
+    @app.callback(
+        Output(workflow_result_id(MATCH), 'children', allow_duplicate=True),
+        Output(workflow_draft_id(MATCH), 'data', allow_duplicate=True),
+        Output(workflow_validation_id(MATCH), 'data', allow_duplicate=True),
+        Output(workflow_source_verification_id(MATCH), 'data', allow_duplicate=True),
+        Input(workflow_action_id(MATCH, 'load-source'), 'n_clicks'),
+        State(workflow_draft_id(MATCH), 'data'),
+        State(workflow_editor_revision_id(MATCH), 'data'),
+        prevent_initial_call=True,
+    )
+    def load_source_as_draft(
+        clicks: int,
+        draft_data: dict[str, object] | None,
+        editor_revision: str | None,
+    ):
+        trigger = ctx.triggered_id
+        if not isinstance(trigger, dict) or not _click_is_real(clicks):
+            return no_update, no_update, no_update, no_update
+        if _has_local_work(draft_data, editor_revision):
+            return (
+                _notice_message('Descarta el trabajo local antes de cargar la fuente actual.'),
+                no_update,
+                no_update,
+                no_update,
+            )
+        principal = definition.principal_provider()
+        try:
+            snapshot = coordinator.load_current_source(
+                str(trigger.get('module', '')),
+                principal,
+            )
+            draft = ManagerDraft.create(
+                owner_subject_id=principal.subject_id,
+                payload=snapshot.payload,
+                base_source_revision=snapshot.revision,
+            )
+        except ManagerSourceConflictError:
+            return (
+                _notice_message(
+                    'La fuente cambió mientras se cargaba. Recarga el estado e inténtalo nuevamente.'
+                ),
+                no_update,
+                no_update,
+                no_update,
+            )
+        except ManagerError as error:
+            return _error_message(str(error)), no_update, no_update, no_update
+        except Exception:
+            return _error_message('Current source could not be loaded'), no_update, no_update, no_update
+        return None, draft.to_document(), None, None
 
     @app.callback(
         Output(workflow_result_id(MATCH), 'children', allow_duplicate=True),
@@ -556,9 +629,7 @@ def register_manager_callbacks(
         try:
             draft = _require_draft(draft_data, principal)
             if _editor_revision(editor_revision) != draft.revision:
-                raise ManagerProjectionError(
-                    'Current editor changes must be saved before publication'
-                )
+                raise ManagerProjectionError('Current editor changes must be saved before publication')
             if not _validation_is_current(draft, validation_data):
                 raise ManagerProjectionError('A successful draft validation is required')
             verification = _require_source_verification(verification_data, draft)
@@ -600,6 +671,124 @@ def register_manager_callbacks(
         return None, int(refresh_signal or 0) + 1, updated_draft.to_document(), None
 
     @app.callback(
+        Output(workflow_workspace_confirmation_id(MATCH), 'hidden'),
+        Output(workflow_workspace_confirmation_title_id(MATCH), 'children'),
+        Output(workflow_workspace_confirmation_message_id(MATCH), 'children'),
+        Output(workflow_workspace_command_id(MATCH), 'data'),
+        Output(workflow_result_id(MATCH), 'children', allow_duplicate=True),
+        Output(workflow_draft_id(MATCH), 'data', allow_duplicate=True),
+        Output(workflow_validation_id(MATCH), 'data', allow_duplicate=True),
+        Output(workflow_source_verification_id(MATCH), 'data', allow_duplicate=True),
+        Output(workflow_editor_revision_id(MATCH), 'data', allow_duplicate=True),
+        Output(workflow_refresh_signal_id(MATCH), 'data', allow_duplicate=True),
+        Output(workflow_workspace_reset_signal_id(MATCH), 'data'),
+        Input(workflow_action_id(MATCH, 'discard-local'), 'n_clicks'),
+        Input(workflow_action_id(MATCH, 'reload'), 'n_clicks'),
+        Input(workflow_action_id(MATCH, 'workspace-confirm'), 'n_clicks'),
+        Input(workflow_action_id(MATCH, 'workspace-cancel'), 'n_clicks'),
+        State(workflow_draft_id(MATCH), 'data'),
+        State(workflow_editor_revision_id(MATCH), 'data'),
+        State(workflow_workspace_command_id(MATCH), 'data'),
+        State(workflow_refresh_signal_id(MATCH), 'data'),
+        State(workflow_workspace_reset_signal_id(MATCH), 'data'),
+        prevent_initial_call=True,
+    )
+    def manage_local_workspace(
+        discard_clicks: int,
+        reload_clicks: int,
+        confirm_clicks: int,
+        cancel_clicks: int,
+        draft_data: dict[str, object] | None,
+        editor_revision: str | None,
+        command: str | None,
+        refresh_signal: int | None,
+        reset_signal: int | None,
+    ):
+        trigger = ctx.triggered_id
+        action = trigger.get('action') if isinstance(trigger, dict) else None
+        clicks = {
+            'discard-local': discard_clicks,
+            'reload': reload_clicks,
+            'workspace-confirm': confirm_clicks,
+            'workspace-cancel': cancel_clicks,
+        }.get(str(action))
+        if not _click_is_real(clicks):
+            return (no_update,) * 11
+        if action == 'workspace-cancel':
+            return True, None, None, None, no_update, no_update, no_update, no_update, no_update, no_update, no_update
+        has_local_work = _has_local_work(draft_data, editor_revision)
+        if action == 'discard-local':
+            if not has_local_work:
+                return (
+                    True,
+                    None,
+                    None,
+                    None,
+                    _notice_message('No hay trabajo local para descartar.'),
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                )
+            return (
+                False,
+                'Descartar trabajo local',
+                (
+                    'Se eliminarán el borrador y los cambios locales de este módulo en este '
+                    'navegador. La fuente de verdad y la proyección runtime no se modificarán.'
+                ),
+                'discard',
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+            )
+        if action == 'reload' and has_local_work:
+            return (
+                False,
+                'Descartar y recargar',
+                (
+                    'Se eliminará el trabajo local de este módulo y luego se volverán a consultar '
+                    'la fuente, el historial y la proyección. No se publicará ni proyectará nada.'
+                ),
+                'reload',
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+            )
+        resolved_command = command if action == 'workspace-confirm' else 'reload'
+        if resolved_command not in {'discard', 'reload'}:
+            return (no_update,) * 11
+        next_refresh = int(refresh_signal or 0) + 1 if resolved_command == 'reload' else no_update
+        message = (
+            'Estado remoto recargado. El workspace local quedó vacío.'
+            if resolved_command == 'reload'
+            else 'Trabajo local descartado.'
+        )
+        return (
+            True,
+            None,
+            None,
+            None,
+            _notice_message(message),
+            None,
+            None,
+            None,
+            None,
+            next_refresh,
+            int(reset_signal or 0) + 1,
+        )
+
+    @app.callback(
         Output(workflow_result_id(MATCH), 'children', allow_duplicate=True),
         Output(workflow_draft_id(MATCH), 'data', allow_duplicate=True),
         Output(workflow_validation_id(MATCH), 'data', allow_duplicate=True),
@@ -636,12 +825,7 @@ def register_manager_callbacks(
         except ManagerError as error:
             return _error_message(str(error)), no_update, no_update, no_update
         except Exception:
-            return (
-                _error_message('History revision could not be loaded'),
-                no_update,
-                no_update,
-                no_update,
-            )
+            return _error_message('History revision could not be loaded'), no_update, no_update, no_update
         return None, draft.to_document(), None, None
 
     @app.callback(
@@ -762,6 +946,13 @@ def _editor_revision(value: object) -> str | None:
     return normalized or None
 
 
+def _has_local_work(
+    draft_data: dict[str, object] | None,
+    editor_revision: object,
+) -> bool:
+    return isinstance(draft_data, dict) or _editor_revision(editor_revision) is not None
+
+
 def _safe_source_verification(
     data: dict[str, object] | None,
     draft: ManagerDraft | None,
@@ -804,7 +995,6 @@ def _refresh_source_verification(
         ).to_document()
     except ManagerError:
         return None
-
 
 def _issue_document(issue: ProjectionIssue) -> dict[str, object]:
     return {
@@ -860,7 +1050,9 @@ def _workflow_revision_state(
         'source_revision': status.source_revision,
         'source_actor': status.source_audit.actor if status.source_audit is not None else None,
         'source_occurred_at': (
-            status.source_audit.occurred_at.isoformat() if status.source_audit is not None else None
+            status.source_audit.occurred_at.isoformat()
+            if status.source_audit is not None
+            else None
         ),
         'active_source_revision': status.active_source_revision,
     }

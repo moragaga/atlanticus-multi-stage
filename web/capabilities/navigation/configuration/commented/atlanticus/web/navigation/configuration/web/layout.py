@@ -1,11 +1,12 @@
-# Construye el editor de Navigation cargando contenido y source_revision desde el mismo bundle atómico.
-# La revisión queda en un store de sesión para acompañar correctamente el primer borrador.
+# Construye Navigation desde un catálogo local vacío cuando no existe draft y renderiza esa estructura desde el primer montaje.
+# La acción de archivo se etiqueta como importación para no confundirla con cargar Source desde Manager.
 
 from __future__ import annotations
 
 from dash import dcc, html
 
 from atlanticus.web.navigation.configuration.editor import build_initial_catalog
+from atlanticus.web.navigation.configuration.models import NavigationConfigurationCatalog
 from atlanticus.web.navigation.configuration.profiles import resolve_profile_options
 from atlanticus.web.navigation.configuration.web.ids import (
     ADD_GROUP_ID,
@@ -47,35 +48,27 @@ from atlanticus.web.navigation.configuration.web.ids import (
     STRUCTURE_ID,
 )
 from atlanticus.web.navigation.configuration.web.models import NavigationAdminWebContext
+from atlanticus.web.navigation.configuration.web.rendering import navigation_structure
 
 _MODAL_CLOSED = 'atlanticus-navigation-admin__modal'
 
 
 def build_navigation_admin_configuration(context: NavigationAdminWebContext) -> object:
-    try:
-        bundle = context.services.administration.load_source()
-        catalog = bundle.catalog if bundle is not None else build_initial_catalog()
-        source_revision = bundle.revision if bundle is not None else None
-        error = None
-    except Exception:
-        catalog = build_initial_catalog()
-        source_revision = None
-        error = 'Navigation configuration source could not be loaded'
+    catalog = build_initial_catalog()
     return html.Div(
         [
             dcc.Store(id=CATALOG_STORE_ID, data=catalog.to_document(), storage_type='memory'),
             dcc.Store(
                 id=SOURCE_REVISION_STORE_ID,
-                data=source_revision,
+                data=None,
                 storage_type='memory',
             ),
             dcc.Store(id=LINK_EDITOR_STORE_ID, storage_type='memory'),
             dcc.Store(id=GROUP_EDITOR_STORE_ID, storage_type='memory'),
             dcc.Store(id=MOUNT_STORE_ID, data=1, storage_type='memory'),
-            html.Div(error, className='atlanticus-navigation-admin__error') if error else None,
             _runtime_context(context),
             _profiles_context(context),
-            _structure_section(),
+            _structure_section(catalog),
             _save_section(),
             _link_modal(),
             _group_modal(),
@@ -106,7 +99,7 @@ def _runtime_context(context: NavigationAdminWebContext) -> object:
                     dcc.Upload(
                         id=IMPORT_UPLOAD_ID,
                         children=html.Button(
-                            'Cargar configuración de Navigation',
+                            'Importar archivo de Navigation',
                             className=(
                                 'atlanticus-manager__button atlanticus-manager__button--secondary'
                             ),
@@ -166,7 +159,7 @@ def _profile_badge(profile) -> object:
     return html.Span(profile.label, className=classes, style=style)
 
 
-def _structure_section() -> object:
+def _structure_section(catalog: NavigationConfigurationCatalog) -> object:
     return html.Section(
         [
             html.Div(
@@ -207,7 +200,7 @@ def _structure_section() -> object:
                 ],
                 className='atlanticus-navigation-admin__section-heading',
             ),
-            html.Div(id=STRUCTURE_ID),
+            html.Div(navigation_structure(catalog), id=STRUCTURE_ID),
         ],
         className='atlanticus-navigation-admin__section',
     )

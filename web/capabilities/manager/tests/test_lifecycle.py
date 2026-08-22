@@ -129,3 +129,35 @@ def test_published_draft_has_no_draft_lifecycle_action() -> None:
     assert state.can_validate is False
     assert state.can_verify_source is False
     assert state.can_publish is False
+
+
+def test_empty_workspace_with_published_source_can_only_load_source() -> None:
+    state = resolve_manager_lifecycle(
+        draft=None,
+        editor_revision=None,
+        source_revision='source-a',
+        validation_current=False,
+        source_verification=None,
+    )
+
+    assert state.has_local_work is False
+    assert state.dirty is False
+    assert state.can_save_draft is False
+    assert state.can_load_source is True
+    assert state.can_discard_local is False
+
+
+def test_new_unsaved_workspace_is_local_work_without_inheriting_source_revision() -> None:
+    state = resolve_manager_lifecycle(
+        draft=None,
+        editor_revision='new-editor-revision',
+        source_revision='source-a',
+        validation_current=False,
+        source_verification=None,
+    )
+
+    assert state.has_local_work is True
+    assert state.dirty is True
+    assert state.can_save_draft is True
+    assert state.can_load_source is False
+    assert state.can_discard_local is True

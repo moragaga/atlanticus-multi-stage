@@ -1,5 +1,5 @@
-# Centraliza la máquina de estados que separa editor, borrador, validación, verificación de Source y publicación.
-# Projection queda deliberadamente fuera de este contrato porque su activación siempre es manual e independiente.
+# Centraliza el estado del workspace local y diferencia trabajo local, borrador publicado y acciones permitidas.
+# Cargar Source y descartar trabajo se resuelven sin mezclar publicación o proyección.
 
 from dataclasses import dataclass
 
@@ -9,6 +9,7 @@ from atlanticus.web.manager.projection import ManagerDraft, SourceVerificationRe
 @dataclass(frozen=True, slots=True)
 class ManagerLifecycleState:
     dirty: bool
+    has_local_work: bool
     published: bool
     validation_current: bool
     verification_current: bool
@@ -18,6 +19,8 @@ class ManagerLifecycleState:
     can_verify_source: bool
     can_publish: bool
     can_force_publish: bool
+    can_load_source: bool
+    can_discard_local: bool
 
 
 def resolve_manager_lifecycle(
@@ -29,10 +32,11 @@ def resolve_manager_lifecycle(
     source_verification: SourceVerificationResult | None,
 ) -> ManagerLifecycleState:
     normalized_editor_revision = _optional_revision(editor_revision)
-    reference_revision = draft.revision if draft is not None else source_revision
     dirty = bool(
-        normalized_editor_revision is not None and normalized_editor_revision != reference_revision
+        normalized_editor_revision is not None
+        and (draft is None or normalized_editor_revision != draft.revision)
     )
+    has_local_work = draft is not None or dirty
     published = bool(draft is not None and draft.revision == source_revision)
     current_validation = bool(validation_current and not dirty and draft is not None)
     current_verification = bool(
@@ -41,22 +45,25 @@ def resolve_manager_lifecycle(
         and source_verification.draft_revision == draft.revision
     )
     verification_matches = bool(
-        current_verification and source_verification is not None and source_verification.matches
+        current_verification
+        and source_verification is not None
+        and source_verification.matches
     )
     conflict = bool(current_verification and not verification_matches)
     return ManagerLifecycleState(
         dirty=dirty,
+        has_local_work=has_local_work,
         published=published,
         validation_current=current_validation,
         verification_current=current_verification,
         source_conflict=conflict,
         can_save_draft=dirty,
-        can_validate=bool(
-            draft is not None and not dirty and not published and not current_validation
-        ),
+        can_validate=bool(draft is not None and not dirty and not published and not current_validation),
         can_verify_source=bool(current_validation and not published and not current_verification),
         can_publish=bool(verification_matches and not published),
         can_force_publish=bool(current_validation and conflict),
+        can_load_source=bool(source_revision is not None and not has_local_work),
+        can_discard_local=has_local_work,
     )
 
 

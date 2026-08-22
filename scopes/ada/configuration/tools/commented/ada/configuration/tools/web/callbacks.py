@@ -1,5 +1,5 @@
-# Gestiona el editor de Tools y publica una revisión determinística del contenido que Guardar borrador persistiría.
-# La señal permite al Manager distinguir cambios sin guardar sin mezclar esa responsabilidad con Source o Projection.
+# Gestiona el workspace editable de Tools y lo mantiene separado de la fuente publicada y de la proyección runtime.
+# El draft del navegador es la única vía para hidratar contenido publicado de forma explícita; un reset local no consulta infraestructura.
 
 from __future__ import annotations
 
@@ -132,17 +132,25 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         Input(context.draft_store_id, 'data'),
         State(SELECTED_TOOL_ID, 'value'),
         State(DRAFT_LOAD_SIGNAL_ID, 'data'),
-        prevent_initial_call=True,
     )
     def load_browser_draft(
         draft_data: dict[str, object] | None,
         selected_tool: str | None,
         load_signal: int | None,
     ):
+        if draft_data is None:
+            return no_update, no_update, no_update, no_update, no_update
         try:
             catalog = _catalog_from_browser_draft(draft_data, context.draft_owner_provider())
         except Exception:
-            return no_update, no_update, no_update, no_update, no_update
+            catalog = ToolConfigurationCatalog(())
+            return (
+                catalog.to_document(),
+                [],
+                None,
+                int(load_signal or 0) + 1,
+                None,
+            )
         selected = selected_tool
         if selected is None or not any(tool.tool_key == selected for tool in catalog.tools):
             selected = catalog.tools[0].tool_key if catalog.tools else None
@@ -158,17 +166,6 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
             ),
         )
 
-    @app.callback(
-        Output(SOURCE_REVISION_STORE_ID, 'data', allow_duplicate=True),
-        Input(context.workflow_refresh_signal_id, 'data'),
-        prevent_initial_call=True,
-    )
-    def refresh_source_revision(_signal: object):
-        try:
-            bundle = context.services.administration.load_source()
-        except Exception:
-            return no_update
-        return bundle.revision if bundle is not None else None
 
     @app.callback(
         Output(context.editor_revision_store_id, 'data'),
@@ -180,6 +177,7 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         Input(DISPATCH_FRESHNESS_ID, 'value'),
         Input(STRUCTURE_STORE_ID, 'data'),
         Input(CATALOG_STORE_ID, 'data'),
+        prevent_initial_call=True,
     )
     def track_editor_revision(
         tool_key: str | None,

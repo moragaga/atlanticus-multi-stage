@@ -92,7 +92,7 @@ def test_users_admin_profile_text_color_wins_inside_avatar() -> None:
 def test_users_admin_labels_configuration_as_profiles_and_users() -> None:
     layout = layout_source()
 
-    assert 'Cargar configuración de Users' in layout
+    assert 'Importar archivo de Users' in layout
     assert 'Incluye perfiles y usuarios.' in layout
     assert 'Borrador de Users · perfiles y usuarios' in layout
     assert 'Guardar borrador de Users' in layout
@@ -124,3 +124,18 @@ def test_users_admin_rehydrates_editor_from_manager_draft_without_page_reload() 
     assert "Input(context.draft_store_id, 'data')" in callbacks[:load_start]
     assert 'base_source_revision' in load
     assert "Output(SOURCE_REVISION_STORE_ID, 'data')" in callbacks[:load_start]
+
+
+def test_users_workspace_starts_empty_and_does_not_read_source_implicitly() -> None:
+    layout = layout_source()
+    callbacks = (WEB / 'callbacks.py').read_text(encoding='utf-8')
+
+    assert 'context.services.administration.load_source()' not in layout
+    assert 'catalog = _empty_catalog()' in layout
+    assert 'data=None' in layout
+    assert 'if draft_data is None:' in callbacks
+    tracker = callbacks[
+        callbacks.index("Output(context.editor_revision_store_id, 'data')") :
+        callbacks.index('def track_editor_revision(')
+    ]
+    assert 'prevent_initial_call=True' in tracker

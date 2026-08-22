@@ -1,5 +1,5 @@
-# Centraliza los identificadores Dash de los estados transitorios de revisión de editor y verificación de Source.
-# Los IDs por módulo mantienen los callbacks MATCH aislados entre Tools, Users y Navigation.
+# Declara identificadores por módulo para comandos, confirmación y señal de reset del workspace local.
+# Los IDs MATCH mantienen aislado el estado de Tools, Users y Navigation.
 
 LOCATION_ID = 'atlanticus-manager-location'
 SUMMARY_ID = 'atlanticus-manager-summary'
@@ -50,6 +50,7 @@ def workflow_draft_status_id(module_key: str) -> dict[str, str]:
     }
 
 
+
 def workflow_conflict_id(module_key: str) -> dict[str, str]:
     return {
         'type': 'atlanticus-manager-workflow-conflict',
@@ -62,7 +63,6 @@ def workflow_conflict_details_id(module_key: str) -> dict[str, str]:
         'type': 'atlanticus-manager-workflow-conflict-details',
         'module': module_key,
     }
-
 
 def workflow_history_id(module_key: str) -> dict[str, str]:
     return {
@@ -119,6 +119,41 @@ def workflow_editor_revision_id(module_key: str) -> dict[str, str]:
         'module': module_key,
     }
 
+
+
+def workflow_workspace_reset_signal_id(module_key: str) -> dict[str, str]:
+    return {
+        'type': 'atlanticus-manager-workspace-reset-signal',
+        'module': module_key,
+    }
+
+
+def workflow_workspace_command_id(module_key: str) -> dict[str, str]:
+    return {
+        'type': 'atlanticus-manager-workspace-command',
+        'module': module_key,
+    }
+
+
+def workflow_workspace_confirmation_id(module_key: str) -> dict[str, str]:
+    return {
+        'type': 'atlanticus-manager-workspace-confirmation',
+        'module': module_key,
+    }
+
+
+def workflow_workspace_confirmation_title_id(module_key: str) -> dict[str, str]:
+    return {
+        'type': 'atlanticus-manager-workspace-confirmation-title',
+        'module': module_key,
+    }
+
+
+def workflow_workspace_confirmation_message_id(module_key: str) -> dict[str, str]:
+    return {
+        'type': 'atlanticus-manager-workspace-confirmation-message',
+        'module': module_key,
+    }
 
 def module_section_store_id(module_key: str) -> dict[str, str]:
     return {

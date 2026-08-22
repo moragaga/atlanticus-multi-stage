@@ -11,7 +11,7 @@ def test_package_dependencies_are_limited_to_existing_contract_layers() -> None:
     pyproject = tomllib.loads((PACKAGE_ROOT / 'pyproject.toml').read_text())
 
     assert pyproject['project']['dependencies'] == [
-        'ada-composition-web-bootstrap==0.1.3',
+        'ada-composition-web-bootstrap==0.1.4',
         'atlanticus-web==0.1.0',
         'atlanticus-web-composition-runtime-infrastructure==0.1.0',
     ]

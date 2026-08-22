@@ -1,5 +1,5 @@
-# Presenta el lifecycle en cinco etapas visibles y mantiene Projection como último paso manual separado.
-# La trazabilidad muestra cambios sin guardar, validación, verificación de Source, publicación y Projection.
+# Presenta las acciones explícitas Cargar configuración desde Source, Descartar trabajo local y Recargar junto al lifecycle de publicación.
+# Después de publicar, la verificación de Source se muestra como no requerida cuando el draft ya coincide con la fuente.
 
 from __future__ import annotations
 
@@ -61,6 +61,11 @@ from atlanticus.web.manager.web.ids import (
     workflow_source_verification_id,
     workflow_status_id,
     workflow_validation_id,
+    workflow_workspace_command_id,
+    workflow_workspace_confirmation_id,
+    workflow_workspace_confirmation_message_id,
+    workflow_workspace_confirmation_title_id,
+    workflow_workspace_reset_signal_id,
 )
 from atlanticus.web.services import ServiceRegistry
 
@@ -87,7 +92,7 @@ def build_manager_header(
             html.Div(
                 [
                     html.Button(
-                        'Recargar',
+                        'Actualizar estados',
                         id=REFRESH_BUTTON_ID,
                         className='atlanticus-manager__button atlanticus-manager__button--header',
                     ),
@@ -161,6 +166,21 @@ def build_manager_surface(
             *[
                 dcc.Store(
                     id=workflow_editor_revision_id(module.key),
+                    storage_type='memory',
+                )
+                for module in visible_modules
+            ],
+            *[
+                dcc.Store(
+                    id=workflow_workspace_reset_signal_id(module.key),
+                    data=0,
+                    storage_type='memory',
+                )
+                for module in visible_modules
+            ],
+            *[
+                dcc.Store(
+                    id=workflow_workspace_command_id(module.key),
                     storage_type='memory',
                 )
                 for module in visible_modules
@@ -523,7 +543,7 @@ def build_workflow_draft_content(
             validation_label = 'Con errores'
         validated_by = str(current_validation.get('validated_by') or '—')
         validated_at = _format_optional_datetime(current_validation.get('validated_at'))
-    verification_label = 'Pendiente'
+    verification_label = 'No requerida' if draft.revision == source_revision else 'Pendiente'
     verification_revision = '—'
     verification_actor = '—'
     verification_at = '—'
@@ -585,7 +605,9 @@ def build_source_conflict_content(
     verification: SourceVerificationResult,
 ) -> object:
     actor = (
-        verification.source_audit.actor if verification.source_audit is not None else 'Otro usuario'
+        verification.source_audit.actor
+        if verification.source_audit is not None
+        else 'Otro usuario'
     )
     occurred_at = (
         _format_datetime(verification.source_audit.occurred_at)
@@ -645,7 +667,9 @@ def _workflow_revision_state(status: ProjectionStatus | None) -> dict[str, objec
         'source_revision': status.source_revision,
         'source_actor': status.source_audit.actor if status.source_audit is not None else None,
         'source_occurred_at': (
-            status.source_audit.occurred_at.isoformat() if status.source_audit is not None else None
+            status.source_audit.occurred_at.isoformat()
+            if status.source_audit is not None
+            else None
         ),
         'active_source_revision': status.active_source_revision,
     }
@@ -734,123 +758,219 @@ def _build_workflow_actions(
     module: ManagerModule,
     status: ProjectionStatus | None,
 ) -> object:
-    return html.Section(
+    return html.Div(
         [
-            _workflow_group_header(
-                'Flujo de publicación',
-                'Avanza en orden: guardar, validar, verificar la fuente y publicar.',
-            ),
             html.Section(
                 [
-                    html.Div(id=workflow_conflict_details_id(module.key)),
+                    _workflow_group_header(
+                        'Workspace local',
+                        'Controla el trabajo de este módulo sin modificar la fuente ni la proyección.',
+                    ),
                     html.Div(
                         [
                             html.Button(
-                                f'Actualizar desde {module.source_name}',
-                                id=workflow_action_id(module.key, 'update-source'),
+                                f'Cargar configuración desde {module.source_name}',
+                                id=workflow_action_id(module.key, 'load-source'),
+                                n_clicks=0,
+                                className=(
+                                    'atlanticus-manager__button '
+                                    'atlanticus-manager__button--secondary'
+                                ),
+                                disabled=status is None or status.source_revision is None,
+                            ),
+                            html.Button(
+                                'Descartar trabajo local',
+                                id=workflow_action_id(module.key, 'discard-local'),
+                                n_clicks=0,
+                                className=(
+                                    'atlanticus-manager__button '
+                                    'atlanticus-manager__button--secondary'
+                                ),
+                                disabled=True,
+                            ),
+                            html.Button(
+                                'Recargar',
+                                id=workflow_action_id(module.key, 'reload'),
                                 n_clicks=0,
                                 className=(
                                     'atlanticus-manager__button '
                                     'atlanticus-manager__button--secondary'
                                 ),
                             ),
-                            html.Button(
-                                'Forzar publicación',
-                                id=workflow_action_id(module.key, 'force-publish'),
-                                n_clicks=0,
-                                className=(
-                                    'atlanticus-manager__button atlanticus-manager__button--danger'
-                                ),
-                                disabled=True,
-                                hidden=not module.force_publish_enabled,
+                        ],
+                        className='atlanticus-manager__workspace-actions',
+                    ),
+                    html.P(
+                        'Recargar elimina el workspace local y vuelve a consultar fuente, historial y proyección.',
+                        className='atlanticus-manager__workspace-help',
+                    ),
+                ],
+                className='atlanticus-manager__workflow-group',
+            ),
+            html.Section(
+                [
+                    _workflow_group_header(
+                        'Flujo de publicación',
+                        'Avanza en orden: guardar, validar, verificar la fuente y publicar.',
+                    ),
+                    html.Section(
+                        [
+                            html.Div(id=workflow_conflict_details_id(module.key)),
+                            html.Div(
+                                [
+                                    html.Button(
+                                        f'Actualizar desde {module.source_name}',
+                                        id=workflow_action_id(module.key, 'update-source'),
+                                        n_clicks=0,
+                                        className=(
+                                            'atlanticus-manager__button '
+                                            'atlanticus-manager__button--secondary'
+                                        ),
+                                    ),
+                                    html.Button(
+                                        'Forzar publicación',
+                                        id=workflow_action_id(module.key, 'force-publish'),
+                                        n_clicks=0,
+                                        className=(
+                                            'atlanticus-manager__button '
+                                            'atlanticus-manager__button--danger'
+                                        ),
+                                        disabled=True,
+                                        hidden=not module.force_publish_enabled,
+                                    ),
+                                ],
+                                className='atlanticus-manager__conflict-actions',
                             ),
                         ],
-                        className='atlanticus-manager__conflict-actions',
+                        id=workflow_conflict_id(module.key),
+                        className='atlanticus-manager__conflict',
+                        hidden=True,
+                    ),
+                    html.Div(
+                        [
+                            _workflow_action_step(
+                                '1',
+                                'Guardar borrador',
+                                'Conserva el trabajo únicamente en este navegador.',
+                                html.Button(
+                                    'Guardar borrador',
+                                    id=workflow_action_id(module.key, 'save-draft'),
+                                    n_clicks=0,
+                                    className=(
+                                        'atlanticus-manager__button '
+                                        'atlanticus-manager__button--secondary'
+                                    ),
+                                    disabled=True,
+                                ),
+                            ),
+                            _workflow_action_step(
+                                '2',
+                                'Validar',
+                                'Comprueba el borrador sin escribir en la fuente de verdad.',
+                                html.Button(
+                                    'Validar borrador',
+                                    id=workflow_action_id(module.key, 'validate'),
+                                    n_clicks=0,
+                                    className=(
+                                        'atlanticus-manager__button '
+                                        'atlanticus-manager__button--secondary'
+                                    ),
+                                    disabled=True,
+                                ),
+                            ),
+                            _workflow_action_step(
+                                '3',
+                                'Verificar fuente',
+                                f'Comprueba que {module.source_name} siga en la revisión base del borrador.',
+                                html.Button(
+                                    f'Verificar {module.source_name}',
+                                    id=workflow_action_id(module.key, 'verify-source'),
+                                    n_clicks=0,
+                                    className=(
+                                        'atlanticus-manager__button '
+                                        'atlanticus-manager__button--secondary'
+                                    ),
+                                    disabled=True,
+                                ),
+                            ),
+                            _workflow_action_step(
+                                '4',
+                                'Publicar',
+                                f'Guarda la revisión validada en {module.source_name}.',
+                                html.Button(
+                                    f'Guardar en {module.source_name}',
+                                    id=workflow_action_id(module.key, 'publish'),
+                                    n_clicks=0,
+                                    className=(
+                                        'atlanticus-manager__button '
+                                        'atlanticus-manager__button--secondary'
+                                    ),
+                                    disabled=True,
+                                ),
+                            ),
+                            _workflow_action_step(
+                                '5',
+                                'Proyectar',
+                                f'Actualiza manualmente el runtime disponible en {module.projection_name}.',
+                                html.Button(
+                                    f'Proyectar en {module.projection_name}',
+                                    id=workflow_action_id(module.key, 'project'),
+                                    n_clicks=0,
+                                    className=(
+                                        'atlanticus-manager__button '
+                                        'atlanticus-manager__button--primary'
+                                    ),
+                                    disabled=not _can_project(status),
+                                ),
+                            ),
+                        ],
+                        className='atlanticus-manager__workflow-action-grid',
                     ),
                 ],
-                id=workflow_conflict_id(module.key),
-                className='atlanticus-manager__conflict',
-                hidden=True,
+                className='atlanticus-manager__workflow-group',
             ),
-            html.Div(
-                [
-                    _workflow_action_step(
-                        '1',
-                        'Guardar borrador',
-                        'Conserva el trabajo únicamente en este navegador.',
-                        html.Button(
-                            'Guardar borrador',
-                            id=workflow_action_id(module.key, 'save-draft'),
-                            n_clicks=0,
-                            className=(
-                                'atlanticus-manager__button atlanticus-manager__button--secondary'
-                            ),
-                            disabled=True,
-                        ),
-                    ),
-                    _workflow_action_step(
-                        '2',
-                        'Validar',
-                        'Comprueba el borrador sin escribir en la fuente de verdad.',
-                        html.Button(
-                            'Validar borrador',
-                            id=workflow_action_id(module.key, 'validate'),
-                            n_clicks=0,
-                            className=(
-                                'atlanticus-manager__button atlanticus-manager__button--secondary'
-                            ),
-                            disabled=True,
-                        ),
-                    ),
-                    _workflow_action_step(
-                        '3',
-                        'Verificar fuente',
-                        f'Comprueba que {module.source_name} siga en la revisión base del borrador.',
-                        html.Button(
-                            f'Verificar {module.source_name}',
-                            id=workflow_action_id(module.key, 'verify-source'),
-                            n_clicks=0,
-                            className=(
-                                'atlanticus-manager__button atlanticus-manager__button--secondary'
-                            ),
-                            disabled=True,
-                        ),
-                    ),
-                    _workflow_action_step(
-                        '4',
-                        'Publicar',
-                        f'Guarda la revisión validada en {module.source_name}.',
-                        html.Button(
-                            f'Guardar en {module.source_name}',
-                            id=workflow_action_id(module.key, 'publish'),
-                            n_clicks=0,
-                            className=(
-                                'atlanticus-manager__button atlanticus-manager__button--secondary'
-                            ),
-                            disabled=True,
-                        ),
-                    ),
-                    _workflow_action_step(
-                        '5',
-                        'Proyectar',
-                        f'Actualiza manualmente el runtime disponible en {module.projection_name}.',
-                        html.Button(
-                            f'Proyectar en {module.projection_name}',
-                            id=workflow_action_id(module.key, 'project'),
-                            n_clicks=0,
-                            className=(
-                                'atlanticus-manager__button atlanticus-manager__button--primary'
-                            ),
-                            disabled=not _can_project(status),
-                        ),
-                    ),
-                ],
-                className='atlanticus-manager__workflow-action-grid',
-            ),
+            _workspace_confirmation(module),
         ],
-        className='atlanticus-manager__workflow-group',
+        className='atlanticus-manager__workflow-actions',
     )
 
+
+def _workspace_confirmation(module: ManagerModule) -> object:
+    return html.Div(
+        html.Div(
+            [
+                html.H3(id=workflow_workspace_confirmation_title_id(module.key)),
+                html.P(id=workflow_workspace_confirmation_message_id(module.key)),
+                html.Div(
+                    [
+                        html.Button(
+                            'Cancelar',
+                            id=workflow_action_id(module.key, 'workspace-cancel'),
+                            n_clicks=0,
+                            className=(
+                                'atlanticus-manager__button '
+                                'atlanticus-manager__button--secondary'
+                            ),
+                        ),
+                        html.Button(
+                            'Confirmar',
+                            id=workflow_action_id(module.key, 'workspace-confirm'),
+                            n_clicks=0,
+                            className=(
+                                'atlanticus-manager__button '
+                                'atlanticus-manager__button--danger'
+                            ),
+                        ),
+                    ],
+                    className='atlanticus-manager__workspace-confirm-actions',
+                ),
+            ],
+            className='atlanticus-manager__workspace-confirm-card',
+        ),
+        id=workflow_workspace_confirmation_id(module.key),
+        className='atlanticus-manager__workspace-confirm',
+        hidden=True,
+    )
 
 def _workflow_action_step(
     step: str,

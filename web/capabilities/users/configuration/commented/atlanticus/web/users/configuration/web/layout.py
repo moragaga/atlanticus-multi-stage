@@ -1,5 +1,5 @@
-# Construye el editor de Users leyendo catálogo y source_revision desde un mismo bundle.
-# La revisión original queda persistida junto al estado del editor para crear correctamente el primer draft.
+# Construye Users con un workspace inicial vacío y mantiene la importación de archivos separada de la carga desde Source.
+# El contenido publicado solo entra al editor mediante una acción explícita del lifecycle.
 
 from __future__ import annotations
 
@@ -75,15 +75,7 @@ _MODAL_CLOSED = 'atlanticus-users-admin__modal'
 
 
 def build_users_admin_configuration(context: UsersAdminWebContext) -> object:
-    try:
-        bundle = context.services.administration.load_source()
-        catalog = bundle.catalog if bundle is not None else _empty_catalog()
-        source_revision = bundle.revision if bundle is not None else None
-        error = None
-    except Exception:
-        catalog = _empty_catalog()
-        source_revision = None
-        error = 'Users configuration source could not be loaded'
+    catalog = _empty_catalog()
     return html.Div(
         [
             dcc.Store(
@@ -93,21 +85,13 @@ def build_users_admin_configuration(context: UsersAdminWebContext) -> object:
             ),
             dcc.Store(
                 id=SOURCE_REVISION_STORE_ID,
-                data=source_revision,
+                data=None,
                 storage_type='memory',
             ),
             dcc.Store(id=SECTION_STORE_ID, data='profiles', storage_type='memory'),
             dcc.Store(id=PROFILE_EDITOR_STORE_ID, storage_type='memory'),
             dcc.Store(id=USER_EDITOR_STORE_ID, storage_type='memory'),
             dcc.Store(id=MOUNT_STORE_ID, data=1, storage_type='memory'),
-            html.Div(
-                error,
-                className=(
-                    'atlanticus-users-admin__message atlanticus-users-admin__message--error'
-                ),
-            )
-            if error
-            else None,
             _runtime_context(context),
             _editor_navigation(),
             html.Div(
@@ -164,7 +148,7 @@ def _runtime_context(context: UsersAdminWebContext) -> object:
                     dcc.Upload(
                         id=IMPORT_UPLOAD_ID,
                         children=html.Button(
-                            'Cargar configuración de Users',
+                            'Importar archivo de Users',
                             className=(
                                 'atlanticus-manager__button atlanticus-manager__button--secondary'
                             ),

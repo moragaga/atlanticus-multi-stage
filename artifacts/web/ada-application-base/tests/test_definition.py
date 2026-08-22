@@ -14,7 +14,7 @@ def test_metadata_is_stable() -> None:
 
     assert metadata.application_id == 'ada-application-base'
     assert metadata.display_name == 'ADA'
-    assert metadata.version == '0.2.5'
+    assert metadata.version == '0.2.6'
 
 
 def test_deployment_definition_binds_all_ada_capabilities_to_application_connection() -> None:

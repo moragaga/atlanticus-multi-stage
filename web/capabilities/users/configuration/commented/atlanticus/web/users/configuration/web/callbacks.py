@@ -1,5 +1,5 @@
-# Mantiene el editor de Users alineado con el draft activo y calcula una revisión determinística del catálogo.
-# La rehidratación ocurre al cambiar el draft, permitiendo Actualizar desde Source sin depender de F5.
+# Hidrata Users solo desde el draft explícito del Manager y conserva separada la revisión base asociada al contenido cargado.
+# Los cambios del editor informan su propia revisión sin convertir Source en workspace de forma implícita.
 
 from __future__ import annotations
 
@@ -116,6 +116,8 @@ def register_users_admin_callbacks(app: object, context: UsersAdminWebContext) -
         Input(context.draft_store_id, 'data'),
     )
     def load_browser_draft(_mounted: object, draft_data: dict[str, object] | None):
+        if draft_data is None:
+            return (no_update,) * 6
         try:
             catalog = _catalog_from_browser_draft(
                 draft_data,
@@ -127,7 +129,15 @@ def register_users_admin_callbacks(app: object, context: UsersAdminWebContext) -
                 fallback=None,
             )
         except Exception:
-            return (no_update,) * 6
+            catalog = _empty_catalog()
+            return (
+                catalog.to_document(),
+                catalog.administrator_background_color,
+                catalog.administrator_text_color,
+                catalog.guest_background_color,
+                catalog.guest_text_color,
+                None,
+            )
         return (
             catalog.to_document(),
             catalog.administrator_background_color,
@@ -140,6 +150,7 @@ def register_users_admin_callbacks(app: object, context: UsersAdminWebContext) -
     @app.callback(
         Output(context.editor_revision_store_id, 'data'),
         Input(CATALOG_STORE_ID, 'data'),
+        prevent_initial_call=True,
     )
     def track_editor_revision(catalog_data: dict[str, object] | None):
         try:
@@ -673,6 +684,15 @@ def register_users_admin_callbacks(app: object, context: UsersAdminWebContext) -
         except Exception as error:
             return no_update, _error(str(error))
         return draft, None
+
+
+def _empty_catalog() -> UsersConfigurationCatalog:
+    return UsersConfigurationCatalog(
+        administrator_background_color=DEFAULT_ADMINISTRATOR_BACKGROUND_COLOR,
+        administrator_text_color=DEFAULT_ADMINISTRATOR_TEXT_COLOR,
+        guest_background_color=DEFAULT_GUEST_BACKGROUND_COLOR,
+        guest_text_color=DEFAULT_GUEST_TEXT_COLOR,
+    )
 
 
 def _catalog(data: dict[str, object] | None) -> UsersConfigurationCatalog:

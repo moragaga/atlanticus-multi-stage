@@ -12,7 +12,7 @@ def test_workflow_callbacks_keep_match_scoped_outputs_per_module() -> None:
 
     assert 'Output(REFRESH_SIGNAL_ID' not in source
     assert source.count("Input(REFRESH_SIGNAL_ID, 'data')") == 2
-    assert source.count("Output(workflow_refresh_signal_id(MATCH), 'data'") == 5
+    assert source.count("Output(workflow_refresh_signal_id(MATCH), 'data'") == 6
     assert "Output(workflow_refresh_signal_id(ALL), 'data'" not in source
     assert "Input(workflow_refresh_signal_id(ALL), 'data')" in source
 
@@ -20,11 +20,12 @@ def test_workflow_callbacks_keep_match_scoped_outputs_per_module() -> None:
 def test_workflow_refresh_does_not_rebuild_module_content() -> None:
     source = _source()
     start = source.index("Output(CONTENT_ID, 'children')")
-    end = source.index("Output(module_section_store_id(MATCH), 'data')")
+    end = source.index("Output(module_section_panel_id(MATCH, 'content'), 'children')")
     route_callback = source[start:end]
 
     assert "Input(LOCATION_ID, 'pathname')" in route_callback
     assert "Input(STATUS_STORE_ID, 'data')" not in route_callback
+    assert 'workflow_workspace_reset_signal_id' not in route_callback
     assert "Output(workflow_status_id(ALL), 'children')" in source
     assert "Output(workflow_action_id(ALL, 'project'), 'disabled')" in source
 
@@ -36,8 +37,10 @@ def test_lifecycle_actions_require_explicit_clicks_and_history_only_loads_draft(
     assert 'def verify_source_configuration(' in source
     assert 'def publish_configuration(' in source
     assert 'def project_configuration(' in source
+    assert 'def load_source_as_draft(' in source
     assert 'def update_from_source(' in source
     assert 'def force_publish_configuration(' in source
+    assert 'def manage_local_workspace(' in source
     assert 'def load_history_as_draft(' in source
     assert 'restore_revision' not in source
     assert "State(history_load_id(MATCH, ALL, ALL), 'id')" in source
@@ -112,3 +115,33 @@ def test_dirty_editor_hides_stale_validation_and_source_verification_state() -> 
 
     assert 'validation=None if lifecycle.dirty else validation_data' in source
     assert 'source_verification=None if lifecycle.dirty else verification' in source
+
+
+def test_workspace_actions_are_module_scoped_and_reload_is_the_only_remote_refresh() -> None:
+    source = _source()
+
+    assert "workflow_action_id(MATCH, 'load-source')" in source
+    assert "workflow_action_id(MATCH, 'discard-local')" in source
+    assert "workflow_action_id(MATCH, 'reload')" in source
+    assert "workflow_workspace_command_id(MATCH)" in source
+    assert "workflow_workspace_reset_signal_id(MATCH)" in source
+    start = source.index('def manage_local_workspace(')
+    end = source.index('def load_history_as_draft(', start)
+    callback = source[start:end]
+    assert "resolved_command == 'reload'" in callback
+    assert "int(refresh_signal or 0) + 1" in callback
+    assert "coordinator.project(" not in callback
+    assert "coordinator.publish_draft(" not in callback
+
+
+def test_workspace_reset_rebuilds_only_the_editor_surface_without_loading_source() -> None:
+    source = _source()
+    reset_start = source.index("Output(module_section_panel_id(MATCH, 'content'), 'children')")
+    reset_end = source.index("Output(module_section_store_id(MATCH), 'data')", reset_start)
+    reset_callback = source[reset_start:reset_end]
+
+    assert "Input(workflow_workspace_reset_signal_id(MATCH), 'data')" in reset_callback
+    assert 'return module.layout(services)' in reset_callback
+    assert 'build_module_content(' not in reset_callback
+    assert 'coordinator.get_status(' not in reset_callback
+    assert 'coordinator.list_history(' not in reset_callback

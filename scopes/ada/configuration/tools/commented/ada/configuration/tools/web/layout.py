@@ -1,6 +1,6 @@
-# Espejo pedagógico: conserva la misma lógica del archivo productivo.
-# Los comentarios documentan la responsabilidad sin cambiar el comportamiento.
-# Expone la edición ADA sin mostrar detalles técnicos como campos editables.
+# Construye un editor de Tools inicialmente vacío cuando no existe un borrador local.
+# La importación de archivos se distingue de cargar la configuración publicada desde la fuente de verdad.
+
 from __future__ import annotations
 
 from dash import dcc, html
@@ -27,12 +27,12 @@ from ada.configuration.tools.web.ids import (
     CREATE_CANCEL_ID,
     CREATE_KIND_ID,
     CREATE_MODAL_ID,
-    CREATE_OPEN_ID,
     CREATE_NAME_ID,
+    CREATE_OPEN_ID,
     CREATE_RESULT_ID,
     DISPATCH_FRESHNESS_FIELD_ID,
-    DRAFT_LOAD_SIGNAL_ID,
     DISPATCH_FRESHNESS_ID,
+    DRAFT_LOAD_SIGNAL_ID,
     IMPORT_RESULT_ID,
     IMPORT_UPLOAD_ID,
     PI_FRESHNESS_FIELD_ID,
@@ -67,38 +67,21 @@ from ada.configuration.tools.web.models import ToolAdminWebContext
 
 
 def build_tool_admin_configuration(context: ToolAdminWebContext) -> object:
-    try:
-        bundle = context.services.administration.load_source()
-        catalog = bundle.catalog if bundle is not None else ToolConfigurationCatalog(())
-        source_revision = bundle.revision if bundle is not None else None
-        error = None
-    except Exception:
-        catalog = ToolConfigurationCatalog(())
-        source_revision = None
-        error = 'Tool configuration source could not be loaded'
-    options = [
-        {'label': tool.display_name, 'value': tool.tool_key}
-        for tool in catalog.tools
-    ]
+    catalog = ToolConfigurationCatalog(())
+    options = [{'label': tool.display_name, 'value': tool.tool_key} for tool in catalog.tools]
     selected = catalog.tools[0].tool_key if catalog.tools else None
     return html.Div(
         [
             dcc.Store(id=CATALOG_STORE_ID, data=catalog.to_document(), storage_type='memory'),
             dcc.Store(
                 id=SOURCE_REVISION_STORE_ID,
-                data=source_revision,
+                data=None,
                 storage_type='memory',
             ),
             dcc.Store(id=STRUCTURE_STORE_ID, data=[], storage_type='memory'),
             dcc.Store(id=DRAFT_LOAD_SIGNAL_ID, data=0, storage_type='memory'),
             dcc.Store(id=COMPONENT_EDITOR_STORE_ID, storage_type='memory'),
             dcc.Store(id=SUBCOMPONENT_EDITOR_STORE_ID, storage_type='memory'),
-            html.Div(
-                error,
-                className='ada-tools-admin__message ada-tools-admin__message--error',
-            )
-            if error
-            else None,
             _runtime_context(context),
             _tool_toolbar(options, selected),
             _general_section(),
@@ -135,10 +118,9 @@ def _runtime_context(context: ToolAdminWebContext) -> object:
                     dcc.Upload(
                         id=IMPORT_UPLOAD_ID,
                         children=html.Button(
-                            'Cargar archivo de configuración local',
+                            'Importar archivo de Tools',
                             className=(
-                                'atlanticus-manager__button '
-                                'atlanticus-manager__button--secondary'
+                                'atlanticus-manager__button atlanticus-manager__button--secondary'
                             ),
                         ),
                         multiple=False,
@@ -181,8 +163,7 @@ def _tool_toolbar(options: list[dict[str, str]], selected: str | None) -> object
                         '+ Nueva herramienta',
                         id=CREATE_OPEN_ID,
                         className=(
-                            'atlanticus-manager__button '
-                            'atlanticus-manager__button--secondary'
+                            'atlanticus-manager__button atlanticus-manager__button--secondary'
                         ),
                     ),
                 ],
@@ -275,8 +256,7 @@ def _tool_modal() -> object:
                                 'Crear borrador',
                                 id=CREATE_BUTTON_ID,
                                 className=(
-                                    'atlanticus-manager__button '
-                                    'atlanticus-manager__button--primary'
+                                    'atlanticus-manager__button atlanticus-manager__button--primary'
                                 ),
                             ),
                         ],
@@ -475,8 +455,7 @@ def _reference_section(context: ToolAdminWebContext) -> object:
                         'Guardar borrador',
                         id=SAVE_BUTTON_ID,
                         className=(
-                            'atlanticus-manager__button '
-                            'atlanticus-manager__button--primary'
+                            'atlanticus-manager__button atlanticus-manager__button--primary'
                         ),
                     ),
                 ],
@@ -576,8 +555,7 @@ def _component_modal() -> object:
                                 'Guardar componente',
                                 id=COMPONENT_SAVE_ID,
                                 className=(
-                                    'atlanticus-manager__button '
-                                    'atlanticus-manager__button--primary'
+                                    'atlanticus-manager__button atlanticus-manager__button--primary'
                                 ),
                             ),
                         ],
@@ -672,8 +650,7 @@ def _subcomponent_modal() -> object:
                                 'Guardar subcomponente',
                                 id=SUBCOMPONENT_SAVE_ID,
                                 className=(
-                                    'atlanticus-manager__button '
-                                    'atlanticus-manager__button--primary'
+                                    'atlanticus-manager__button atlanticus-manager__button--primary'
                                 ),
                             ),
                         ],

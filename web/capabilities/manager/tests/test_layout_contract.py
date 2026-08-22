@@ -26,6 +26,9 @@ def test_manager_lifecycle_exposes_draft_validate_publish_and_project() -> None:
     assert "workflow_action_id(module.key, 'verify-source')" in layout
     assert "workflow_action_id(module.key, 'publish')" in layout
     assert "workflow_action_id(module.key, 'project')" in layout
+    assert "workflow_action_id(module.key, 'load-source')" in layout
+    assert "workflow_action_id(module.key, 'discard-local')" in layout
+    assert "workflow_action_id(module.key, 'reload')" in layout
     assert "workflow_action_id(module.key, 'update-source')" in layout
     assert "workflow_action_id(module.key, 'force-publish')" in layout
     assert "f'Verificar {module.source_name}'" in layout
@@ -87,8 +90,8 @@ def test_source_conflict_is_rendered_as_functional_state_with_actor_and_revision
     assert "'La fuente cambió mientras estabas trabajando.'" in layout
     assert "'Base de tu borrador'" in layout
     assert "'Fuente actual'" in layout
-    assert 'source_actor' in layout
-    assert 'source_occurred_at' in layout
+    assert "source_actor" in layout
+    assert "source_occurred_at" in layout
 
 
 def test_manager_tracks_editor_revision_and_source_verification_as_transient_state() -> None:
@@ -99,3 +102,19 @@ def test_manager_tracks_editor_revision_and_source_verification_as_transient_sta
     assert 'workflow_source_verification_id(module.key)' in layout
     assert "storage_type='memory'" in layout
     assert "'Cambios sin guardar'" in layout
+
+
+def test_workspace_actions_explain_refresh_and_post_publish_verification() -> None:
+    root = Path(__file__).parents[1]
+    layout = (root / 'src/atlanticus/web/manager/web/layout.py').read_text(encoding='utf-8')
+    css = (root / 'src/atlanticus/web/manager/resources/css/10_manager.css').read_text(
+        encoding='utf-8'
+    )
+
+    assert "'Workspace local'" in layout
+    assert "'Descartar trabajo local'" in layout
+    assert "'Recargar'" in layout
+    assert "f'Cargar configuración desde {module.source_name}'" in layout
+    assert "'No requerida' if draft.revision == source_revision else 'Pendiente'" in layout
+    assert 'workflow_workspace_confirmation_id(module.key)' in layout
+    assert '.atlanticus-manager__workspace-confirm' in css
