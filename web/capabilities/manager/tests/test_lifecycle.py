@@ -17,14 +17,18 @@ def _draft() -> ManagerDraft:
     )
 
 
-def _verification(draft: ManagerDraft, source_revision: str) -> SourceVerificationResult:
+def _verification(draft: ManagerDraft, source_revision: str | None) -> SourceVerificationResult:
     return SourceVerificationResult(
         draft_revision=draft.revision,
         base_source_revision=draft.base_source_revision,
         source_revision=source_revision,
-        source_audit=ProjectionAuditRecord(
-            actor='Admin',
-            occurred_at=datetime(2026, 8, 21, 12, 5, tzinfo=UTC),
+        source_audit=(
+            ProjectionAuditRecord(
+                actor='Admin',
+                occurred_at=datetime(2026, 8, 21, 12, 5, tzinfo=UTC),
+            )
+            if source_revision is not None
+            else None
         ),
         checked_at=datetime(2026, 8, 21, 12, 6, tzinfo=UTC),
     )
@@ -161,3 +165,20 @@ def test_new_unsaved_workspace_is_local_work_without_inheriting_source_revision(
     assert state.can_save_draft is True
     assert state.can_load_source is False
     assert state.can_discard_local is True
+
+
+def test_missing_source_after_validation_is_publishable_without_conflict() -> None:
+    draft = _draft()
+
+    state = resolve_manager_lifecycle(
+        draft=draft,
+        editor_revision=draft.revision,
+        source_revision=None,
+        validation_current=True,
+        source_verification=_verification(draft, None),
+    )
+
+    assert state.verification_current is True
+    assert state.source_conflict is False
+    assert state.can_publish is True
+    assert state.can_force_publish is False

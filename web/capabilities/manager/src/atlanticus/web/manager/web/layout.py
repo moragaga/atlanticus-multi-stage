@@ -553,7 +553,7 @@ def build_workflow_draft_content(
     verification_actor = '—'
     verification_at = '—'
     if source_verification is not None and source_verification.draft_revision == draft.revision:
-        verification_label = 'Verificada' if source_verification.matches else 'Conflicto'
+        verification_label = 'Verificada' if source_verification.publishable else 'Conflicto'
         verification_revision = _short_revision(source_verification.source_revision)
         if source_verification.source_audit is not None:
             verification_actor = source_verification.source_audit.actor
@@ -820,8 +820,17 @@ def _build_workflow_actions(
                             html.Div(
                                 [
                                     html.Button(
-                                        f'Actualizar desde {module.source_name}',
+                                        f'Usar versión de {module.source_name}',
                                         id=workflow_action_id(module.key, 'update-source'),
+                                        n_clicks=0,
+                                        className=(
+                                            'atlanticus-manager__button '
+                                            'atlanticus-manager__button--secondary'
+                                        ),
+                                    ),
+                                    html.Button(
+                                        'Mantener mi borrador',
+                                        id=workflow_action_id(module.key, 'keep-draft'),
                                         n_clicks=0,
                                         className=(
                                             'atlanticus-manager__button '

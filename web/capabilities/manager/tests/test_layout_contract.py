@@ -33,7 +33,9 @@ def test_manager_lifecycle_exposes_draft_validate_publish_and_project() -> None:
     assert "workflow_action_id(module.key, 'force-publish')" in layout
     assert "f'Verificar {module.source_name}'" in layout
     assert "f'Guardar en {module.source_name}'" in layout
-    assert "f'Actualizar desde {module.source_name}'" in layout
+    assert "f'Usar versión de {module.source_name}'" in layout
+    assert "workflow_action_id(module.key, 'keep-draft')" in layout
+    assert "'Mantener mi borrador'" in layout
     assert "f'Proyectar en {module.projection_name}'" in layout
     assert 'module.force_publish_enabled' in layout
 
@@ -89,6 +91,7 @@ def test_source_conflict_is_rendered_as_functional_state_with_actor_and_revision
     root = Path(__file__).parents[1]
     layout = (root / 'src/atlanticus/web/manager/web/layout.py').read_text(encoding='utf-8')
 
+    assert 'source_verification.publishable' in layout
     assert "'La fuente cambió mientras estabas trabajando.'" in layout
     assert "'Base de tu borrador'" in layout
     assert "'Fuente actual'" in layout

@@ -1,6 +1,9 @@
 # Abre una vista previa histórica sin modificar el workspace y carga el payload como draft solo tras confirmación explícita.
 # El payload inspeccionado se conserva en memoria durante el modal para evitar una segunda lectura remota innecesaria.
 
+# Resolver un conflicto ofrece conservar el borrador sin escribir: sólo actualiza su base y exige verificar de nuevo.
+# Tomar la versión de Source reemplaza el workspace; conservar el borrador mantiene intacto su payload local.
+
 from __future__ import annotations
 
 from dash import ALL, MATCH, Input, Output, State, ctx, html, no_update
@@ -479,7 +482,7 @@ def register_manager_callbacks(
             if not _validation_is_current(draft, validation_data):
                 raise ManagerProjectionError('A successful draft validation is required')
             verification = _require_source_verification(verification_data, draft)
-            if not verification.matches:
+            if not verification.publishable:
                 raise ManagerSourceConflictError('Manager source verification detected a conflict')
             result = coordinator.publish_draft(
                 module_key,
@@ -583,17 +586,48 @@ def register_manager_callbacks(
         Output(workflow_source_verification_id(MATCH), 'data', allow_duplicate=True),
         Output(workflow_refresh_signal_id(MATCH), 'data', allow_duplicate=True),
         Input(workflow_action_id(MATCH, 'update-source'), 'n_clicks'),
+        Input(workflow_action_id(MATCH, 'keep-draft'), 'n_clicks'),
+        State(workflow_draft_id(MATCH), 'data'),
+        State(workflow_source_verification_id(MATCH), 'data'),
         State(workflow_refresh_signal_id(MATCH), 'data'),
         prevent_initial_call=True,
     )
-    def update_from_source(clicks: int, refresh_signal: int | None):
+    def update_from_source(
+        update_clicks: int,
+        keep_clicks: int,
+        draft_data: dict[str, object] | None,
+        verification_data: dict[str, object] | None,
+        refresh_signal: int | None,
+    ):
         trigger = ctx.triggered_id
-        if not isinstance(trigger, dict) or not _click_is_real(clicks):
+        if not isinstance(trigger, dict):
+            return no_update, no_update, no_update, no_update, no_update
+        action = str(trigger.get('action', ''))
+        clicks = update_clicks if action == 'update-source' else keep_clicks
+        if action not in {'update-source', 'keep-draft'} or not _click_is_real(clicks):
             return no_update, no_update, no_update, no_update, no_update
         principal = definition.principal_provider()
+        module_key = str(trigger.get('module', ''))
         try:
+            if action == 'keep-draft':
+                module = registry.require(module_key)
+                draft = _require_draft(draft_data, principal)
+                verification = _require_source_verification(verification_data, draft)
+                if not verification.conflict or verification.source_revision is None:
+                    raise ManagerProjectionError('Manager draft does not have a source conflict')
+                updated_draft = draft.with_base_source_revision(verification.source_revision)
+                return (
+                    _notice_message(
+                        f'Tu borrador se conservó. Vuelve a verificar {module.source_name} '
+                        'antes de publicar.'
+                    ),
+                    updated_draft.to_document(),
+                    no_update,
+                    None,
+                    no_update,
+                )
             snapshot = coordinator.load_current_source(
-                str(trigger.get('module', '')),
+                module_key,
                 principal,
             )
             draft = ManagerDraft.create(

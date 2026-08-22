@@ -100,7 +100,7 @@ def test_coordinator_orchestrates_draft_publish_projection_and_history() -> None
 
 
 class MutableWorkflow(Workflow):
-    def __init__(self, source_revision: str = 'source-b') -> None:
+    def __init__(self, source_revision: str | None = 'source-b') -> None:
         super().__init__()
         self.source_revision = source_revision
         self.payloads = {
@@ -111,6 +111,8 @@ class MutableWorkflow(Workflow):
         self.published_expected: str | None = None
 
     def get_status(self) -> ProjectionStatus:
+        if self.source_revision is None:
+            return ProjectionStatus()
         return ProjectionStatus(self.source_revision, self.audit)
 
     def publish_draft(
@@ -235,3 +237,28 @@ def test_verify_source_returns_explicit_conflict_without_writing() -> None:
     assert result.base_source_revision == 'source-a'
     assert result.source_revision == 'source-b'
     assert workflow.published_expected is None
+
+
+def test_missing_source_can_be_recreated_after_verification() -> None:
+    workflow = MutableWorkflow(None)
+    coordinator = _coordinator_for(workflow)
+    principal = ManagerPrincipal('local', 'Administrador local', is_local=True)
+    payload = {'value': 'draft'}
+
+    verification = coordinator.verify_source(
+        'tools',
+        principal,
+        draft_revision=build_draft_revision(payload),
+        base_source_revision='source-a',
+    )
+    publication = coordinator.publish_draft(
+        'tools',
+        principal,
+        payload,
+        verification.source_revision,
+    )
+
+    assert verification.source_revision is None
+    assert verification.publishable is True
+    assert verification.conflict is False
+    assert publication.published is True

@@ -93,6 +93,7 @@ def test_source_conflicts_refresh_status_without_automatic_projection() -> None:
     assert 'coordinator.load_current_source(' in source
     assert 'coordinator.force_publish_draft(' in source
     assert "workflow_action_id(MATCH, 'update-source')" in source
+    assert "workflow_action_id(MATCH, 'keep-draft')" in source
     assert "workflow_action_id(MATCH, 'force-publish')" in source
     assert "'source_actor': status.source_audit.actor" in source
     assert "'source_occurred_at': (" in source
@@ -173,3 +174,17 @@ def test_history_preview_does_not_mutate_workspace_until_confirmed() -> None:
     assert 'ManagerDraft.create(' in load_callback
     assert '_history_preview_payload(' in load_callback
     assert 'coordinator.load_history_revision(' not in load_callback
+
+
+def test_conflict_resolution_can_keep_local_draft_without_writing_source() -> None:
+    source = _source()
+    start = source.index('def update_from_source(')
+    end = source.index('def force_publish_configuration(', start)
+    callback = source[start:end]
+
+    assert "action == 'keep-draft'" in callback
+    assert 'draft.with_base_source_revision(verification.source_revision)' in callback
+    assert 'coordinator.publish_draft(' not in callback
+    assert 'coordinator.force_publish_draft(' not in callback
+    assert 'coordinator.project(' not in callback
+    assert 'module.source_name' in callback

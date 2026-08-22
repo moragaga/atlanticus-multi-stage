@@ -1,6 +1,7 @@
 # Mantiene separados borrador, Source publicado, verificación de Source y Projection activa.
 # SourceVerificationResult describe una comprobación puntual sin convertirla en publicación ni proyección.
-
+# Una fuente inexistente es publicable: no existe una revisión remota que proteger mediante compare-and-set.
+# Un conflicto real sólo existe cuando hay una revisión remota y difiere de la base conservada por el borrador.
 from __future__ import annotations
 
 import hashlib
@@ -217,6 +218,14 @@ class SourceVerificationResult:
     @property
     def matches(self) -> bool:
         return self.base_source_revision == self.source_revision
+
+    @property
+    def publishable(self) -> bool:
+        return self.source_revision is None or self.matches
+
+    @property
+    def conflict(self) -> bool:
+        return self.source_revision is not None and not self.matches
 
     def to_document(self) -> dict[str, object]:
         source_audit = None

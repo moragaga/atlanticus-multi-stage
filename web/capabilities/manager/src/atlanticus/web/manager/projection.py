@@ -215,6 +215,14 @@ class SourceVerificationResult:
     def matches(self) -> bool:
         return self.base_source_revision == self.source_revision
 
+    @property
+    def publishable(self) -> bool:
+        return self.source_revision is None or self.matches
+
+    @property
+    def conflict(self) -> bool:
+        return self.source_revision is not None and not self.matches
+
     def to_document(self) -> dict[str, object]:
         source_audit = None
         if self.source_audit is not None:

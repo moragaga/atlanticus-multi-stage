@@ -1,6 +1,9 @@
 # Centraliza el estado del workspace local y diferencia trabajo local, borrador publicado y acciones permitidas.
 # Cargar Source y descartar trabajo se resuelven sin mezclar publicación o proyección.
 
+# La verificación de una fuente ausente permite la primera publicación o recreación sin mostrar un conflicto falso.
+# Si existe una revisión distinta, el flujo bloquea la publicación normal hasta resolver explícitamente el conflicto.
+
 from dataclasses import dataclass
 
 from atlanticus.web.manager.projection import ManagerDraft, SourceVerificationResult
@@ -44,10 +47,12 @@ def resolve_manager_lifecycle(
         and source_verification is not None
         and source_verification.draft_revision == draft.revision
     )
-    verification_matches = bool(
-        current_verification and source_verification is not None and source_verification.matches
+    verification_publishable = bool(
+        current_verification and source_verification is not None and source_verification.publishable
     )
-    conflict = bool(current_verification and not verification_matches)
+    conflict = bool(
+        current_verification and source_verification is not None and source_verification.conflict
+    )
     return ManagerLifecycleState(
         dirty=dirty,
         has_local_work=has_local_work,
@@ -60,7 +65,7 @@ def resolve_manager_lifecycle(
             draft is not None and not dirty and not published and not current_validation
         ),
         can_verify_source=bool(current_validation and not published and not current_verification),
-        can_publish=bool(verification_matches and not published),
+        can_publish=bool(verification_publishable and not published),
         can_force_publish=bool(current_validation and conflict),
         can_load_source=bool(source_revision is not None and not has_local_work),
         can_discard_local=has_local_work,
