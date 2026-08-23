@@ -126,7 +126,7 @@ def test_dirty_editor_hides_stale_validation_and_source_verification_state() -> 
     assert 'source_verification=None if lifecycle.dirty else verification' in source
 
 
-def test_workspace_actions_are_module_scoped_and_reload_is_the_only_remote_refresh() -> None:
+def test_workspace_actions_restore_current_source_without_publishing_or_projecting() -> None:
     source = _source()
 
     assert "workflow_action_id(MATCH, 'load-source')" in source
@@ -137,10 +137,28 @@ def test_workspace_actions_are_module_scoped_and_reload_is_the_only_remote_refre
     start = source.index('def manage_local_workspace(')
     end = source.index('def manage_history_preview(', start)
     callback = source[start:end]
-    assert "resolved_command == 'reload'" in callback
+    assert '_load_current_source_workspace_draft(' in callback
+    assert 'module.source_name' in callback
+    assert 'draft_output = source_workspace.to_document()' in callback
+    assert 'editor_output = source_workspace.revision' in callback
     assert 'int(refresh_signal or 0) + 1' in callback
     assert 'coordinator.project(' not in callback
     assert 'coordinator.publish_draft(' not in callback
+
+
+def test_workspace_auto_loads_current_source_only_when_local_workspace_is_empty() -> None:
+    source = _source()
+    start = source.rindex('@app.callback(', 0, source.index('def load_source_as_draft('))
+    end = source.index('def update_from_source(', start)
+    callback = source[start:end]
+
+    assert "Input(workflow_revision_id(MATCH), 'data')" in callback
+    assert "State(workflow_revision_id(MATCH), 'id')" in callback
+    assert "prevent_initial_call='initial_duplicate'" in callback
+    assert 'automatic_load = bool(' in callback
+    assert 'if _has_local_work(draft_data, editor_revision):' in callback
+    assert 'if _source_revision(revision_state) is None:' in callback
+    assert 'coordinator.load_current_source(' in callback
 
 
 def test_workspace_reset_rebuilds_only_the_editor_surface_without_loading_source() -> None:

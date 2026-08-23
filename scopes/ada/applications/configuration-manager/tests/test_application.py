@@ -19,7 +19,7 @@ def test_configuration_manager_preview_wraps_reusable_surface(tmp_path) -> None:
     surface = definition.surface
     tools, users, navigation = surface.modules
 
-    assert definition.metadata.version == '0.2.10'
+    assert definition.metadata.version == '0.2.11'
     assert surface.default_module_key == 'tools'
     assert surface.route_prefix == ''
     assert [item.key for item in surface.modules] == ['tools', 'users', 'navigation']

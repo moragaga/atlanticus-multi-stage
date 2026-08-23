@@ -117,8 +117,10 @@ def test_workspace_actions_explain_refresh_and_post_publish_verification() -> No
     )
 
     assert "'Workspace local'" in layout
-    assert "'Descartar trabajo local'" in layout
+    assert "'Descartar cambios locales'" in layout
     assert "'Recargar'" in layout
+    assert "f'Recargar restaura la versión actual de {module.source_name} y vuelve '" in layout
+    assert "'a consultar fuente, historial y proyección.'" in layout
     assert "f'Cargar configuración desde {module.source_name}'" in layout
     assert "'No requerida' if draft.revision == source_revision else 'Pendiente'" in layout
     assert 'workflow_workspace_confirmation_id(module.key)' in layout

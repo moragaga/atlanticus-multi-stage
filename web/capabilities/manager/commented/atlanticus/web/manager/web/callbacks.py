@@ -328,7 +328,9 @@ def register_manager_callbacks(
             validation_current=_validation_is_current(draft, validation_data),
             source_verification=verification,
         )
-        local_work_present = lifecycle.has_local_work or isinstance(draft_data, dict)
+        discardable_local_work = lifecycle.can_discard_local or (
+            isinstance(draft_data, dict) and draft is None
+        )
         conflict_content = None
         if lifecycle.source_conflict and draft is not None and verification is not None:
             conflict_content = build_source_conflict_content(
@@ -349,7 +351,7 @@ def register_manager_callbacks(
             not lifecycle.can_verify_source,
             not lifecycle.can_publish,
             not (lifecycle.can_load_source and not isinstance(draft_data, dict)),
-            not local_work_present,
+            not discardable_local_work,
             not lifecycle.source_conflict,
             conflict_content,
             not lifecycle.can_force_publish,
@@ -529,29 +531,53 @@ def register_manager_callbacks(
         Output(workflow_validation_id(MATCH), 'data', allow_duplicate=True),
         Output(workflow_source_verification_id(MATCH), 'data', allow_duplicate=True),
         Input(workflow_action_id(MATCH, 'load-source'), 'n_clicks'),
+        Input(workflow_revision_id(MATCH), 'data'),
+        State(workflow_revision_id(MATCH), 'id'),
         State(workflow_draft_id(MATCH), 'data'),
         State(workflow_editor_revision_id(MATCH), 'data'),
-        prevent_initial_call=True,
+        prevent_initial_call='initial_duplicate',
     )
     def load_source_as_draft(
         clicks: int,
+        revision_state: dict[str, object] | None,
+        revision_id: dict[str, object],
         draft_data: dict[str, object] | None,
         editor_revision: str | None,
     ):
         trigger = ctx.triggered_id
-        if not isinstance(trigger, dict) or not _click_is_real(clicks):
+        # La fuente publicada se carga automáticamente sólo cuando no existe workspace local.
+        # El mismo callback conserva la carga manual para recuperación explícita.
+        explicit_load = bool(
+            isinstance(trigger, dict)
+            and trigger.get('action') == 'load-source'
+            and _click_is_real(clicks)
+        )
+        automatic_load = bool(
+            trigger is None
+            or (
+                isinstance(trigger, dict)
+                and trigger.get('type') == 'atlanticus-manager-workflow-revision'
+            )
+        )
+        if not explicit_load and not automatic_load:
             return no_update, no_update, no_update, no_update
-        if _has_local_work(draft_data, editor_revision):
+        if explicit_load and _has_local_work(draft_data, editor_revision):
             return (
-                _notice_message('Descarta el trabajo local antes de cargar la fuente actual.'),
+                _notice_message('Descarta los cambios locales antes de cargar la fuente actual.'),
                 no_update,
                 no_update,
                 no_update,
             )
+        if automatic_load:
+            if _has_local_work(draft_data, editor_revision):
+                return no_update, no_update, no_update, no_update
+            if _source_revision(revision_state) is None:
+                return no_update, no_update, no_update, no_update
+        module_key = str((trigger if isinstance(trigger, dict) else revision_id).get('module', ''))
         principal = definition.principal_provider()
         try:
             snapshot = coordinator.load_current_source(
-                str(trigger.get('module', '')),
+                module_key,
                 principal,
             )
             draft = ManagerDraft.create(
@@ -560,6 +586,8 @@ def register_manager_callbacks(
                 base_source_revision=snapshot.revision,
             )
         except ManagerSourceConflictError:
+            if automatic_load:
+                return no_update, no_update, no_update, no_update
             return (
                 _notice_message(
                     'La fuente cambió mientras se cargaba. Recarga el estado e inténtalo nuevamente.'
@@ -569,8 +597,12 @@ def register_manager_callbacks(
                 no_update,
             )
         except ManagerError as error:
+            if automatic_load:
+                return no_update, no_update, no_update, no_update
             return _error_message(str(error)), no_update, no_update, no_update
         except Exception:
+            if automatic_load:
+                return no_update, no_update, no_update, no_update
             return (
                 _error_message('Current source could not be loaded'),
                 no_update,
@@ -789,6 +821,11 @@ def register_manager_callbacks(
                 no_update,
             )
         has_local_work = _has_local_work(draft_data, editor_revision)
+        module_key = str(trigger.get('module', '')) if isinstance(trigger, dict) else ''
+        try:
+            module = registry.require(module_key)
+        except ManagerError:
+            return (no_update,) * 11
         if action == 'discard-local':
             if not has_local_work:
                 return (
@@ -796,7 +833,7 @@ def register_manager_callbacks(
                     None,
                     None,
                     None,
-                    _notice_message('No hay trabajo local para descartar.'),
+                    _notice_message('No hay cambios locales para descartar.'),
                     no_update,
                     no_update,
                     no_update,
@@ -806,10 +843,11 @@ def register_manager_callbacks(
                 )
             return (
                 False,
-                'Descartar trabajo local',
+                'Descartar cambios locales',
                 (
-                    'Se eliminarán el borrador y los cambios locales de este módulo en este '
-                    'navegador. La fuente de verdad y la proyección runtime no se modificarán.'
+                    f'Se descartarán los cambios locales y se restaurará la versión actual de '
+                    f'{module.source_name}. La fuente de verdad y la proyección runtime no se '
+                    'modificarán.'
                 ),
                 'discard',
                 no_update,
@@ -823,10 +861,11 @@ def register_manager_callbacks(
         if action == 'reload' and has_local_work:
             return (
                 False,
-                'Descartar y recargar',
+                'Descartar cambios y recargar',
                 (
-                    'Se eliminará el trabajo local de este módulo y luego se volverán a consultar '
-                    'la fuente, el historial y la proyección. No se publicará ni proyectará nada.'
+                    f'Se descartarán los cambios locales, se restaurará la versión actual de '
+                    f'{module.source_name} y se volverán a consultar la fuente, el historial y '
+                    'la proyección. No se publicará ni proyectará nada.'
                 ),
                 'reload',
                 no_update,
@@ -840,24 +879,90 @@ def register_manager_callbacks(
         resolved_command = command if action == 'workspace-confirm' else 'reload'
         if resolved_command not in {'discard', 'reload'}:
             return (no_update,) * 11
-        next_refresh = int(refresh_signal or 0) + 1 if resolved_command == 'reload' else no_update
-        message = (
-            'Estado remoto recargado. El workspace local quedó vacío.'
-            if resolved_command == 'reload'
-            else 'Trabajo local descartado.'
-        )
+        principal = definition.principal_provider()
+        # Descartar no deja el editor artificialmente vacío: restaura la fuente vigente.
+        # Si no existe fuente publicada, recién entonces el workspace queda vacío.
+        try:
+            source_workspace = _load_current_source_workspace_draft(
+                coordinator=coordinator,
+                module_key=module_key,
+                principal=principal,
+            )
+        except ManagerSourceConflictError:
+            return (
+                True,
+                None,
+                None,
+                None,
+                _notice_message(
+                    f'{module.source_name} cambió mientras se restauraba el workspace. '
+                    'Vuelve a intentarlo.'
+                ),
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                int(refresh_signal or 0) + 1,
+                no_update,
+            )
+        except ManagerError as error:
+            return (
+                True,
+                None,
+                None,
+                None,
+                _error_message(str(error)),
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+            )
+        except Exception:
+            return (
+                True,
+                None,
+                None,
+                None,
+                _error_message('Current source could not be restored'),
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+            )
+        next_refresh = int(refresh_signal or 0) + 1
+        if source_workspace is None:
+            message = (
+                f'{module.source_name} no tiene una configuración publicada. '
+                'El workspace local quedó vacío.'
+            )
+            draft_output = None
+            editor_output = None
+            reset_output = int(reset_signal or 0) + 1
+        else:
+            message = (
+                f'Workspace restaurado desde la versión actual de {module.source_name}.'
+                if resolved_command == 'discard'
+                else f'Estado remoto recargado y workspace actualizado desde {module.source_name}.'
+            )
+            draft_output = source_workspace.to_document()
+            editor_output = source_workspace.revision
+            reset_output = no_update
         return (
             True,
             None,
             None,
             None,
             _notice_message(message),
+            draft_output,
             None,
             None,
-            None,
-            None,
+            editor_output,
             next_refresh,
-            int(reset_signal or 0) + 1,
+            reset_output,
         )
 
     @app.callback(
@@ -1124,6 +1229,24 @@ def _editor_revision(value: object) -> str | None:
         return None
     normalized = str(value).strip()
     return normalized or None
+
+
+# Construye la copia limpia del workspace a partir de la fuente de verdad vigente.
+def _load_current_source_workspace_draft(
+    *,
+    coordinator: ManagerProjectionCoordinator,
+    module_key: str,
+    principal: ManagerPrincipal,
+) -> ManagerDraft | None:
+    status = coordinator.get_status(module_key, principal)
+    if status.source_revision is None:
+        return None
+    snapshot = coordinator.load_current_source(module_key, principal)
+    return ManagerDraft.create(
+        owner_subject_id=principal.subject_id,
+        payload=snapshot.payload,
+        base_source_revision=snapshot.revision,
+    )
 
 
 def _has_local_work(

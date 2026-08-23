@@ -786,7 +786,7 @@ def _build_workflow_actions(
                                 disabled=status is None or status.source_revision is None,
                             ),
                             html.Button(
-                                'Descartar trabajo local',
+                                'Descartar cambios locales',
                                 id=workflow_action_id(module.key, 'discard-local'),
                                 n_clicks=0,
                                 className=(
@@ -808,7 +808,10 @@ def _build_workflow_actions(
                         className='atlanticus-manager__workspace-actions',
                     ),
                     html.P(
-                        'Recargar elimina el workspace local y vuelve a consultar fuente, historial y proyección.',
+                        (
+                            f'Recargar restaura la versión actual de {module.source_name} y vuelve '
+                            'a consultar fuente, historial y proyección.'
+                        ),
                         className='atlanticus-manager__workspace-help',
                     ),
                 ],
