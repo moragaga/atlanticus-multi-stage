@@ -37,8 +37,8 @@ EXPECTED_INTERNAL_PACKAGES = {
 
 CRITICAL_PATH_PINNED_WHEELS = {
     'ada-composition-configuration-manager': (
-        '0.1.13',
-        'ada_composition_configuration_manager-0.1.13-py3-none-any.whl',
+        '0.1.14',
+        'ada_composition_configuration_manager-0.1.14-py3-none-any.whl',
     ),
     'ada-composition-web-bootstrap': (
         '0.1.6',

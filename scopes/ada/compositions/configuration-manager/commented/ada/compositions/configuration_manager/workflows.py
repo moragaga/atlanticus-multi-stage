@@ -1,7 +1,8 @@
-# Adapta los servicios de configuración existentes al workflow genérico del Manager sin cambiar su comportamiento.
+# Estos adapters convierten la Source tipada de cada módulo al snapshot genérico de importación, sin publicar ni proyectar.
 from __future__ import annotations
 
 from ada.configuration.tools import ToolConfigurationCatalog, ToolConfigurationServices
+from ada.configuration.tools.contracts import ToolConfigurationSource
 from atlanticus.web.manager import (
     DraftValidationResult,
     ProjectionAuditRecord,
@@ -11,15 +12,60 @@ from atlanticus.web.manager import (
     ProjectionSummaryItem,
     RevisionHistoryEntry,
     SourcePublicationResult,
+    WorkspaceImportSnapshot,
 )
 from atlanticus.web.navigation.configuration import (
     NavigationConfigurationCatalog,
     NavigationConfigurationServices,
+    NavigationConfigurationSource,
 )
 from atlanticus.web.users.configuration import (
     UsersConfigurationCatalog,
     UsersConfigurationServices,
+    UsersConfigurationSource,
 )
+
+
+class ToolWorkspaceImportAdapter:
+    def __init__(self, source: ToolConfigurationSource) -> None:
+        self._source = source
+
+    def load_current(self) -> WorkspaceImportSnapshot | None:
+        bundle = self._source.fetch_bundle()
+        if bundle is None:
+            return None
+        return WorkspaceImportSnapshot(
+            revision=bundle.revision,
+            payload=bundle.catalog.to_document(),
+        )
+
+
+class UsersWorkspaceImportAdapter:
+    def __init__(self, source: UsersConfigurationSource) -> None:
+        self._source = source
+
+    def load_current(self) -> WorkspaceImportSnapshot | None:
+        bundle = self._source.fetch_bundle()
+        if bundle is None:
+            return None
+        return WorkspaceImportSnapshot(
+            revision=bundle.revision,
+            payload=bundle.catalog.to_document(),
+        )
+
+
+class NavigationWorkspaceImportAdapter:
+    def __init__(self, source: NavigationConfigurationSource) -> None:
+        self._source = source
+
+    def load_current(self) -> WorkspaceImportSnapshot | None:
+        bundle = self._source.fetch_bundle()
+        if bundle is None:
+            return None
+        return WorkspaceImportSnapshot(
+            revision=bundle.revision,
+            payload=bundle.catalog.to_document(),
+        )
 
 
 class ToolManagerWorkflowAdapter:

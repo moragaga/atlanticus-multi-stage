@@ -1,6 +1,4 @@
-# Mantiene alineada la versión del host standalone de preview y QA con la superficie del Configuration Manager.
-# La aplicación consume la misma composición reutilizable que luego se incrusta en ADA.
-
+# La aplicación sólo cambia su identidad de versión; la composición encapsula el nuevo wiring de importación.
 from __future__ import annotations
 
 from pathlib import Path
@@ -63,7 +61,7 @@ def build_configuration_manager_definition(
         metadata=ApplicationMetadata(
             application_id='ada-configuration-manager',
             display_name='Gestor de configuración ADA',
-            version='0.2.13',
+            version='0.2.14',
         ),
         publications_root=Path(publications_root),
         surface=build_configuration_manager_surface(

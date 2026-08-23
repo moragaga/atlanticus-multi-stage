@@ -5,6 +5,11 @@ from enum import StrEnum
 from pathlib import Path
 
 from ada.compositions.configuration_manager.dependencies import ConfigurationManagerDependencies
+from ada.compositions.configuration_manager.workflows import (
+    NavigationWorkspaceImportAdapter,
+    ToolWorkspaceImportAdapter,
+    UsersWorkspaceImportAdapter,
+)
 from ada.compositions.web_bootstrap import (
     AdaConfigurationFilenames,
     AdaCosmosBindings,
@@ -61,6 +66,7 @@ from atlanticus.web.users.cosmos import (
 
 _HISTORY_BACKEND_VARIABLE = 'ATLANTICUS_CONFIGURATION_HISTORY_BACKEND'
 _PROJECTION_BACKEND_VARIABLE = 'ATLANTICUS_CONFIGURATION_PROJECTION_BACKEND'
+_IMPORT_BACKEND_VARIABLE = 'ATLANTICUS_CONFIGURATION_IMPORT_BACKEND'
 _RUNTIME_PATH_VARIABLE = 'CONFIGURATION_RUNTIME_PATH'
 
 
@@ -74,10 +80,16 @@ class ConfigurationProjectionBackend(StrEnum):
     COSMOS = 'cosmos'
 
 
+class ConfigurationImportBackend(StrEnum):
+    NONE = 'none'
+    LOCAL = 'local'
+
+
 @dataclass(frozen=True, slots=True)
 class ConfigurationBackendSelection:
     history: ConfigurationHistoryBackend
     projection: ConfigurationProjectionBackend
+    workspace_import: ConfigurationImportBackend = ConfigurationImportBackend.NONE
 
     @property
     def requires_sharepoint(self) -> bool:
@@ -114,7 +126,17 @@ def resolve_configuration_backend_selection(
             raise WebConfigurationError(
                 'Local configuration projection is only supported in local environment'
             )
-        return ConfigurationBackendSelection(history=history, projection=projection)
+        workspace_import = _optional_backend(
+            reader,
+            _IMPORT_BACKEND_VARIABLE,
+            ConfigurationImportBackend,
+            default=ConfigurationImportBackend.NONE,
+        )
+        return ConfigurationBackendSelection(
+            history=history,
+            projection=projection,
+            workspace_import=workspace_import,
+        )
 
     history = _optional_backend(
         reader,
@@ -133,7 +155,17 @@ def resolve_configuration_backend_selection(
         and projection is ConfigurationProjectionBackend.LOCAL
     ):
         raise WebConfigurationError('SharePoint configuration history requires Cosmos projection')
-    return ConfigurationBackendSelection(history=history, projection=projection)
+    workspace_import = _optional_backend(
+        reader,
+        _IMPORT_BACKEND_VARIABLE,
+        ConfigurationImportBackend,
+        default=ConfigurationImportBackend.NONE,
+    )
+    return ConfigurationBackendSelection(
+        history=history,
+        projection=projection,
+        workspace_import=workspace_import,
+    )
 
 
 def open_configuration_manager_sharepoint_infrastructure(
@@ -272,6 +304,31 @@ def create_configuration_manager_dependencies(
             )
         )
 
+    if selection.workspace_import is ConfigurationImportBackend.LOCAL:
+        root = _runtime_root(environment, runtime_root)
+        tools_import_source = FileToolConfigurationStore(
+            FileToolConfigurationSettings(
+                root=root / 'source' / 'tools',
+                filename=filenames.tools,
+            )
+        )
+        users_import_source = FileUsersConfigurationStore(
+            FileUsersConfigurationSettings(
+                root=root / 'source' / 'users',
+                source_filename=filenames.users,
+            )
+        )
+        navigation_import_source = FileNavigationConfigurationStore(
+            FileNavigationConfigurationSettings(
+                root=root / 'source' / 'navigation',
+                filename=filenames.navigation,
+            )
+        )
+    else:
+        tools_import_source = None
+        users_import_source = None
+        navigation_import_source = None
+
     if selection.projection is ConfigurationProjectionBackend.COSMOS:
         users_client = infrastructure.cosmos(bindings.users)
         navigation_client = infrastructure.cosmos(bindings.navigation)
@@ -339,6 +396,24 @@ def create_configuration_manager_dependencies(
         users_projection_name=_projection_label(selection.projection),
         navigation_source_name=_history_label(selection.history),
         navigation_projection_name=_projection_label(selection.projection),
+        tools_workspace_import=(
+            ToolWorkspaceImportAdapter(tools_import_source)
+            if tools_import_source is not None
+            else None
+        ),
+        users_workspace_import=(
+            UsersWorkspaceImportAdapter(users_import_source)
+            if users_import_source is not None
+            else None
+        ),
+        navigation_workspace_import=(
+            NavigationWorkspaceImportAdapter(navigation_import_source)
+            if navigation_import_source is not None
+            else None
+        ),
+        tools_workspace_import_name=_import_label(selection.workspace_import),
+        users_workspace_import_name=_import_label(selection.workspace_import),
+        navigation_workspace_import_name=_import_label(selection.workspace_import),
         force_publish_enabled=force_publish_enabled,
     )
 
@@ -371,6 +446,12 @@ def _history_label(backend: ConfigurationHistoryBackend) -> str:
     if backend is ConfigurationHistoryBackend.LOCAL:
         return 'Archivo local'
     return 'SharePoint'
+
+
+def _import_label(backend: ConfigurationImportBackend) -> str | None:
+    if backend is ConfigurationImportBackend.NONE:
+        return None
+    return 'Archivo local'
 
 
 def _projection_label(backend: ConfigurationProjectionBackend) -> str:

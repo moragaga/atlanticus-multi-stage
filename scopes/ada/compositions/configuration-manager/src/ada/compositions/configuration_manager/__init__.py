@@ -1,6 +1,7 @@
 from ada.compositions.configuration_manager.backends import (
     ConfigurationBackendSelection,
     ConfigurationHistoryBackend,
+    ConfigurationImportBackend,
     ConfigurationProjectionBackend,
     create_configuration_manager_dependencies,
     create_configuration_runtime_projection,
@@ -9,8 +10,11 @@ from ada.compositions.configuration_manager.backends import (
 )
 from ada.compositions.configuration_manager.composition import (
     NAVIGATION_WORKFLOW_SERVICE,
+    NAVIGATION_WORKSPACE_IMPORT_SERVICE,
     TOOLS_WORKFLOW_SERVICE,
+    TOOLS_WORKSPACE_IMPORT_SERVICE,
     USERS_WORKFLOW_SERVICE,
+    USERS_WORKSPACE_IMPORT_SERVICE,
     build_configuration_manager_surface,
 )
 from ada.compositions.configuration_manager.dependencies import (
@@ -30,6 +34,7 @@ from ada.compositions.configuration_manager.workflows import (
 __all__ = [
     'ConfigurationBackendSelection',
     'ConfigurationHistoryBackend',
+    'ConfigurationImportBackend',
     'ConfigurationProjectionBackend',
     'EffectiveUserManagerPrincipalProvider',
     'create_configuration_manager_dependencies',
@@ -40,10 +45,13 @@ __all__ = [
     'resolve_configuration_backend_selection',
     'ConfigurationManagerDependencies',
     'NAVIGATION_WORKFLOW_SERVICE',
+    'NAVIGATION_WORKSPACE_IMPORT_SERVICE',
     'NavigationManagerWorkflowAdapter',
     'TOOLS_WORKFLOW_SERVICE',
+    'TOOLS_WORKSPACE_IMPORT_SERVICE',
     'ToolManagerWorkflowAdapter',
     'USERS_WORKFLOW_SERVICE',
+    'USERS_WORKSPACE_IMPORT_SERVICE',
     'UsersManagerWorkflowAdapter',
     'build_configuration_manager_surface',
 ]

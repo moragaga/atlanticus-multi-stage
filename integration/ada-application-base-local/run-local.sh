@@ -52,6 +52,7 @@ umask 077
     printf 'ATLANTICUS_ENVIRONMENT=local\n'
     printf 'ATLANTICUS_CONFIGURATION_HISTORY_BACKEND=%s\n' "${ATLANTICUS_CONFIGURATION_HISTORY_BACKEND:-local}"
     printf 'ATLANTICUS_CONFIGURATION_PROJECTION_BACKEND=%s\n' "${ATLANTICUS_CONFIGURATION_PROJECTION_BACKEND:-local}"
+    printf 'ATLANTICUS_CONFIGURATION_IMPORT_BACKEND=%s\n' "${ATLANTICUS_CONFIGURATION_IMPORT_BACKEND:-none}"
     printf 'ATLANTICUS_COSMOS_READY_URL=http://cosmos-emulator:8080/ready\n'
     printf 'ATLANTICUS_COSMOS_ENDPOINT=http://cosmos-emulator:8081\n'
     printf 'ATLANTICUS_COSMOS_KEY=%s\n' "$COSMOS_KEY"
@@ -136,4 +137,5 @@ printf 'URL: http://127.0.0.1:%s/\n' "$HOST_PORT"
 printf 'Environment: local\n'
 printf 'Configuration history: %s\n' "${ATLANTICUS_CONFIGURATION_HISTORY_BACKEND:-local}"
 printf 'Configuration projection: %s\n' "${ATLANTICUS_CONFIGURATION_PROJECTION_BACKEND:-local}"
+printf 'Configuration import: %s\n' "${ATLANTICUS_CONFIGURATION_IMPORT_BACKEND:-none}"
 printf 'Stop: bash integration/ada-application-base-local/stop-local.sh\n'
