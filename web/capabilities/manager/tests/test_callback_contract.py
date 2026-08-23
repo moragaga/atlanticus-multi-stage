@@ -156,9 +156,11 @@ def test_workspace_auto_loads_current_source_only_when_local_workspace_is_empty(
     assert "State(workflow_revision_id(MATCH), 'id')" in callback
     assert "prevent_initial_call='initial_duplicate'" in callback
     assert 'automatic_load = bool(' in callback
-    assert 'if _has_local_work(draft_data, editor_revision):' in callback
+    assert 'if _has_local_work(draft_data, editor_revision, principal):' in callback
     assert 'if _source_revision(revision_state) is None:' in callback
     assert 'coordinator.load_current_source(' in callback
+    assert 'principal = definition.principal_provider()' in callback
+    assert '_local_workspace_state(' in source
 
 
 def test_workspace_reset_rebuilds_only_the_editor_surface_without_loading_source() -> None:

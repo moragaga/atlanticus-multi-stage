@@ -4,19 +4,19 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ada-application-configuration-manager"
-version = "0.2.11"
+version = "0.2.12"
 requires-python = "==3.14.2"
 classifiers = [
     "Private :: Do Not Upload",
 ]
 dependencies = [
-    "ada-composition-configuration-manager==0.1.11",
+    "ada-composition-configuration-manager==0.1.12",
     "ada-configuration-tools[web]==0.1.5",
     "ada-contracts-tool-manifest==0.1.0",
     "ada-ui-framework-core==0.1.0",
     "ada-ui-shell-navigation==0.1.0",
     "atlanticus-web==0.1.0",
-    "atlanticus-web-manager==0.3.6",
+    "atlanticus-web-manager==0.3.7",
     "atlanticus-web-navigation==0.1.0",
     "atlanticus-web-navigation-configuration[web]==0.1.4",
     "atlanticus-web-users-configuration[web]==0.1.5",

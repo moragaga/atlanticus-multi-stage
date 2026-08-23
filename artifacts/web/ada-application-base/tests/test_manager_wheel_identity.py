@@ -4,7 +4,7 @@ from importlib.metadata import version
 from pathlib import Path
 from zipfile import ZipFile
 
-MANAGER_VERSION = '0.3.6'
+MANAGER_VERSION = '0.3.7'
 MANAGER_WHEEL_NAME = f'atlanticus_web_manager-{MANAGER_VERSION}-py3-none-any.whl'
 
 
@@ -35,4 +35,6 @@ def test_manager_wheel_contains_current_workspace_lifecycle_contract() -> None:
     assert "Input(workflow_revision_id(MATCH), 'data')" in callbacks
     assert "prevent_initial_call='initial_duplicate'" in callbacks
     assert '_load_current_source_workspace_draft(' in callbacks
+    assert '_local_workspace_state(' in callbacks
+    assert '_has_local_work(draft_data, editor_revision, principal)' in callbacks
     assert "'Descartar cambios locales'" in layout

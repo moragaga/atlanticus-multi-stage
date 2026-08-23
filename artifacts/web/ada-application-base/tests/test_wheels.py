@@ -37,8 +37,8 @@ EXPECTED_INTERNAL_PACKAGES = {
 
 CRITICAL_PATH_PINNED_WHEELS = {
     'ada-composition-configuration-manager': (
-        '0.1.11',
-        'ada_composition_configuration_manager-0.1.11-py3-none-any.whl',
+        '0.1.12',
+        'ada_composition_configuration_manager-0.1.12-py3-none-any.whl',
     ),
     'ada-composition-web-bootstrap': (
         '0.1.6',
@@ -49,8 +49,8 @@ CRITICAL_PATH_PINNED_WHEELS = {
         'ada_composition_web_deployment-0.1.8-py3-none-any.whl',
     ),
     'atlanticus-web-manager': (
-        '0.3.6',
-        'atlanticus_web_manager-0.3.6-py3-none-any.whl',
+        '0.3.7',
+        'atlanticus_web_manager-0.3.7-py3-none-any.whl',
     ),
     'atlanticus-web-identity': (
         '0.1.0',

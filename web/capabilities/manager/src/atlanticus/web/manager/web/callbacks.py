@@ -312,19 +312,21 @@ def register_manager_callbacks(
         editor_revision: str | None,
     ):
         principal = definition.principal_provider()
-        draft = _safe_draft(draft_data, principal)
+        draft, local_editor_revision = _local_workspace_state(
+            draft_data,
+            editor_revision,
+            principal,
+        )
         source_revision = _source_revision(revision_state)
         verification = _safe_source_verification(verification_data, draft)
         lifecycle = resolve_manager_lifecycle(
             draft=draft,
-            editor_revision=_editor_revision(editor_revision),
+            editor_revision=local_editor_revision,
             source_revision=source_revision,
             validation_current=_validation_is_current(draft, validation_data),
             source_verification=verification,
         )
-        discardable_local_work = lifecycle.can_discard_local or (
-            isinstance(draft_data, dict) and draft is None
-        )
+        discardable_local_work = lifecycle.can_discard_local
         conflict_content = None
         if lifecycle.source_conflict and draft is not None and verification is not None:
             conflict_content = build_source_conflict_content(
@@ -344,7 +346,7 @@ def register_manager_callbacks(
             not lifecycle.can_validate,
             not lifecycle.can_verify_source,
             not lifecycle.can_publish,
-            not (lifecycle.can_load_source and not isinstance(draft_data, dict)),
+            not lifecycle.can_load_source,
             not discardable_local_work,
             not lifecycle.source_conflict,
             conflict_content,
@@ -553,7 +555,8 @@ def register_manager_callbacks(
         )
         if not explicit_load and not automatic_load:
             return no_update, no_update, no_update, no_update
-        if explicit_load and _has_local_work(draft_data, editor_revision):
+        principal = definition.principal_provider()
+        if explicit_load and _has_local_work(draft_data, editor_revision, principal):
             return (
                 _notice_message('Descarta los cambios locales antes de cargar la fuente actual.'),
                 no_update,
@@ -561,12 +564,11 @@ def register_manager_callbacks(
                 no_update,
             )
         if automatic_load:
-            if _has_local_work(draft_data, editor_revision):
+            if _has_local_work(draft_data, editor_revision, principal):
                 return no_update, no_update, no_update, no_update
             if _source_revision(revision_state) is None:
                 return no_update, no_update, no_update, no_update
         module_key = str((trigger if isinstance(trigger, dict) else revision_id).get('module', ''))
-        principal = definition.principal_provider()
         try:
             snapshot = coordinator.load_current_source(
                 module_key,
@@ -812,7 +814,8 @@ def register_manager_callbacks(
                 no_update,
                 no_update,
             )
-        has_local_work = _has_local_work(draft_data, editor_revision)
+        principal = definition.principal_provider()
+        has_local_work = _has_local_work(draft_data, editor_revision, principal)
         module_key = str(trigger.get('module', '')) if isinstance(trigger, dict) else ''
         try:
             module = registry.require(module_key)
@@ -871,7 +874,6 @@ def register_manager_callbacks(
         resolved_command = command if action == 'workspace-confirm' else 'reload'
         if resolved_command not in {'discard', 'reload'}:
             return (no_update,) * 11
-        principal = definition.principal_provider()
         try:
             source_workspace = _load_current_source_workspace_draft(
                 coordinator=coordinator,
@@ -1238,11 +1240,28 @@ def _load_current_source_workspace_draft(
     )
 
 
+def _local_workspace_state(
+    draft_data: dict[str, object] | None,
+    editor_revision: object,
+    principal: ManagerPrincipal,
+) -> tuple[ManagerDraft | None, str | None]:
+    draft = _safe_draft(draft_data, principal)
+    if isinstance(draft_data, dict) and draft is None:
+        return None, None
+    return draft, _editor_revision(editor_revision)
+
+
 def _has_local_work(
     draft_data: dict[str, object] | None,
     editor_revision: object,
+    principal: ManagerPrincipal,
 ) -> bool:
-    return isinstance(draft_data, dict) or _editor_revision(editor_revision) is not None
+    draft, local_editor_revision = _local_workspace_state(
+        draft_data,
+        editor_revision,
+        principal,
+    )
+    return draft is not None or local_editor_revision is not None
 
 
 def _safe_source_verification(
