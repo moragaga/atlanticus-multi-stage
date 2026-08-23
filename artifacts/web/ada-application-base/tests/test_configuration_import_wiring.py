@@ -1,7 +1,7 @@
 from pathlib import Path
 from zipfile import ZipFile
 
-COMPOSITION_VERSION = '0.1.14'
+COMPOSITION_VERSION = '0.1.15'
 COMPOSITION_WHEEL_NAME = (
     f'ada_composition_configuration_manager-{COMPOSITION_VERSION}-py3-none-any.whl'
 )

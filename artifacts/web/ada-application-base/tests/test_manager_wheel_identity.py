@@ -4,7 +4,7 @@ from importlib.metadata import version
 from pathlib import Path
 from zipfile import ZipFile
 
-MANAGER_VERSION = '0.3.8'
+MANAGER_VERSION = '0.3.9'
 MANAGER_WHEEL_NAME = f'atlanticus_web_manager-{MANAGER_VERSION}-py3-none-any.whl'
 
 
@@ -47,3 +47,9 @@ def test_manager_wheel_contains_current_workspace_lifecycle_contract() -> None:
     assert 'base_source_revision=status.source_revision' in coordinator
     assert 'workspace_import_service: str | None = None' in models
     assert 'workspace_import_name: str | None = None' in models
+    assert "workflow_action_id(MATCH, 'import-workspace')" in callbacks
+    assert 'def load_workspace_import_as_draft(' in callbacks
+    assert 'coordinator.load_workspace_import(module_key, principal)' in callbacks
+    assert '_has_pending_workspace_changes(' in callbacks
+    assert "f'Cargar desde {module.workspace_import_name}'" in layout
+    assert 'hidden=module.workspace_import_service is None' in layout

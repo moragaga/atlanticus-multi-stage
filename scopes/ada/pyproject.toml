@@ -11,7 +11,7 @@ dependencies = [
     "ada-composition-web-bootstrap==0.1.6",
     "ada-composition-web-deployment==0.1.8",
     "ada-application-configuration-manager==0.2.14",
-    "ada-composition-configuration-manager==0.1.14",
+    "ada-composition-configuration-manager==0.1.15",
     "ada-composition-process==0.1.0",
     "ada-composition-integrated-operations==0.1.0",
 ]

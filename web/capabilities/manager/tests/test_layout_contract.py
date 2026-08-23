@@ -27,6 +27,7 @@ def test_manager_lifecycle_exposes_draft_validate_publish_and_project() -> None:
     assert "workflow_action_id(module.key, 'publish')" in layout
     assert "workflow_action_id(module.key, 'project')" in layout
     assert "workflow_action_id(module.key, 'load-source')" in layout
+    assert "workflow_action_id(module.key, 'import-workspace')" in layout
     assert "workflow_action_id(module.key, 'discard-local')" in layout
     assert "workflow_action_id(module.key, 'reload')" in layout
     assert "workflow_action_id(module.key, 'update-source')" in layout
@@ -136,3 +137,15 @@ def test_history_preview_is_non_destructive_until_explicit_load() -> None:
     assert 'workflow_history_preview_store_id(module.key)' in layout
     assert 'module.history_preview_renderer is not None' in layout
     assert 'hidden=True' in layout
+
+
+def test_workspace_import_action_uses_dynamic_origin_and_never_claims_to_publish() -> None:
+    root = Path(__file__).parents[1]
+    layout = (root / 'src/atlanticus/web/manager/web/layout.py').read_text(encoding='utf-8')
+
+    assert "f'Cargar desde {module.workspace_import_name}'" in layout
+    assert 'hidden=module.workspace_import_service is None' in layout
+    assert 'disabled=module.workspace_import_service is None' in layout
+    assert "f'el workspace local. {module.source_name} no cambia hasta publicar.'" in layout
+    assert 'SharePoint' not in layout
+    assert 'Archivo local' not in layout
