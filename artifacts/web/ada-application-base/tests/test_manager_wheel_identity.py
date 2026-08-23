@@ -4,7 +4,7 @@ from importlib.metadata import version
 from pathlib import Path
 from zipfile import ZipFile
 
-MANAGER_VERSION = '0.3.7'
+MANAGER_VERSION = '0.3.8'
 MANAGER_WHEEL_NAME = f'atlanticus_web_manager-{MANAGER_VERSION}-py3-none-any.whl'
 
 
@@ -25,6 +25,8 @@ def test_manager_wheel_contains_current_workspace_lifecycle_contract() -> None:
 
     with ZipFile(wheel) as archive:
         projection = archive.read('atlanticus/web/manager/projection.py').decode('utf-8')
+        coordinator = archive.read('atlanticus/web/manager/coordinator.py').decode('utf-8')
+        models = archive.read('atlanticus/web/manager/models.py').decode('utf-8')
         callbacks = archive.read('atlanticus/web/manager/web/callbacks.py').decode('utf-8')
         layout = archive.read('atlanticus/web/manager/web/layout.py').decode('utf-8')
 
@@ -38,3 +40,10 @@ def test_manager_wheel_contains_current_workspace_lifecycle_contract() -> None:
     assert '_local_workspace_state(' in callbacks
     assert '_has_local_work(draft_data, editor_revision, principal)' in callbacks
     assert "'Descartar cambios locales'" in layout
+    assert 'class WorkspaceImportSource(Protocol):' in projection
+    assert 'class WorkspaceImportSnapshot:' in projection
+    assert 'class WorkspaceImportResult:' in projection
+    assert 'def load_workspace_import(' in coordinator
+    assert 'base_source_revision=status.source_revision' in coordinator
+    assert 'workspace_import_service: str | None = None' in models
+    assert 'workspace_import_name: str | None = None' in models

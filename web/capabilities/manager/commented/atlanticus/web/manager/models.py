@@ -1,5 +1,6 @@
 # Declara el renderer opcional que cada módulo puede aportar para interpretar una revisión histórica.
 # La responsabilidad semántica permanece en el módulo mientras Manager conserva la orquestación genérica.
+# La importación de workspace es opcional y se declara como servicio de sólo lectura con nombre dinámico.
 
 import re
 from collections.abc import Callable, Mapping
@@ -111,6 +112,8 @@ class ManagerModule:
     default_section: str = 'content'
     source_name: str = 'Source'
     projection_name: str = 'Projection'
+    workspace_import_service: str | None = None
+    workspace_import_name: str | None = None
     force_publish_enabled: bool = False
     history_preview_renderer: ManagerHistoryPreviewRenderer | None = None
 

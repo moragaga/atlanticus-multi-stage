@@ -150,6 +150,33 @@ class SourceSnapshot:
 
 
 @dataclass(frozen=True, slots=True)
+class WorkspaceImportSnapshot:
+    revision: str
+    payload: dict[str, object]
+
+    def __post_init__(self) -> None:
+        revision = self.revision.strip()
+        if not revision:
+            raise ManagerProjectionError('Workspace import revision must not be empty')
+        object.__setattr__(self, 'revision', revision)
+        object.__setattr__(self, 'payload', dict(self.payload))
+
+
+@dataclass(frozen=True, slots=True)
+class WorkspaceImportResult:
+    origin_revision: str
+    draft: ManagerDraft
+
+    def __post_init__(self) -> None:
+        origin_revision = self.origin_revision.strip()
+        if not origin_revision:
+            raise ManagerProjectionError('Workspace import origin revision must not be empty')
+        if not isinstance(self.draft, ManagerDraft):
+            raise ManagerProjectionError('Workspace import draft has an invalid contract')
+        object.__setattr__(self, 'origin_revision', origin_revision)
+
+
+@dataclass(frozen=True, slots=True)
 class ProjectionStatus:
     source_revision: str | None = None
     source_audit: ProjectionAuditRecord | None = None
@@ -325,6 +352,11 @@ class RevisionHistoryWorkflow(Protocol):
     def list_history(self, *, limit: int = 20) -> tuple[RevisionHistoryEntry, ...]: ...
 
     def load_revision(self, revision: str) -> dict[str, object]: ...
+
+
+@runtime_checkable
+class WorkspaceImportSource(Protocol):
+    def load_current(self) -> WorkspaceImportSnapshot | None: ...
 
 
 def resolve_projection_state(status: ProjectionStatus) -> ProjectionState:

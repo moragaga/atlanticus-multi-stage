@@ -7,10 +7,12 @@ from atlanticus.web.manager import (
     DraftValidationResult,
     ManagerAuthorizationError,
     ManagerModule,
+    ManagerModuleAccess,
     ManagerModuleGroup,
     ManagerModuleRegistry,
     ManagerPrincipal,
     ManagerProjectionCoordinator,
+    ManagerProjectionError,
     ManagerSourceConflictError,
     ProjectionAuditRecord,
     ProjectionExecutionResult,
@@ -18,6 +20,7 @@ from atlanticus.web.manager import (
     RevisionHistoryEntry,
     SourcePublicationResult,
     SourceVerificationResult,
+    WorkspaceImportSnapshot,
     build_draft_revision,
 )
 from atlanticus.web.services import ServiceRegistry
@@ -262,3 +265,191 @@ def test_missing_source_can_be_recreated_after_verification() -> None:
     assert verification.publishable is True
     assert verification.conflict is False
     assert publication.published is True
+
+
+class ImportSource:
+    def __init__(self, snapshot: WorkspaceImportSnapshot | None) -> None:
+        self.snapshot = snapshot
+        self.load_calls = 0
+
+    def load_current(self) -> WorkspaceImportSnapshot | None:
+        self.load_calls += 1
+        return self.snapshot
+
+
+def _coordinator_with_import(
+    workflow: Workflow,
+    import_source: object,
+) -> ManagerProjectionCoordinator:
+    module = ManagerModule(
+        key='tools',
+        group_key='configuration',
+        title='Herramientas',
+        route='/tools',
+        order=10,
+        layout=lambda _services: None,
+        workflow_service='tools.workflow',
+        workspace_import_service='tools.import',
+        workspace_import_name='Archivo local',
+        access=ManagerModuleAccess(validate='configuration.validate'),
+    )
+    registry = ManagerModuleRegistry(
+        (ManagerModuleGroup('configuration', 'Configuraciones', 10),),
+        (module,),
+    )
+    services = ServiceRegistry()
+    services.add('tools.workflow', workflow)
+    services.add('tools.import', import_source)
+    return ManagerProjectionCoordinator(
+        registry=registry,
+        services=services,
+        authorization=DefaultManagerAuthorizationPolicy(),
+    )
+
+
+def _import_principal(*, allowed: bool = True) -> ManagerPrincipal:
+    return ManagerPrincipal(
+        'principal-current',
+        'Principal current',
+        access_keys=('configuration.validate',) if allowed else (),
+    )
+
+
+def test_workspace_import_creates_owned_draft_based_on_current_source() -> None:
+    workflow = MutableWorkflow('source-b')
+    import_source = ImportSource(WorkspaceImportSnapshot('local-7', {'value': 'local'}))
+    coordinator = _coordinator_with_import(workflow, import_source)
+
+    result = coordinator.load_workspace_import('tools', _import_principal())
+
+    assert result.origin_revision == 'local-7'
+    assert result.draft.owner_subject_id == 'principal-current'
+    assert result.draft.payload == {'value': 'local'}
+    assert result.draft.base_source_revision == 'source-b'
+    assert workflow.published_expected is None
+    assert import_source.load_calls == 1
+
+
+def test_workspace_import_uses_none_base_when_active_source_does_not_exist() -> None:
+    workflow = MutableWorkflow(None)
+    coordinator = _coordinator_with_import(
+        workflow,
+        ImportSource(WorkspaceImportSnapshot('local-1', {'value': 'local'})),
+    )
+
+    result = coordinator.load_workspace_import('tools', _import_principal())
+
+    assert result.draft.base_source_revision is None
+    assert result.draft.payload == {'value': 'local'}
+    assert workflow.published_expected is None
+
+
+def test_workspace_import_missing_origin_fails_without_writing_source() -> None:
+    workflow = MutableWorkflow('source-b')
+    import_source = ImportSource(None)
+    coordinator = _coordinator_with_import(workflow, import_source)
+
+    with pytest.raises(ManagerProjectionError, match='import source does not exist'):
+        coordinator.load_workspace_import('tools', _import_principal())
+
+    assert workflow.published_expected is None
+    assert import_source.load_calls == 1
+
+
+def test_workspace_import_requires_validate_access() -> None:
+    workflow = MutableWorkflow('source-b')
+    import_source = ImportSource(WorkspaceImportSnapshot('local-7', {'value': 'local'}))
+    coordinator = _coordinator_with_import(workflow, import_source)
+
+    with pytest.raises(ManagerAuthorizationError, match='workspace import access is denied'):
+        coordinator.load_workspace_import('tools', _import_principal(allowed=False))
+
+    assert import_source.load_calls == 0
+    assert workflow.published_expected is None
+
+
+def test_workspace_import_rejects_invalid_registered_contract() -> None:
+    workflow = MutableWorkflow('source-b')
+    coordinator = _coordinator_with_import(workflow, object())
+
+    with pytest.raises(ManagerProjectionError, match='invalid contract'):
+        coordinator.load_workspace_import('tools', _import_principal())
+
+    assert workflow.published_expected is None
+
+
+def test_workspace_import_requires_module_configuration() -> None:
+    workflow = MutableWorkflow('source-b')
+    coordinator = _coordinator_for(workflow)
+
+    with pytest.raises(ManagerProjectionError, match='workspace import is not configured'):
+        coordinator.load_workspace_import(
+            'tools',
+            ManagerPrincipal('principal-current', 'Principal current', is_local=True),
+        )
+
+    assert workflow.published_expected is None
+
+
+class MutatingImportSource(ImportSource):
+    def __init__(self, workflow: MutableWorkflow) -> None:
+        super().__init__(WorkspaceImportSnapshot('local-7', {'value': 'local'}))
+        self.workflow = workflow
+
+    def load_current(self) -> WorkspaceImportSnapshot | None:
+        snapshot = super().load_current()
+        self.workflow.source_revision = 'source-c'
+        return snapshot
+
+
+def test_workspace_import_keeps_source_revision_captured_before_origin_read() -> None:
+    workflow = MutableWorkflow('source-b')
+    coordinator = _coordinator_with_import(workflow, MutatingImportSource(workflow))
+
+    result = coordinator.load_workspace_import('tools', _import_principal())
+
+    assert result.draft.base_source_revision == 'source-b'
+    assert workflow.source_revision == 'source-c'
+
+
+def test_workspace_import_rejects_invalid_snapshot_contract() -> None:
+    class InvalidImportSource:
+        def load_current(self):
+            return {'revision': 'local-7', 'payload': {'value': 'local'}}
+
+    workflow = MutableWorkflow('source-b')
+    coordinator = _coordinator_with_import(workflow, InvalidImportSource())
+
+    with pytest.raises(ManagerProjectionError, match='snapshot has an invalid contract'):
+        coordinator.load_workspace_import('tools', _import_principal())
+
+    assert workflow.published_expected is None
+
+
+def test_workspace_import_reports_unregistered_service_as_manager_contract_error() -> None:
+    module = ManagerModule(
+        key='tools',
+        group_key='configuration',
+        title='Herramientas',
+        route='/tools',
+        order=10,
+        layout=lambda _services: None,
+        workflow_service='tools.workflow',
+        workspace_import_service='tools.import',
+        workspace_import_name='Archivo local',
+        access=ManagerModuleAccess(validate='configuration.validate'),
+    )
+    registry = ManagerModuleRegistry(
+        (ManagerModuleGroup('configuration', 'Configuraciones', 10),),
+        (module,),
+    )
+    services = ServiceRegistry()
+    services.add('tools.workflow', MutableWorkflow('source-b'))
+    coordinator = ManagerProjectionCoordinator(
+        registry=registry,
+        services=services,
+        authorization=DefaultManagerAuthorizationPolicy(),
+    )
+
+    with pytest.raises(ManagerProjectionError, match='service is not registered'):
+        coordinator.load_workspace_import('tools', _import_principal())

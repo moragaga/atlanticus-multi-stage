@@ -2,6 +2,8 @@
 # SourceVerificationResult describe una comprobación puntual sin convertirla en publicación ni proyección.
 # Una fuente inexistente es publicable: no existe una revisión remota que proteger mediante compare-and-set.
 # Un conflicto real sólo existe cuando hay una revisión remota y difiere de la base conservada por el borrador.
+# WorkspaceImportSource sólo entrega la configuración candidata; no expone publish, history ni projection.
+# El resultado de importación conserva la revisión de origen y crea un draft normal basado en la Source activa.
 from __future__ import annotations
 
 import hashlib
@@ -151,6 +153,33 @@ class SourceSnapshot:
         if not self.revision.strip():
             raise ManagerProjectionError('Source snapshot revision must not be empty')
         object.__setattr__(self, 'payload', dict(self.payload))
+
+
+@dataclass(frozen=True, slots=True)
+class WorkspaceImportSnapshot:
+    revision: str
+    payload: dict[str, object]
+
+    def __post_init__(self) -> None:
+        revision = self.revision.strip()
+        if not revision:
+            raise ManagerProjectionError('Workspace import revision must not be empty')
+        object.__setattr__(self, 'revision', revision)
+        object.__setattr__(self, 'payload', dict(self.payload))
+
+
+@dataclass(frozen=True, slots=True)
+class WorkspaceImportResult:
+    origin_revision: str
+    draft: ManagerDraft
+
+    def __post_init__(self) -> None:
+        origin_revision = self.origin_revision.strip()
+        if not origin_revision:
+            raise ManagerProjectionError('Workspace import origin revision must not be empty')
+        if not isinstance(self.draft, ManagerDraft):
+            raise ManagerProjectionError('Workspace import draft has an invalid contract')
+        object.__setattr__(self, 'origin_revision', origin_revision)
 
 
 @dataclass(frozen=True, slots=True)
@@ -329,6 +358,11 @@ class RevisionHistoryWorkflow(Protocol):
     def list_history(self, *, limit: int = 20) -> tuple[RevisionHistoryEntry, ...]: ...
 
     def load_revision(self, revision: str) -> dict[str, object]: ...
+
+
+@runtime_checkable
+class WorkspaceImportSource(Protocol):
+    def load_current(self) -> WorkspaceImportSnapshot | None: ...
 
 
 def resolve_projection_state(status: ProjectionStatus) -> ProjectionState:
