@@ -9,7 +9,7 @@ from ada.compositions.integrated_operations import (
     IntegratedOperationsToolComposition,
     create_integrated_operations_tool_modules,
 )
-from ada.contracts.tool_manifest import ToolManifestResolution
+from ada.contracts.tool_manifest import INTEGRATED_OPERATIONS_MANIFEST, ToolManifestResolution
 from ada.runtime.web import SharedSnapshotReader
 from atlanticus.web.assets import AssetLayer
 from atlanticus.web.index import IndexPageDefinition
@@ -36,26 +36,25 @@ def build_web_definition(
     tool_manifest_resolution: ToolManifestResolution,
     flask_config: Mapping[str, object] | None = None,
 ) -> WebApplicationDefinition:
-    resolution, tool_composition = _resolve_tool_composition(tool_manifest_resolution)
-    modules = list(deployment_modules)
-    if tool_composition is not None:
-        snapshot_reader = SharedSnapshotReader(
-            IntegratedOperationsSnapshotRepository(tool_composition.dashboard),
-            ttl_seconds=1.0,
-        )
-        modules.extend(
-            create_integrated_operations_tool_modules(
-                tool_composition,
-                snapshot_reader=snapshot_reader,
-            )
-        )
+    configuration_resolution, tool_composition = _resolve_tool_composition(tool_manifest_resolution)
+    snapshot_reader = SharedSnapshotReader(
+        IntegratedOperationsSnapshotRepository(tool_composition.dashboard),
+        ttl_seconds=1.0,
+    )
+    modules = [
+        *deployment_modules,
+        *create_integrated_operations_tool_modules(
+            tool_composition,
+            snapshot_reader=snapshot_reader,
+        ),
+    ]
     return WebApplicationDefinition(
         import_name='integrated_operations',
         metadata=metadata,
         publications_root=Path.cwd() / '.runtime' / 'assets',
         layout=partial(
             build_application_layout,
-            resolution=resolution,
+            configuration_resolution=configuration_resolution,
             composition=tool_composition,
         ),
         modules=tuple(modules),
@@ -68,11 +67,15 @@ def build_web_definition(
 
 def _resolve_tool_composition(
     resolution: ToolManifestResolution,
-) -> tuple[ToolManifestResolution, IntegratedOperationsToolComposition | None]:
-    if not resolution.ready:
-        return resolution, None
-    try:
-        composition = build_integrated_operations_composition(resolution.require_manifest())
-    except IntegratedOperationsCompositionError:
-        return ToolManifestResolution.invalid(), None
-    return resolution, composition
+) -> tuple[ToolManifestResolution, IntegratedOperationsToolComposition]:
+    if resolution.ready:
+        try:
+            composition = build_integrated_operations_composition(resolution.require_manifest())
+        except IntegratedOperationsCompositionError:
+            return ToolManifestResolution.invalid(), _build_baseline_composition()
+        return resolution, composition
+    return resolution, _build_baseline_composition()
+
+
+def _build_baseline_composition() -> IntegratedOperationsToolComposition:
+    return build_integrated_operations_composition(INTEGRATED_OPERATIONS_MANIFEST)

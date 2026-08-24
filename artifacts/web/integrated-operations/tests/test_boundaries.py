@@ -66,13 +66,22 @@ def test_artifact_does_not_use_legacy_identity_selector() -> None:
     assert 'resolve_identity_provider_key' not in content
 
 
-def test_production_runtime_has_no_compiled_tool_manifest_authority() -> None:
+def test_production_runtime_has_no_global_compiled_tool_manifest_authority() -> None:
     paths = [*(ROOT / 'src').rglob('*.py')]
     content = '\n'.join(path.read_text(encoding='utf-8') for path in paths)
 
-    assert 'INTEGRATED_OPERATIONS_MANIFEST' not in content
     assert 'MANIFEST = ' not in content
     assert 'COMPOSITION = ' not in content
+
+
+def test_compiled_integrated_operations_manifest_is_used_only_as_runtime_baseline() -> None:
+    content = (ROOT / 'src/integrated_operations/application/composition.py').read_text(
+        encoding='utf-8'
+    )
+
+    assert 'INTEGRATED_OPERATIONS_MANIFEST' in content
+    assert '_build_baseline_composition' in content
+    assert 'ToolManifestResolution.not_projected()' not in content
 
 
 def test_tool_projection_is_an_explicit_artifact_dependency() -> None:
