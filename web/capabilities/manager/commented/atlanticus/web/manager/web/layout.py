@@ -776,33 +776,6 @@ def _build_workflow_actions(
                     html.Div(
                         [
                             html.Button(
-                                f'Cargar configuración desde {module.source_name}',
-                                id=workflow_action_id(module.key, 'load-source'),
-                                n_clicks=0,
-                                className=(
-                                    'atlanticus-manager__button '
-                                    'atlanticus-manager__button--secondary'
-                                ),
-                                disabled=status is None or status.source_revision is None,
-                            ),
-                            # El origen de importación es opcional y sólo hidrata el workspace.
-                            # Su nombre viene de la composición; Manager no conoce backends concretos.
-                            html.Button(
-                                (
-                                    f'Cargar desde {module.workspace_import_name}'
-                                    if module.workspace_import_name is not None
-                                    else 'Cargar desde origen de importación'
-                                ),
-                                id=workflow_action_id(module.key, 'import-workspace'),
-                                n_clicks=0,
-                                className=(
-                                    'atlanticus-manager__button '
-                                    'atlanticus-manager__button--secondary'
-                                ),
-                                disabled=module.workspace_import_service is None,
-                                hidden=module.workspace_import_service is None,
-                            ),
-                            html.Button(
                                 'Descartar cambios locales',
                                 id=workflow_action_id(module.key, 'discard-local'),
                                 n_clicks=0,
@@ -830,18 +803,6 @@ def _build_workflow_actions(
                             'a consultar fuente, historial y proyección.'
                         ),
                         className='atlanticus-manager__workspace-help',
-                    ),
-                    # La ayuda deja explícito que importar no escribe la Source activa.
-                    (
-                        html.P(
-                            (
-                                f'Cargar desde {module.workspace_import_name} reemplaza únicamente '
-                                f'el workspace local. {module.source_name} no cambia hasta publicar.'
-                            ),
-                            className='atlanticus-manager__workspace-help',
-                        )
-                        if module.workspace_import_name is not None
-                        else None
                     ),
                 ],
                 className='atlanticus-manager__workflow-group',

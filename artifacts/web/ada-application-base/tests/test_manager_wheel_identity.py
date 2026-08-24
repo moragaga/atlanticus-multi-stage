@@ -4,7 +4,7 @@ from importlib.metadata import version
 from pathlib import Path
 from zipfile import ZipFile
 
-MANAGER_VERSION = '0.3.9'
+MANAGER_VERSION = '0.3.10'
 MANAGER_WHEEL_NAME = f'atlanticus_web_manager-{MANAGER_VERSION}-py3-none-any.whl'
 
 
@@ -40,16 +40,16 @@ def test_manager_wheel_contains_current_workspace_lifecycle_contract() -> None:
     assert '_local_workspace_state(' in callbacks
     assert '_has_local_work(draft_data, editor_revision, principal)' in callbacks
     assert "'Descartar cambios locales'" in layout
-    assert 'class WorkspaceImportSource(Protocol):' in projection
-    assert 'class WorkspaceImportSnapshot:' in projection
-    assert 'class WorkspaceImportResult:' in projection
-    assert 'def load_workspace_import(' in coordinator
-    assert 'base_source_revision=status.source_revision' in coordinator
-    assert 'workspace_import_service: str | None = None' in models
-    assert 'workspace_import_name: str | None = None' in models
-    assert "workflow_action_id(MATCH, 'import-workspace')" in callbacks
-    assert 'def load_workspace_import_as_draft(' in callbacks
-    assert 'coordinator.load_workspace_import(module_key, principal)' in callbacks
-    assert '_has_pending_workspace_changes(' in callbacks
-    assert "f'Cargar desde {module.workspace_import_name}'" in layout
-    assert 'hidden=module.workspace_import_service is None' in layout
+    assert 'class WorkspaceImportSource(Protocol):' not in projection
+    assert 'class WorkspaceImportSnapshot:' not in projection
+    assert 'class WorkspaceImportResult:' not in projection
+    assert 'def load_workspace_import(' not in coordinator
+    assert 'workspace_import_service' not in models
+    assert 'workspace_import_name' not in models
+    assert "workflow_action_id(MATCH, 'import-workspace')" not in callbacks
+    assert 'def load_workspace_import_as_draft(' not in callbacks
+    assert "workflow_action_id(MATCH, 'load-source')" not in callbacks
+    assert 'def hydrate_source_workspace(' in callbacks
+    assert "f'Cargar configuración desde {module.source_name}'" not in layout
+    assert "'Descartar cambios locales'" in layout
+    assert "'Recargar'" in layout

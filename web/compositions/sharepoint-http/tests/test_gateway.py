@@ -35,6 +35,12 @@ class FakeHttpClient:
         return {'success': True, 'content': self.content}
 
 
+class FakeHttpStatusError(RuntimeError):
+    def __init__(self, status_code: int) -> None:
+        self.status_code = status_code
+        super().__init__(f'HTTP failed with status {status_code}')
+
+
 def test_gateway_uses_independent_read_and_write_endpoints() -> None:
     client = FakeHttpClient()
     gateway = PowerAutomateSharePointGateway(
@@ -135,3 +141,35 @@ def test_path_settings_keep_users_global_and_tool_configuration_scoped() -> None
 def test_path_settings_reject_unsafe_relative_paths() -> None:
     with pytest.raises(ValueError, match='safe relative path'):
         SharePointPathSettings(root_path='conciencia_situacional/../other', tool_path='tool')
+
+
+def test_gateway_maps_read_404_to_missing_file() -> None:
+    client = FakeHttpClient()
+    client.error = FakeHttpStatusError(404)
+    gateway = PowerAutomateSharePointGateway(client=client)
+
+    assert gateway.read(filename='file.json', relative_path='configuration') is None
+
+
+def test_gateway_keeps_non_404_read_status_as_failure() -> None:
+    client = FakeHttpClient()
+    error = FakeHttpStatusError(400)
+    client.error = error
+    gateway = PowerAutomateSharePointGateway(client=client)
+
+    with pytest.raises(SharePointGatewayError, match='Power Automate read failed') as captured:
+        gateway.read(filename='file.json', relative_path='configuration')
+
+    assert captured.value.__cause__ is error
+
+
+def test_gateway_does_not_map_write_404_to_missing_file() -> None:
+    client = FakeHttpClient()
+    error = FakeHttpStatusError(404)
+    client.error = error
+    gateway = PowerAutomateSharePointGateway(client=client)
+
+    with pytest.raises(SharePointGatewayError, match='Power Automate write failed') as captured:
+        gateway.write(filename='file.json', relative_path='configuration', content='payload')
+
+    assert captured.value.__cause__ is error

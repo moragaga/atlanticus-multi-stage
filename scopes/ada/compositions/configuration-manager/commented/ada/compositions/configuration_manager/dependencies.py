@@ -1,8 +1,8 @@
-# Los orígenes de importación son opcionales y permanecen separados de los servicios activos de Source/Projection.
+# La composición decide si el host permite force publish; el Manager no conoce SharePoint.
 from dataclasses import dataclass
 
 from ada.configuration.tools import ToolConfigurationServices
-from atlanticus.web.manager import ManagerPrincipalProvider, WorkspaceImportSource
+from atlanticus.web.manager import ManagerPrincipalProvider
 from atlanticus.web.navigation.configuration import NavigationConfigurationServices
 from atlanticus.web.users.configuration import UsersConfigurationServices
 
@@ -19,10 +19,4 @@ class ConfigurationManagerDependencies:
     users_projection_name: str = 'Projection'
     navigation_source_name: str = 'Source'
     navigation_projection_name: str = 'Projection'
-    tools_workspace_import: WorkspaceImportSource | None = None
-    users_workspace_import: WorkspaceImportSource | None = None
-    navigation_workspace_import: WorkspaceImportSource | None = None
-    tools_workspace_import_name: str | None = None
-    users_workspace_import_name: str | None = None
-    navigation_workspace_import_name: str | None = None
     force_publish_enabled: bool = False

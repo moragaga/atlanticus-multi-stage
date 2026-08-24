@@ -44,9 +44,6 @@ from atlanticus.web.users.configuration.web import (
 TOOLS_WORKFLOW_SERVICE = 'ada.configuration-manager.tools.workflow'
 USERS_WORKFLOW_SERVICE = 'ada.configuration-manager.users.workflow'
 NAVIGATION_WORKFLOW_SERVICE = 'ada.configuration-manager.navigation.workflow'
-TOOLS_WORKSPACE_IMPORT_SERVICE = 'ada.configuration-manager.tools.workspace-import'
-USERS_WORKSPACE_IMPORT_SERVICE = 'ada.configuration-manager.users.workspace-import'
-NAVIGATION_WORKSPACE_IMPORT_SERVICE = 'ada.configuration-manager.navigation.workspace-import'
 
 
 def build_configuration_manager_surface(
@@ -119,12 +116,6 @@ def build_configuration_manager_surface(
                 content_section_title='Configuración de herramienta',
                 source_name=dependencies.tools_source_name,
                 projection_name=dependencies.tools_projection_name,
-                workspace_import_service=(
-                    TOOLS_WORKSPACE_IMPORT_SERVICE
-                    if dependencies.tools_workspace_import is not None
-                    else None
-                ),
-                workspace_import_name=dependencies.tools_workspace_import_name,
                 force_publish_enabled=dependencies.force_publish_enabled,
             ),
             ManagerModule(
@@ -148,12 +139,6 @@ def build_configuration_manager_surface(
                 content_section_title='Usuarios y perfiles',
                 source_name=dependencies.users_source_name,
                 projection_name=dependencies.users_projection_name,
-                workspace_import_service=(
-                    USERS_WORKSPACE_IMPORT_SERVICE
-                    if dependencies.users_workspace_import is not None
-                    else None
-                ),
-                workspace_import_name=dependencies.users_workspace_import_name,
                 force_publish_enabled=dependencies.force_publish_enabled,
             ),
             ManagerModule(
@@ -177,12 +162,6 @@ def build_configuration_manager_surface(
                 content_section_title='Navegación',
                 source_name=dependencies.navigation_source_name,
                 projection_name=dependencies.navigation_projection_name,
-                workspace_import_service=(
-                    NAVIGATION_WORKSPACE_IMPORT_SERVICE
-                    if dependencies.navigation_workspace_import is not None
-                    else None
-                ),
-                workspace_import_name=dependencies.navigation_workspace_import_name,
                 force_publish_enabled=dependencies.force_publish_enabled,
             ),
         ),
@@ -213,15 +192,6 @@ def _register_services(
         NAVIGATION_WORKFLOW_SERVICE,
         NavigationManagerWorkflowAdapter(dependencies.navigation),
     )
-    if dependencies.tools_workspace_import is not None:
-        services.add(TOOLS_WORKSPACE_IMPORT_SERVICE, dependencies.tools_workspace_import)
-    if dependencies.users_workspace_import is not None:
-        services.add(USERS_WORKSPACE_IMPORT_SERVICE, dependencies.users_workspace_import)
-    if dependencies.navigation_workspace_import is not None:
-        services.add(
-            NAVIGATION_WORKSPACE_IMPORT_SERVICE,
-            dependencies.navigation_workspace_import,
-        )
 
 
 def _can_manage_tools(principal: ManagerPrincipal) -> bool:

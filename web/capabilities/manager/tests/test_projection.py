@@ -6,8 +6,6 @@ from atlanticus.web.manager import (
     ProjectionState,
     ProjectionStatus,
     SourceVerificationResult,
-    WorkspaceImportResult,
-    WorkspaceImportSnapshot,
     build_draft_revision,
     resolve_projection_state,
 )
@@ -115,26 +113,3 @@ def test_source_verification_marks_existing_different_revision_as_conflict() -> 
     assert result.matches is False
     assert result.publishable is False
     assert result.conflict is True
-
-
-def test_workspace_import_snapshot_normalizes_revision_and_copies_payload() -> None:
-    payload = {'tools': [{'key': 'local'}]}
-    snapshot = WorkspaceImportSnapshot(' local-7 ', payload)
-    payload['tools'] = []
-
-    assert snapshot.revision == 'local-7'
-    assert snapshot.payload == {'tools': [{'key': 'local'}]}
-
-
-def test_workspace_import_result_keeps_origin_separate_from_draft_base() -> None:
-    draft = ManagerDraft.create(
-        owner_subject_id='principal-current',
-        payload={'tools': [{'key': 'local'}]},
-        base_source_revision='source-3',
-    )
-
-    result = WorkspaceImportResult(origin_revision='local-7', draft=draft)
-
-    assert result.origin_revision == 'local-7'
-    assert result.draft.base_source_revision == 'source-3'
-    assert result.draft.revision != result.origin_revision

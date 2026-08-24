@@ -132,7 +132,7 @@ requires-dist = [
 
 [[package]]
 name = "atlanticus-web-composition-runtime-infrastructure"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "compositions/runtime-infrastructure" }
 dependencies = [
     { name = "atlanticus-cosmos" },
@@ -163,7 +163,7 @@ dev = [
 
 [[package]]
 name = "atlanticus-web-composition-sharepoint-http"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "compositions/sharepoint-http" }
 
 [[package]]
@@ -230,7 +230,7 @@ requires-dist = [
 
 [[package]]
 name = "atlanticus-web-manager"
-version = "0.3.9"
+version = "0.3.10"
 source = { editable = "capabilities/manager" }
 dependencies = [
     { name = "atlanticus-web" },

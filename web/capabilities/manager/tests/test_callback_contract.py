@@ -38,8 +38,7 @@ def test_lifecycle_actions_require_explicit_clicks_and_history_only_loads_draft(
     assert 'def verify_source_configuration(' in source
     assert 'def publish_configuration(' in source
     assert 'def project_configuration(' in source
-    assert 'def load_workspace_import_as_draft(' in source
-    assert 'def load_source_as_draft(' in source
+    assert 'def hydrate_source_workspace(' in source
     assert 'def update_from_source(' in source
     assert 'def force_publish_configuration(' in source
     assert 'def manage_local_workspace(' in source
@@ -130,8 +129,7 @@ def test_dirty_editor_hides_stale_validation_and_source_verification_state() -> 
 def test_workspace_actions_restore_current_source_without_publishing_or_projecting() -> None:
     source = _source()
 
-    assert "workflow_action_id(MATCH, 'load-source')" in source
-    assert "workflow_action_id(MATCH, 'import-workspace')" in source
+    assert "workflow_action_id(MATCH, 'load-source')" not in source
     assert "workflow_action_id(MATCH, 'discard-local')" in source
     assert "workflow_action_id(MATCH, 'reload')" in source
     assert 'workflow_workspace_command_id(MATCH)' in source
@@ -150,14 +148,14 @@ def test_workspace_actions_restore_current_source_without_publishing_or_projecti
 
 def test_workspace_auto_loads_current_source_only_when_local_workspace_is_empty() -> None:
     source = _source()
-    start = source.rindex('@app.callback(', 0, source.index('def load_source_as_draft('))
+    start = source.rindex('@app.callback(', 0, source.index('def hydrate_source_workspace('))
     end = source.index('def update_from_source(', start)
     callback = source[start:end]
 
     assert "Input(workflow_revision_id(MATCH), 'data')" in callback
     assert "State(workflow_revision_id(MATCH), 'id')" in callback
     assert "prevent_initial_call='initial_duplicate'" in callback
-    assert 'automatic_load = bool(' in callback
+    assert "workflow_action_id(MATCH, 'load-source')" not in callback
     assert 'if _has_local_work(draft_data, editor_revision, principal):' in callback
     assert 'if _source_revision(revision_state) is None:' in callback
     assert 'coordinator.load_current_source(' in callback
@@ -210,49 +208,3 @@ def test_conflict_resolution_can_keep_local_draft_without_writing_source() -> No
     assert 'coordinator.force_publish_draft(' not in callback
     assert 'coordinator.project(' not in callback
     assert 'module.source_name' in callback
-
-
-def test_workspace_import_ui_only_replaces_workspace_and_reuses_normal_lifecycle() -> None:
-    source = _source()
-    start = source.rindex('@app.callback(', 0, source.index('def load_workspace_import_as_draft('))
-    end = source.index('def load_source_as_draft(', start)
-    callback = source[start:end]
-
-    assert "Input(workflow_action_id(MATCH, 'import-workspace'), 'n_clicks')" in callback
-    assert 'coordinator.load_workspace_import(module_key, principal)' in callback
-    assert '_has_pending_workspace_changes(' in callback
-    assert 'module.workspace_import_name' in callback
-    assert 'module.source_name' in callback
-    assert 'result.draft.to_document()' in callback
-    assert 'coordinator.publish_draft(' not in callback
-    assert 'coordinator.project(' not in callback
-    assert 'coordinator.list_history(' not in callback
-    assert 'return (' in callback
-    assert 'result.draft.to_document(),' in callback
-    assert callback.count('            None,') >= 2
-
-
-def test_workspace_import_is_disabled_when_pending_local_changes_exist() -> None:
-    source = _source()
-    start = source.rindex('@app.callback(', 0, source.index('def refresh_draft_workflow('))
-    end = source.index('def validate_configuration(', start)
-    callback = source[start:end]
-
-    assert "Output(workflow_action_id(MATCH, 'import-workspace'), 'disabled')" in callback
-    assert "State(workflow_draft_id(MATCH), 'id')" in callback
-    assert 'module.workspace_import_service is not None' in callback
-    assert 'authorization.can_validate(principal, module)' in callback
-    assert 'not discardable_local_work' in callback
-    assert 'not can_import_workspace' in callback
-
-
-def test_pending_workspace_changes_distinguish_clean_source_backed_workspace() -> None:
-    source = _source()
-    start = source.index('def _has_pending_workspace_changes(')
-    end = source.index('def _safe_source_verification(', start)
-    helper = source[start:end]
-
-    assert 'resolve_manager_lifecycle(' in helper
-    assert 'source_revision=_source_revision(revision_state)' in helper
-    assert 'return lifecycle.can_discard_local' in helper
-    assert '_has_local_work(' not in helper

@@ -22,7 +22,6 @@ class ManagerLifecycleState:
     can_verify_source: bool
     can_publish: bool
     can_force_publish: bool
-    can_load_source: bool
     can_discard_local: bool
 
 
@@ -67,7 +66,6 @@ def resolve_manager_lifecycle(
         can_verify_source=bool(current_validation and not published and not current_verification),
         can_publish=bool(verification_publishable and not published),
         can_force_publish=bool(current_validation and conflict),
-        can_load_source=bool(source_revision is not None and not has_local_work),
         can_discard_local=bool(dirty or (draft is not None and not published)),
     )
 

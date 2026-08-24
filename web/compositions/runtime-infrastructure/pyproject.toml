@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "atlanticus-web-composition-runtime-infrastructure"
-version = "0.1.0"
+version = "0.1.1"
 description = "Composición de infraestructura runtime para aplicaciones Atlanticus Web"
 requires-python = "==3.14.2"
 classifiers = ["Private :: Do Not Upload"]
@@ -12,7 +12,7 @@ dependencies = [
     "atlanticus-cosmos==0.1.0",
     "atlanticus-http==0.1.0",
     "atlanticus-web==0.1.0",
-    "atlanticus-web-composition-sharepoint-http==0.1.0",
+    "atlanticus-web-composition-sharepoint-http==0.1.1",
 ]
 
 [tool.uv.sources]

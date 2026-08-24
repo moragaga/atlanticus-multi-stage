@@ -14,7 +14,7 @@ def test_package_declares_only_composition_level_dependencies() -> None:
         'atlanticus-cosmos==0.1.0',
         'atlanticus-http==0.1.0',
         'atlanticus-web==0.1.0',
-        'atlanticus-web-composition-sharepoint-http==0.1.0',
+        'atlanticus-web-composition-sharepoint-http==0.1.1',
     ]
 
 

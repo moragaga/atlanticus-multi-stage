@@ -7,6 +7,10 @@ from types import MappingProxyType
 from typing import Any, Protocol
 
 
+# Sentinel interno: diferencia un 404 real de una respuesta 200 inválida que devuelva None.
+_MISSING = object()
+
+
 # El transporte sigue siendo estructural para no acoplar Web al paquete Connectivity.
 class HttpClient(Protocol):
     def request(self, method: str, endpoint: str = '', **kwargs: Any) -> Any: ...
@@ -109,6 +113,9 @@ class PowerAutomateSharePointGateway:
                 'relative_path': _require_non_empty_text(relative_path, 'relative_path'),
             }
         )
+        # Solo un 404 del transporte significa que el archivo aún no existe.
+        if response is _MISSING:
+            return None
         if not isinstance(response, Mapping):
             raise SharePointGatewayError('SharePoint read response must be an object')
         if response.get('success') is not True:
@@ -141,6 +148,10 @@ class PowerAutomateSharePointGateway:
                 json_data=payload,
             )
         except Exception as error:
+            # Conservamos el desacoplamiento estructural con Connectivity: solo observamos la
+            # semántica status_code del error y no importamos su clase concreta.
+            if _is_not_found(error):
+                return _MISSING
             raise SharePointGatewayError('SharePoint Power Automate read failed') from error
 
     def _request_write(self, payload: dict[str, object]) -> None:
@@ -153,6 +164,12 @@ class PowerAutomateSharePointGateway:
             )
         except Exception as error:
             raise SharePointGatewayError('SharePoint Power Automate write failed') from error
+
+
+# Un archivo ausente es bootstrap válido; cualquier otro status sigue siendo error real.
+def _is_not_found(error: Exception) -> bool:
+    status_code = getattr(error, 'status_code', None)
+    return not isinstance(status_code, bool) and status_code == 404
 
 
 def _normalize_optional_text(value: object, field_name: str) -> str:

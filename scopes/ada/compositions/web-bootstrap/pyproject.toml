@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ada-composition-web-bootstrap"
-version = "0.1.6"
+version = "0.1.7"
 description = "Bootstrap real de dependencias web ADA sobre infraestructura Atlanticus"
 requires-python = "==3.14.2"
 classifiers = ["Private :: Do Not Upload"]
@@ -13,7 +13,7 @@ dependencies = [
     "ada-configuration-tools==0.1.5",
     "atlanticus-cosmos==0.1.0",
     "atlanticus-web==0.1.0",
-    "atlanticus-web-composition-runtime-infrastructure==0.1.0",
+    "atlanticus-web-composition-runtime-infrastructure==0.1.1",
     "atlanticus-web-identity==0.1.0",
     "atlanticus-web-identity-app-service==0.1.0",
     "atlanticus-web-identity-local==0.1.0",

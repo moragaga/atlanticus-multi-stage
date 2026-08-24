@@ -299,8 +299,6 @@ def register_manager_callbacks(
         Output(workflow_action_id(MATCH, 'validate'), 'disabled'),
         Output(workflow_action_id(MATCH, 'verify-source'), 'disabled'),
         Output(workflow_action_id(MATCH, 'publish'), 'disabled'),
-        Output(workflow_action_id(MATCH, 'load-source'), 'disabled'),
-        Output(workflow_action_id(MATCH, 'import-workspace'), 'disabled'),
         Output(workflow_action_id(MATCH, 'discard-local'), 'disabled'),
         Output(workflow_conflict_id(MATCH), 'hidden'),
         Output(workflow_conflict_details_id(MATCH), 'children'),
@@ -310,7 +308,6 @@ def register_manager_callbacks(
         Input(workflow_source_verification_id(MATCH), 'data'),
         Input(workflow_revision_id(MATCH), 'data'),
         Input(workflow_editor_revision_id(MATCH), 'data'),
-        State(workflow_draft_id(MATCH), 'id'),
     )
     def refresh_draft_workflow(
         draft_data: dict[str, object] | None,
@@ -318,7 +315,6 @@ def register_manager_callbacks(
         verification_data: dict[str, object] | None,
         revision_state: dict[str, object] | None,
         editor_revision: str | None,
-        draft_id: dict[str, object],
     ):
         principal = definition.principal_provider()
         # El estado del workflow se calcula sólo con el workspace del principal actual.
@@ -337,15 +333,6 @@ def register_manager_callbacks(
             source_verification=verification,
         )
         discardable_local_work = lifecycle.can_discard_local
-        module_key = str(draft_id.get('module', ''))
-        module = registry.require(module_key)
-        # Importar sólo está disponible cuando no hay cambios locales que puedan perderse.
-        # Un workspace limpio respaldado por Source sí puede ser reemplazado por el candidato.
-        can_import_workspace = bool(
-            module.workspace_import_service is not None
-            and authorization.can_validate(principal, module)
-            and not discardable_local_work
-        )
         conflict_content = None
         if lifecycle.source_conflict and draft is not None and verification is not None:
             conflict_content = build_source_conflict_content(
@@ -365,8 +352,6 @@ def register_manager_callbacks(
             not lifecycle.can_validate,
             not lifecycle.can_verify_source,
             not lifecycle.can_publish,
-            not lifecycle.can_load_source,
-            not can_import_workspace,
             not discardable_local_work,
             not lifecycle.source_conflict,
             conflict_content,
@@ -546,112 +531,34 @@ def register_manager_callbacks(
         Output(workflow_draft_id(MATCH), 'data', allow_duplicate=True),
         Output(workflow_validation_id(MATCH), 'data', allow_duplicate=True),
         Output(workflow_source_verification_id(MATCH), 'data', allow_duplicate=True),
-        Input(workflow_action_id(MATCH, 'import-workspace'), 'n_clicks'),
-        State(workflow_draft_id(MATCH), 'data'),
-        State(workflow_editor_revision_id(MATCH), 'data'),
-        State(workflow_revision_id(MATCH), 'data'),
-        prevent_initial_call=True,
-    )
-    # La UI sólo carga el origen externo como un draft normal. No publica, no proyecta
-    # y limpia validación/verificación para reutilizar el lifecycle existente desde cero.
-    def load_workspace_import_as_draft(
-        clicks: int,
-        draft_data: dict[str, object] | None,
-        editor_revision: str | None,
-        revision_state: dict[str, object] | None,
-    ):
-        trigger = ctx.triggered_id
-        if not isinstance(trigger, dict) or not _click_is_real(clicks):
-            return no_update, no_update, no_update, no_update
-        principal = definition.principal_provider()
-        module_key = str(trigger.get('module', ''))
-        try:
-            module = registry.require(module_key)
-            if _has_pending_workspace_changes(
-                draft_data,
-                editor_revision,
-                revision_state,
-                principal,
-            ):
-                return (
-                    _notice_message(
-                        f'Descarta los cambios locales antes de cargar desde '
-                        f'{module.workspace_import_name}.'
-                    ),
-                    no_update,
-                    no_update,
-                    no_update,
-                )
-            result = coordinator.load_workspace_import(module_key, principal)
-        except ManagerError as error:
-            return _error_message(str(error)), no_update, no_update, no_update
-        except Exception:
-            return (
-                _error_message('Workspace import could not be loaded'),
-                no_update,
-                no_update,
-                no_update,
-            )
-        return (
-            _notice_message(
-                f'Configuración cargada desde {module.workspace_import_name}. '
-                f'Revisa los cambios antes de publicar en {module.source_name}.'
-            ),
-            result.draft.to_document(),
-            None,
-            None,
-        )
-
-    @app.callback(
-        Output(workflow_result_id(MATCH), 'children', allow_duplicate=True),
-        Output(workflow_draft_id(MATCH), 'data', allow_duplicate=True),
-        Output(workflow_validation_id(MATCH), 'data', allow_duplicate=True),
-        Output(workflow_source_verification_id(MATCH), 'data', allow_duplicate=True),
-        Input(workflow_action_id(MATCH, 'load-source'), 'n_clicks'),
         Input(workflow_revision_id(MATCH), 'data'),
         State(workflow_revision_id(MATCH), 'id'),
         State(workflow_draft_id(MATCH), 'data'),
         State(workflow_editor_revision_id(MATCH), 'data'),
         prevent_initial_call='initial_duplicate',
     )
-    def load_source_as_draft(
-        clicks: int,
+    # La Source se hidrata automáticamente cuando existe y el principal actual no tiene trabajo local.
+    # No hay acción manual para cargar Source: el workspace limpio siempre representa la Source vigente.
+    def hydrate_source_workspace(
         revision_state: dict[str, object] | None,
         revision_id: dict[str, object],
         draft_data: dict[str, object] | None,
         editor_revision: str | None,
     ):
         trigger = ctx.triggered_id
-        # La fuente publicada se carga automáticamente sólo cuando no existe workspace local.
-        # El mismo callback conserva la carga manual para recuperación explícita.
-        explicit_load = bool(
+        if trigger is not None and not (
             isinstance(trigger, dict)
-            and trigger.get('action') == 'load-source'
-            and _click_is_real(clicks)
-        )
-        automatic_load = bool(
-            trigger is None
-            or (
-                isinstance(trigger, dict)
-                and trigger.get('type') == 'atlanticus-manager-workflow-revision'
-            )
-        )
-        if not explicit_load and not automatic_load:
+            and trigger.get('type') == 'atlanticus-manager-workflow-revision'
+        ):
             return no_update, no_update, no_update, no_update
         principal = definition.principal_provider()
-        if explicit_load and _has_local_work(draft_data, editor_revision, principal):
-            return (
-                _notice_message('Descarta los cambios locales antes de cargar la fuente actual.'),
-                no_update,
-                no_update,
-                no_update,
-            )
-        if automatic_load:
-            if _has_local_work(draft_data, editor_revision, principal):
-                return no_update, no_update, no_update, no_update
-            if _source_revision(revision_state) is None:
-                return no_update, no_update, no_update, no_update
-        module_key = str((trigger if isinstance(trigger, dict) else revision_id).get('module', ''))
+        if _has_local_work(draft_data, editor_revision, principal):
+            return no_update, no_update, no_update, no_update
+        if _source_revision(revision_state) is None:
+            return no_update, no_update, no_update, no_update
+        module_key = str(
+            (trigger if isinstance(trigger, dict) else revision_id).get('module', '')
+        )
         try:
             snapshot = coordinator.load_current_source(
                 module_key,
@@ -662,30 +569,8 @@ def register_manager_callbacks(
                 payload=snapshot.payload,
                 base_source_revision=snapshot.revision,
             )
-        except ManagerSourceConflictError:
-            if automatic_load:
-                return no_update, no_update, no_update, no_update
-            return (
-                _notice_message(
-                    'La fuente cambió mientras se cargaba. Recarga el estado e inténtalo nuevamente.'
-                ),
-                no_update,
-                no_update,
-                no_update,
-            )
-        except ManagerError as error:
-            if automatic_load:
-                return no_update, no_update, no_update, no_update
-            return _error_message(str(error)), no_update, no_update, no_update
         except Exception:
-            if automatic_load:
-                return no_update, no_update, no_update, no_update
-            return (
-                _error_message('Current source could not be loaded'),
-                no_update,
-                no_update,
-                no_update,
-            )
+            return no_update, no_update, no_update, no_update
         return None, draft.to_document(), None, None
 
     @app.callback(
@@ -1351,29 +1236,6 @@ def _has_local_work(
         principal,
     )
     return draft is not None or local_editor_revision is not None
-
-
-# Esta comprobación distingue un workspace limpio de un draft realmente descartable.
-# No basta con preguntar si existe un ManagerDraft, porque el workspace limpio también usa uno.
-def _has_pending_workspace_changes(
-    draft_data: dict[str, object] | None,
-    editor_revision: object,
-    revision_state: dict[str, object] | None,
-    principal: ManagerPrincipal,
-) -> bool:
-    draft, local_editor_revision = _local_workspace_state(
-        draft_data,
-        editor_revision,
-        principal,
-    )
-    lifecycle = resolve_manager_lifecycle(
-        draft=draft,
-        editor_revision=local_editor_revision,
-        source_revision=_source_revision(revision_state),
-        validation_current=False,
-        source_verification=None,
-    )
-    return lifecycle.can_discard_local
 
 
 def _safe_source_verification(

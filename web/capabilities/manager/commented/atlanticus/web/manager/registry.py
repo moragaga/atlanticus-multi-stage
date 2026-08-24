@@ -1,6 +1,5 @@
 # Valida que cualquier renderer histórico declarado por un módulo sea invocable.
 # La validación falla temprano ante una definición de módulo inválida.
-# Import source y nombre se validan como un par opcional para evitar módulos parcialmente configurados.
 
 import re
 
@@ -132,7 +131,6 @@ class ManagerModuleRegistry:
                 raise ManagerDefinitionError('Manager content section title must not be empty')
             if not module.workflow_service.strip():
                 raise ManagerDefinitionError('Manager workflow service must not be empty')
-            self._validate_workspace_import(module)
             if module.source_signal_id is not None:
                 source_signal_id = module.source_signal_id.strip()
                 if not source_signal_id:
@@ -153,18 +151,6 @@ class ManagerModuleRegistry:
                 ),
             )
         )
-
-    def _validate_workspace_import(self, module: ManagerModule) -> None:
-        service = module.workspace_import_service
-        name = module.workspace_import_name
-        if (service is None) != (name is None):
-            raise ManagerDefinitionError(
-                'Manager workspace import service and name must be configured together'
-            )
-        if service is not None and not service.strip():
-            raise ManagerDefinitionError('Manager workspace import service must not be empty')
-        if name is not None and not name.strip():
-            raise ManagerDefinitionError('Manager workspace import name must not be empty')
 
     def _validate_access(self, module: ManagerModule) -> None:
         for access_key in (module.access.view, module.access.validate, module.access.project):

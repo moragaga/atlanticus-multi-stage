@@ -1,7 +1,5 @@
 # Coordina autorización y workflows del Manager; verify_source consulta Source sin escribir ni proyectar.
 # La verificación queda asociada al draft exacto para separar contrato, concurrencia y publicación.
-# Importar sólo lee un origen opcional y crea un draft del principal actual con base en la Source activa.
-# No publica, no proyecta y no consulta ni migra History del origen.
 
 from datetime import UTC, datetime
 
@@ -15,7 +13,6 @@ from atlanticus.web.manager.models import ManagerModule, ManagerPrincipal
 from atlanticus.web.manager.projection import (
     ConfigurationLifecycleWorkflow,
     DraftValidationResult,
-    ManagerDraft,
     ProjectionExecutionResult,
     ProjectionStatus,
     RevisionHistoryEntry,
@@ -23,9 +20,6 @@ from atlanticus.web.manager.projection import (
     SourcePublicationResult,
     SourceSnapshot,
     SourceVerificationResult,
-    WorkspaceImportResult,
-    WorkspaceImportSnapshot,
-    WorkspaceImportSource,
 )
 from atlanticus.web.manager.registry import ManagerModuleRegistry
 from atlanticus.web.services import ServiceRegistry
@@ -121,36 +115,6 @@ class ManagerProjectionCoordinator:
             payload=payload,
             expected_source_revision=expected_source_revision,
         )
-
-    def load_workspace_import(
-        self,
-        module_key: str,
-        principal: ManagerPrincipal,
-    ) -> WorkspaceImportResult:
-        module, workflow = self._resolve(module_key)
-        if module.workspace_import_service is None:
-            raise ManagerProjectionError('Manager workspace import is not configured')
-        if not self._authorization.can_validate(principal, module):
-            raise ManagerAuthorizationError('Manager workspace import access is denied')
-        if not self._services.contains(module.workspace_import_service):
-            raise ManagerProjectionError('Manager workspace import service is not registered')
-        import_source = self._services.require(module.workspace_import_service)
-        if not isinstance(import_source, WorkspaceImportSource):
-            raise ManagerProjectionError('Manager workspace import source has an invalid contract')
-        status = workflow.get_status()
-        snapshot = import_source.load_current()
-        if snapshot is None:
-            raise ManagerProjectionError('Manager workspace import source does not exist')
-        if not isinstance(snapshot, WorkspaceImportSnapshot):
-            raise ManagerProjectionError(
-                'Manager workspace import snapshot has an invalid contract'
-            )
-        draft = ManagerDraft.create(
-            owner_subject_id=principal.subject_id,
-            payload=snapshot.payload,
-            base_source_revision=status.source_revision,
-        )
-        return WorkspaceImportResult(origin_revision=snapshot.revision, draft=draft)
 
     def load_current_source(
         self,

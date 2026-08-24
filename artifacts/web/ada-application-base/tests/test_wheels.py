@@ -37,20 +37,20 @@ EXPECTED_INTERNAL_PACKAGES = {
 
 CRITICAL_PATH_PINNED_WHEELS = {
     'ada-composition-configuration-manager': (
-        '0.1.15',
-        'ada_composition_configuration_manager-0.1.15-py3-none-any.whl',
+        '0.1.17',
+        'ada_composition_configuration_manager-0.1.17-py3-none-any.whl',
     ),
     'ada-composition-web-bootstrap': (
-        '0.1.6',
-        'ada_composition_web_bootstrap-0.1.6-py3-none-any.whl',
+        '0.1.7',
+        'ada_composition_web_bootstrap-0.1.7-py3-none-any.whl',
     ),
     'ada-composition-web-deployment': (
-        '0.1.8',
-        'ada_composition_web_deployment-0.1.8-py3-none-any.whl',
+        '0.1.9',
+        'ada_composition_web_deployment-0.1.9-py3-none-any.whl',
     ),
     'atlanticus-web-manager': (
-        '0.3.9',
-        'atlanticus_web_manager-0.3.9-py3-none-any.whl',
+        '0.3.10',
+        'atlanticus_web_manager-0.3.10-py3-none-any.whl',
     ),
     'atlanticus-web-identity': (
         '0.1.0',
@@ -71,6 +71,17 @@ CRITICAL_PATH_PINNED_WHEELS = {
     'atlanticus-web-users-local': (
         '0.1.0',
         'atlanticus_web_users_local-0.1.0-py3-none-any.whl',
+    ),
+}
+
+CRITICAL_TRANSITIVE_WHEELS = {
+    'atlanticus-web-composition-runtime-infrastructure': (
+        '0.1.1',
+        'atlanticus_web_composition_runtime_infrastructure-0.1.1-py3-none-any.whl',
+    ),
+    'atlanticus-web-composition-sharepoint-http': (
+        '0.1.1',
+        'atlanticus_web_composition_sharepoint_http-0.1.1-py3-none-any.whl',
     ),
 }
 
@@ -109,3 +120,12 @@ def _wheel_metadata(path: Path):
             name for name in archive.namelist() if name.endswith('.dist-info/METADATA')
         )
         return message_from_bytes(archive.read(metadata_name))
+
+
+def test_critical_transitive_wheels_have_immutable_versions() -> None:
+    for package, (version, filename) in CRITICAL_TRANSITIVE_WHEELS.items():
+        matches = list(WHEELS.glob(filename))
+        assert len(matches) == 1
+        metadata = _wheel_metadata(matches[0])
+        assert metadata['Name'].lower().replace('_', '-') == package
+        assert metadata['Version'] == version

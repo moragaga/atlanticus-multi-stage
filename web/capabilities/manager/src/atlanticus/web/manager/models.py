@@ -108,8 +108,6 @@ class ManagerModule:
     default_section: str = 'content'
     source_name: str = 'Source'
     projection_name: str = 'Projection'
-    workspace_import_service: str | None = None
-    workspace_import_name: str | None = None
     force_publish_enabled: bool = False
     history_preview_renderer: ManagerHistoryPreviewRenderer | None = None
 

@@ -6,17 +6,11 @@ import ada.compositions.configuration_manager.backends as backends_module
 from ada.compositions.configuration_manager import (
     ConfigurationBackendSelection,
     ConfigurationHistoryBackend,
-    ConfigurationImportBackend,
     ConfigurationProjectionBackend,
     create_configuration_manager_dependencies,
     create_configuration_runtime_projection,
     open_configuration_manager_sharepoint_infrastructure,
     resolve_configuration_backend_selection,
-)
-from ada.compositions.configuration_manager.workflows import (
-    NavigationWorkspaceImportAdapter,
-    ToolWorkspaceImportAdapter,
-    UsersWorkspaceImportAdapter,
 )
 from ada.compositions.web_bootstrap import AdaConfigurationFilenames, AdaCosmosBindings
 from ada.configuration.tools.adapters import (
@@ -190,33 +184,6 @@ def test_production_forces_sharepoint_history_and_cosmos_projection() -> None:
         resolve_configuration_backend_selection(
             EnvironmentReader({'ATLANTICUS_CONFIGURATION_PROJECTION_BACKEND': 'local'}),
             WebEnvironment.PRODUCTION,
-        )
-
-
-def test_workspace_import_backend_is_optional_and_orthogonal_to_environment() -> None:
-    local_default = resolve_configuration_backend_selection(
-        EnvironmentReader({}),
-        WebEnvironment.LOCAL,
-    )
-    local_import = resolve_configuration_backend_selection(
-        EnvironmentReader({'ATLANTICUS_CONFIGURATION_IMPORT_BACKEND': 'local'}),
-        WebEnvironment.LOCAL,
-    )
-    production_import = resolve_configuration_backend_selection(
-        EnvironmentReader({'ATLANTICUS_CONFIGURATION_IMPORT_BACKEND': 'local'}),
-        WebEnvironment.PRODUCTION,
-    )
-
-    assert local_default.workspace_import is ConfigurationImportBackend.NONE
-    assert local_import.workspace_import is ConfigurationImportBackend.LOCAL
-    assert production_import.workspace_import is ConfigurationImportBackend.LOCAL
-    assert production_import.history is ConfigurationHistoryBackend.SHAREPOINT
-    assert production_import.projection is ConfigurationProjectionBackend.COSMOS
-
-    with pytest.raises(WebConfigurationError, match='ATLANTICUS_CONFIGURATION_IMPORT_BACKEND'):
-        resolve_configuration_backend_selection(
-            EnvironmentReader({'ATLANTICUS_CONFIGURATION_IMPORT_BACKEND': 'sharepoint'}),
-            WebEnvironment.LOCAL,
         )
 
 
@@ -497,63 +464,3 @@ def test_sharepoint_history_requires_dedicated_sharepoint_infrastructure() -> No
             filenames=AdaConfigurationFilenames(),
             principal_provider=_principal,
         )
-
-
-def test_sharepoint_source_can_wire_local_workspace_import_independently(tmp_path) -> None:
-    dependencies = create_configuration_manager_dependencies(
-        selection=ConfigurationBackendSelection(
-            history=ConfigurationHistoryBackend.SHAREPOINT,
-            projection=ConfigurationProjectionBackend.COSMOS,
-            workspace_import=ConfigurationImportBackend.LOCAL,
-        ),
-        infrastructure=_cosmos_infrastructure(),
-        sharepoint_infrastructure=_sharepoint_infrastructure(),
-        bindings=_bindings(),
-        filenames=AdaConfigurationFilenames(),
-        principal_provider=_principal,
-        runtime_root=tmp_path,
-    )
-
-    assert isinstance(dependencies.tools.administration._source, SharePointToolConfigurationStore)
-    assert isinstance(dependencies.users.administration._source, SharePointUsersConfigurationStore)
-    assert isinstance(
-        dependencies.navigation.administration._source,
-        SharePointNavigationConfigurationStore,
-    )
-    assert isinstance(dependencies.tools_workspace_import, ToolWorkspaceImportAdapter)
-    assert isinstance(dependencies.users_workspace_import, UsersWorkspaceImportAdapter)
-    assert isinstance(dependencies.navigation_workspace_import, NavigationWorkspaceImportAdapter)
-    assert dependencies.tools_workspace_import_name == 'Archivo local'
-    assert dependencies.users_workspace_import_name == 'Archivo local'
-    assert dependencies.navigation_workspace_import_name == 'Archivo local'
-    assert (
-        dependencies.tools_workspace_import._source._settings.root == tmp_path / 'source' / 'tools'
-    )
-    assert (
-        dependencies.users_workspace_import._source._settings.root == tmp_path / 'source' / 'users'
-    )
-    assert (
-        dependencies.navigation_workspace_import._source._settings.root
-        == tmp_path / 'source' / 'navigation'
-    )
-
-
-def test_workspace_import_is_not_wired_when_backend_is_none(tmp_path) -> None:
-    dependencies = create_configuration_manager_dependencies(
-        selection=ConfigurationBackendSelection(
-            history=ConfigurationHistoryBackend.LOCAL,
-            projection=ConfigurationProjectionBackend.LOCAL,
-        ),
-        infrastructure=WebRuntimeInfrastructure(cosmos_connections={}),
-        bindings=_bindings(),
-        filenames=AdaConfigurationFilenames(),
-        principal_provider=_principal,
-        runtime_root=tmp_path,
-    )
-
-    assert dependencies.tools_workspace_import is None
-    assert dependencies.users_workspace_import is None
-    assert dependencies.navigation_workspace_import is None
-    assert dependencies.tools_workspace_import_name is None
-    assert dependencies.users_workspace_import_name is None
-    assert dependencies.navigation_workspace_import_name is None
