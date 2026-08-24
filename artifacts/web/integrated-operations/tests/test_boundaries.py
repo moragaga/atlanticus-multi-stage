@@ -80,7 +80,7 @@ def test_compiled_integrated_operations_manifest_is_used_only_as_runtime_baselin
     )
 
     assert 'INTEGRATED_OPERATIONS_MANIFEST' in content
-    assert '_build_baseline_composition' in content
+    assert 'resolve_ada_surface' in content
     assert 'ToolManifestResolution.not_projected()' not in content
 
 
@@ -150,3 +150,23 @@ def test_unified_presentation_uses_existing_navigation_contract() -> None:
     assert document['tool']['uv']['sources']['ada-ui-shell-navigation'] == {
         'path': 'wheels/ada_ui_shell_navigation-0.1.0-py3-none-any.whl'
     }
+
+
+def test_operational_runtime_depends_on_generic_ada_surface_contract() -> None:
+    document = tomllib.loads((ROOT / 'pyproject.toml').read_text(encoding='utf-8'))
+    composition = (ROOT / 'src/integrated_operations/application/composition.py').read_text(
+        encoding='utf-8'
+    )
+    presentation = (ROOT / 'src/integrated_operations/application/presentation.py').read_text(
+        encoding='utf-8'
+    )
+
+    assert 'ada-composition-surface==0.1.0' in document['project']['dependencies']
+    assert document['tool']['uv']['sources']['ada-composition-surface'] == {
+        'path': 'wheels/ada_composition_surface-0.1.0-py3-none-any.whl'
+    }
+    assert 'AdaSurfaceRegistry' in composition
+    assert 'IntegratedOperationsSurfaceAdapter' in composition
+    assert 'build_integrated_operations_tool' not in presentation
+    assert 'composition.operational.build(services)' in presentation
+    assert "'data-ada-surface-adapter': composition.operational.adapter_key" in presentation

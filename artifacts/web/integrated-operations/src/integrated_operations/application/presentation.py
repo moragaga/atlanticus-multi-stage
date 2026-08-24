@@ -15,7 +15,6 @@ from atlanticus.web.manager.web.ids import REFRESH_BUTTON_ID, REFRESH_SIGNAL_ID
 from atlanticus.web.modules import WebModule
 from atlanticus.web.services import ServiceRegistry
 from integrated_operations.application.models import IntegratedOperationsApplicationComposition
-from integrated_operations.tool import build_integrated_operations_tool
 
 LOCATION_ID = 'ada-unified-application-location'
 SURFACE_HOST_ID = 'ada-unified-application-surface-host'
@@ -97,11 +96,14 @@ def build_application_surface(
             return _build_manager_unavailable_surface()
         return _build_manager_surface(services, composition)
     return html.Div(
-        build_integrated_operations_tool(composition.operational),
+        composition.operational.build(services),
         className=(
             'ada-unified-application__surface ada-unified-application__surface--operational'
         ),
-        **{'data-ada-unified-surface': 'operational'},
+        **{
+            'data-ada-unified-surface': 'operational',
+            'data-ada-surface-adapter': composition.operational.adapter_key,
+        },
     )
 
 

@@ -53,16 +53,14 @@ def test_unified_layout_has_one_dynamic_surface_host_and_navigation(monkeypatch)
     assert sum(_props(node).get('id') == 'initial-operational' for node in nodes) == 1
 
 
-def test_operational_route_uses_existing_operational_surface(monkeypatch) -> None:
+def test_operational_route_uses_registered_surface_adapter() -> None:
     services = ServiceRegistry()
-    operational = object()
-    expected_tool = html.Div(id='operational-tool')
-    composition = SimpleNamespace(operational=operational, manager=None)
-    monkeypatch.setattr(
-        presentation,
-        'build_integrated_operations_tool',
-        lambda value: expected_tool if value is operational else None,
+    expected = html.Div(id='operational-tool')
+    operational = SimpleNamespace(
+        adapter_key='integrated_operations',
+        build=lambda value: expected if value is services else None,
     )
+    composition = SimpleNamespace(operational=operational, manager=None)
 
     surface = presentation.build_application_surface(
         services,
@@ -72,6 +70,7 @@ def test_operational_route_uses_existing_operational_surface(monkeypatch) -> Non
     nodes = tuple(_walk(surface))
 
     assert _props(surface)['data-ada-unified-surface'] == 'operational'
+    assert _props(surface)['data-ada-surface-adapter'] == 'integrated_operations'
     assert any(_props(node).get('id') == 'operational-tool' for node in nodes)
 
 

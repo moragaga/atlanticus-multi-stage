@@ -1,30 +1,33 @@
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from types import SimpleNamespace
 
+from dash import html
+
 import integrated_operations.application.composition as composition
-from ada.contracts.tool_manifest import INTEGRATED_OPERATIONS_MANIFEST, ToolManifestResolution
+from ada.compositions.surface import AdaSurfaceComposition, AdaSurfaceRegistry
+from ada.contracts.tool_manifest import (
+    INTEGRATED_OPERATIONS_MANIFEST,
+    ToolManifest,
+    ToolManifestResolution,
+)
 from integrated_operations.application.models import ManagerSurfaceComposition
 
 
-def _patch_runtime_modules(monkeypatch) -> None:
-    monkeypatch.setattr(
-        composition,
-        'SharedSnapshotReader',
-        lambda repository, ttl_seconds: SimpleNamespace(
-            repository=repository, ttl_seconds=ttl_seconds
-        ),
-    )
-    monkeypatch.setattr(
-        composition,
-        'create_integrated_operations_tool_modules',
-        lambda _composition, snapshot_reader: ('io-module',),
-    )
-    monkeypatch.setattr(composition, 'create_ada_navigation_module', lambda: 'ada-navigation')
-    monkeypatch.setattr(
-        composition,
-        'create_unified_presentation_module',
-        lambda _composition: 'unified-presentation',
-    )
+@dataclass(frozen=True, slots=True)
+class FakeSurfaceAdapter:
+    key: str
+    supported_tool_key: str
+
+    def supports(self, manifest: ToolManifest) -> bool:
+        return manifest.tool_key == self.supported_tool_key
+
+    def compose(self, manifest: ToolManifest) -> AdaSurfaceComposition:
+        return AdaSurfaceComposition(
+            adapter_key=self.key,
+            manifest=manifest,
+            modules=(f'{self.key}-module',),
+            builder=lambda _services: html.Div(manifest.display_name),
+        )
 
 
 def test_application_composition_keeps_projected_operational_manifest() -> None:
@@ -33,6 +36,7 @@ def test_application_composition_keeps_projected_operational_manifest() -> None:
     )
 
     assert application.configuration_resolution.ready is True
+    assert application.operational.adapter_key == 'integrated_operations'
     assert application.operational.manifest == INTEGRATED_OPERATIONS_MANIFEST
     assert application.manager is None
 
@@ -43,20 +47,47 @@ def test_application_composition_keeps_baseline_when_projection_is_absent() -> N
     )
 
     assert application.configuration_resolution == ToolManifestResolution.not_projected()
+    assert application.operational.adapter_key == 'integrated_operations'
     assert application.operational.manifest == INTEGRATED_OPERATIONS_MANIFEST
 
 
-def test_web_definition_wires_operational_and_manager_modules(monkeypatch, tmp_path) -> None:
+def test_registered_surface_adapter_can_replace_baseline_from_valid_configuration() -> None:
+    process_manifest = replace(INTEGRATED_OPERATIONS_MANIFEST, tool_key='process_reference')
+    registry = AdaSurfaceRegistry(
+        (
+            FakeSurfaceAdapter('integrated_operations', 'integrated_operations'),
+            FakeSurfaceAdapter('process', 'process_reference'),
+        )
+    )
+
+    application = composition.build_application_composition(
+        tool_manifest_resolution=ToolManifestResolution.resolved(process_manifest),
+        surface_registry=registry,
+    )
+
+    assert application.configuration_resolution.ready is True
+    assert application.operational.adapter_key == 'process'
+    assert application.operational.manifest == process_manifest
+
+
+def test_web_definition_wires_generic_operational_and_manager_modules(
+    monkeypatch, tmp_path
+) -> None:
     monkeypatch.chdir(tmp_path)
-    _patch_runtime_modules(monkeypatch)
+    monkeypatch.setattr(composition, 'create_ada_navigation_module', lambda: 'ada-navigation')
+    monkeypatch.setattr(
+        composition,
+        'create_unified_presentation_module',
+        lambda _composition: 'unified-presentation',
+    )
     metadata = SimpleNamespace()
     manager_surface = SimpleNamespace(web_modules=('manager-services', 'manager-callbacks'))
     manager = ManagerSurfaceComposition(
         surface=manager_surface,
         principal_binding='manager-principal',
     )
-    application = composition.build_application_composition(
-        tool_manifest_resolution=ToolManifestResolution.not_projected(),
+    application = SimpleNamespace(
+        operational=SimpleNamespace(modules=('operational-module',)),
         manager=manager,
     )
 
@@ -71,7 +102,7 @@ def test_web_definition_wires_operational_and_manager_modules(monkeypatch, tmp_p
     assert definition.modules == (
         'identity',
         'users',
-        'io-module',
+        'operational-module',
         'ada-navigation',
         'manager-principal',
         'manager-services',
@@ -88,21 +119,22 @@ def test_web_definition_wires_operational_and_manager_modules(monkeypatch, tmp_p
 def test_incompatible_projected_manifest_falls_back_to_baseline_and_stays_invalid() -> None:
     invalid_manifest = replace(INTEGRATED_OPERATIONS_MANIFEST, tool_key='other_tool')
 
-    resolution, tool_composition = composition._resolve_tool_composition(
-        ToolManifestResolution.resolved(invalid_manifest)
+    application = composition.build_application_composition(
+        tool_manifest_resolution=ToolManifestResolution.resolved(invalid_manifest)
     )
 
-    assert resolution == ToolManifestResolution.invalid()
-    assert tool_composition.manifest == INTEGRATED_OPERATIONS_MANIFEST
+    assert application.configuration_resolution == ToolManifestResolution.invalid()
+    assert application.operational.adapter_key == 'integrated_operations'
+    assert application.operational.manifest == INTEGRATED_OPERATIONS_MANIFEST
 
 
 def test_source_error_keeps_baseline_operational() -> None:
-    resolution, tool_composition = composition._resolve_tool_composition(
-        ToolManifestResolution.source_error()
+    application = composition.build_application_composition(
+        tool_manifest_resolution=ToolManifestResolution.source_error()
     )
 
-    assert resolution == ToolManifestResolution.source_error()
-    assert tool_composition.manifest == INTEGRATED_OPERATIONS_MANIFEST
+    assert application.configuration_resolution == ToolManifestResolution.source_error()
+    assert application.operational.manifest == INTEGRATED_OPERATIONS_MANIFEST
 
 
 def test_application_asset_layer_is_local_and_filename_ordered() -> None:

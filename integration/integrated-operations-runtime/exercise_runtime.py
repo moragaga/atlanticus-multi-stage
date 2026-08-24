@@ -54,6 +54,7 @@ def main() -> None:
     assert 'data-ada-unified-application' in dash_layout_json
     assert 'app-header-offcanvas' in dash_layout_json
     assert 'app-header-desktop-toggle' in dash_layout_json
+    assert '"data-ada-surface-adapter": "integrated_operations"' in dash_layout_json
 
     activity = _request_json(
         f'{base_url}/api/user-activity',
@@ -77,7 +78,7 @@ def main() -> None:
     print('Health live/ready: OK')
     print('Worker runtime warmup + HTTP: OK')
     print('App Service identity + projected Integrated Operations /: OK')
-    print('Unified presentation shell + navigation: OK')
+    print('Unified presentation shell + generic ADA surface adapter: OK')
     print('Production asset snapshot: OK')
     print('User activity HTTP + Cosmos persistence: OK')
     print('R19B.2 Projected Tool Runtime smoke passed.')

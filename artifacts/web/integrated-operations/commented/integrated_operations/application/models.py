@@ -1,9 +1,9 @@
-# Espejo pedagógico: agrupa la composición operacional y la superficie opcional del Manager sin crear un framework paralelo.
+# El modelo de aplicación depende del contrato genérico de superficie, no de una composición operacional concreta.
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ada.compositions.integrated_operations import IntegratedOperationsToolComposition
+from ada.compositions.surface import AdaSurfaceComposition
 from ada.contracts.tool_manifest import ToolManifestResolution
 from atlanticus.web.manager import ManagerSurface
 from atlanticus.web.modules import WebModule
@@ -18,5 +18,5 @@ class ManagerSurfaceComposition:
 @dataclass(frozen=True, slots=True)
 class IntegratedOperationsApplicationComposition:
     configuration_resolution: ToolManifestResolution
-    operational: IntegratedOperationsToolComposition
+    operational: AdaSurfaceComposition
     manager: ManagerSurfaceComposition | None = None
