@@ -11,6 +11,7 @@ from ada.compositions.web_deployment import (
 from atlanticus.web.compositions.runtime_infrastructure import (
     CosmosConnectionEnvironmentDefinition,
     SharePointEnvironmentDefinition,
+    resolve_sharepoint_infrastructure_settings,
 )
 from atlanticus.web.environment import EnvironmentReader
 
@@ -161,3 +162,75 @@ def test_closed_runtime_cannot_be_reentered(monkeypatch) -> None:
 
     with pytest.raises(AdaWebDeploymentError, match='runtime is closed'):
         runtime.__enter__()
+
+
+def test_worker_runtime_can_share_optional_sharepoint_infrastructure(monkeypatch) -> None:
+    events = []
+    environment = EnvironmentReader(
+        {
+            'COSMOS_ENDPOINT': 'https://example.documents.azure.com/',
+            'COSMOS_KEY': 'secret',
+            'COSMOS_DATABASE': 'ada-runtime',
+            'SP_READ': 'https://example.test/read?mode=read',
+            'SP_WRITE': 'https://example.test/write?mode=write',
+            'SP_ROOT': 'root',
+            'SP_TOOL': 'tools',
+            'ATLANTICUS_ENVIRONMENT': 'local',
+        }
+    )
+    sharepoint = resolve_sharepoint_infrastructure_settings(environment, _definition().sharepoint)
+
+    class FakeInfrastructure:
+        def __init__(self, *, cosmos_connections, sharepoint=None):
+            self.cosmos_connections = cosmos_connections
+            self.sharepoint = sharepoint
+            events.append(('created', sharepoint))
+
+        def open(self):
+            events.append('open')
+
+        def close(self):
+            events.append('close')
+
+    class FakeBootstrap:
+        pass
+
+    fake_bootstrap = FakeBootstrap()
+    monkeypatch.setattr(runtime_module, 'WebRuntimeInfrastructure', FakeInfrastructure)
+    monkeypatch.setattr(models_module, 'WebRuntimeInfrastructure', FakeInfrastructure)
+    monkeypatch.setattr(models_module, 'AdaWebBootstrap', FakeBootstrap)
+    monkeypatch.setattr(
+        runtime_module,
+        'create_ada_web_bootstrap',
+        lambda **_kwargs: fake_bootstrap,
+    )
+
+    runtime = open_ada_web_deployment_runtime(
+        definition=_definition(),
+        metadata=object(),
+        environment=environment,
+        sharepoint=sharepoint,
+    )
+
+    assert runtime.infrastructure.sharepoint is sharepoint
+    runtime.close()
+    assert events == [('created', sharepoint), 'open', 'close']
+
+
+def test_worker_runtime_rejects_invalid_sharepoint_settings() -> None:
+    with pytest.raises(
+        TypeError,
+        match='sharepoint must be SharePointInfrastructureSettings or None',
+    ):
+        open_ada_web_deployment_runtime(
+            definition=_definition(),
+            metadata=object(),
+            environment=EnvironmentReader(
+                {
+                    'COSMOS_ENDPOINT': 'https://example.documents.azure.com/',
+                    'COSMOS_KEY': 'secret',
+                    'COSMOS_DATABASE': 'ada-runtime',
+                }
+            ),
+            sharepoint=object(),
+        )

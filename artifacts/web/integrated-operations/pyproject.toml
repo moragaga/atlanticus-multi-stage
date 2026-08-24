@@ -13,6 +13,7 @@ dependencies = [
     "ada-composition-integrated-operations==0.1.0",
     "ada-composition-manager-surface==0.1.0",
     "ada-composition-surface==0.1.0",
+    "ada-composition-web-application==0.1.0",
     "ada-composition-web-bootstrap==0.1.7",
     "ada-composition-web-deployment==0.1.9",
     "ada-configuration-tools==0.1.5",
@@ -70,6 +71,7 @@ ada-composition-configuration-manager = { path = "wheels/ada_composition_configu
 ada-composition-integrated-operations = { path = "wheels/ada_composition_integrated_operations-0.1.0-py3-none-any.whl" }
 ada-composition-manager-surface = { path = "wheels/ada_composition_manager_surface-0.1.0-py3-none-any.whl" }
 ada-composition-surface = { path = "wheels/ada_composition_surface-0.1.0-py3-none-any.whl" }
+ada-composition-web-application = { path = "wheels/ada_composition_web_application-0.1.0-py3-none-any.whl" }
 ada-composition-web-bootstrap = { path = "wheels/ada_composition_web_bootstrap-0.1.7-py3-none-any.whl" }
 ada-composition-web-deployment = { path = "wheels/ada_composition_web_deployment-0.1.9-py3-none-any.whl" }
 ada-configuration-tools = { path = "wheels/ada_configuration_tools-0.1.5-py3-none-any.whl" }

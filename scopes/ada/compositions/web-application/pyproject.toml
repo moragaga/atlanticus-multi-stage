@@ -11,6 +11,8 @@ classifiers = [
     "Private :: Do Not Upload",
 ]
 dependencies = [
+    "ada-composition-surface==0.1.0",
+    "ada-ui-shell-navigation==0.1.0",
     "atlanticus-web==0.1.0",
     "atlanticus-web-composition-navigation-activity==0.1.0",
     "atlanticus-web-composition-users-navigation==0.1.0",
@@ -18,9 +20,12 @@ dependencies = [
     "atlanticus-web-navigation==0.1.0",
     "atlanticus-web-users==0.1.0",
     "atlanticus-web-users-activity==0.1.0",
+    "dash==4.4.1",
 ]
 
 [tool.uv.sources]
+ada-composition-surface = { path = "../surface", editable = true }
+ada-ui-shell-navigation = { path = "../../ui/shell/navigation", editable = true }
 atlanticus-web = { path = "../../../../web/framework/core", editable = true }
 atlanticus-web-composition-navigation-activity = { path = "../../../../web/compositions/navigation-activity", editable = true }
 atlanticus-web-composition-users-navigation = { path = "../../../../web/compositions/users-navigation", editable = true }
@@ -38,7 +43,11 @@ namespaces = true
 include = ["ada.compositions.web_application*"]
 
 [tool.setuptools.package-data]
-"ada.compositions.web_application" = ["py.typed"]
+"ada.compositions.web_application" = [
+    "py.typed",
+    "resources/css/*.css",
+    "resources/css/css.list",
+]
 
 [dependency-groups]
 dev = [

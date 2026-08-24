@@ -60,12 +60,15 @@ class FakeUsersSource(UsersSource):
         )
 
 
-def test_composition_package_has_only_transversal_dependencies() -> None:
+def test_composition_package_keeps_transversal_runtime_dependencies() -> None:
     pyproject_path = Path(__file__).parents[1] / 'pyproject.toml'
-    dependencies = tomllib.loads(pyproject_path.read_text())['project']['dependencies']
+    dependencies = set(tomllib.loads(pyproject_path.read_text())['project']['dependencies'])
 
-    assert dependencies
-    assert all(dependency.startswith('atlanticus-web') for dependency in dependencies)
+    assert 'ada-composition-surface==0.1.0' in dependencies
+    assert 'ada-ui-shell-navigation==0.1.0' in dependencies
+    assert 'dash==4.4.1' in dependencies
+    assert all('integrated-operations' not in dependency for dependency in dependencies)
+    assert all('process' not in dependency for dependency in dependencies)
 
 
 def test_identity_users_only_registers_only_base_services(monkeypatch) -> None:

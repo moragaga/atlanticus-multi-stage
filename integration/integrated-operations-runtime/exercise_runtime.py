@@ -7,7 +7,6 @@ import time
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-from integrated_operations.deployment.definition import build_deployment_definition, build_metadata
 from atlanticus.web.compositions.runtime_infrastructure import (
     WebRuntimeInfrastructure,
     resolve_cosmos_connections,
@@ -19,6 +18,7 @@ from atlanticus.web.users.activity import (
 )
 from atlanticus.web.users.activity.models import build_activity_document_id
 from atlanticus.web.users.configuration import UserConfiguration
+from integrated_operations.deployment.definition import build_deployment_definition, build_metadata
 
 _HTTP_TIMEOUT_SECONDS = 60.0
 _HTTP_INTERVAL_SECONDS = 0.5
@@ -107,6 +107,7 @@ def main() -> None:
     print('App Service identity + projected Integrated Operations /: OK')
     print('Unified presentation shell + generic ADA surface adapter: OK')
     print('Unified Manager surface composition + deep route: OK')
+    print('Unified runtime + authorization convergence: OK')
     print('Production asset snapshot: OK')
     print('User activity HTTP + Cosmos persistence: OK')
     print('R19B.2 Projected Tool Runtime smoke passed.')

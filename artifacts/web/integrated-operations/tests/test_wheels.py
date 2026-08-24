@@ -66,6 +66,10 @@ CRITICAL_PATH_PINNED_WHEELS = {
         '0.1.0',
         'ada_composition_surface-0.1.0-py3-none-any.whl',
     ),
+    'ada-composition-web-application': (
+        '0.1.0',
+        'ada_composition_web_application-0.1.0-py3-none-any.whl',
+    ),
     'ada-composition-web-bootstrap': (
         '0.1.7',
         'ada_composition_web_bootstrap-0.1.7-py3-none-any.whl',

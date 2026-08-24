@@ -34,10 +34,11 @@ def test_application_composition_keeps_projected_operational_manifest() -> None:
         tool_manifest_resolution=ToolManifestResolution.resolved(INTEGRATED_OPERATIONS_MANIFEST)
     )
 
-    assert application.configuration_resolution.ready is True
+    assert application.operational_resolution.configuration.ready is True
     assert application.operational.adapter_key == 'integrated_operations'
     assert application.operational.manifest == INTEGRATED_OPERATIONS_MANIFEST
     assert application.manager is None
+    assert application.administration_route_prefix == composition.MANAGER_ROUTE_PREFIX
 
 
 def test_application_composition_keeps_baseline_when_projection_is_absent() -> None:
@@ -45,78 +46,61 @@ def test_application_composition_keeps_baseline_when_projection_is_absent() -> N
         tool_manifest_resolution=ToolManifestResolution.not_projected()
     )
 
-    assert application.configuration_resolution == ToolManifestResolution.not_projected()
+    assert (
+        application.operational_resolution.configuration == ToolManifestResolution.not_projected()
+    )
     assert application.operational.adapter_key == 'integrated_operations'
     assert application.operational.manifest == INTEGRATED_OPERATIONS_MANIFEST
 
 
 def test_registered_surface_adapter_can_replace_baseline_from_valid_configuration() -> None:
-    process_manifest = replace(INTEGRATED_OPERATIONS_MANIFEST, tool_key='process_reference')
+    alternate_manifest = replace(INTEGRATED_OPERATIONS_MANIFEST, tool_key='alternate_reference')
     registry = AdaSurfaceRegistry(
         (
             FakeSurfaceAdapter('integrated_operations', 'integrated_operations'),
-            FakeSurfaceAdapter('process', 'process_reference'),
+            FakeSurfaceAdapter('alternate', 'alternate_reference'),
         )
     )
 
     application = composition.build_application_composition(
-        tool_manifest_resolution=ToolManifestResolution.resolved(process_manifest),
+        tool_manifest_resolution=ToolManifestResolution.resolved(alternate_manifest),
         surface_registry=registry,
     )
 
-    assert application.configuration_resolution.ready is True
-    assert application.operational.adapter_key == 'process'
-    assert application.operational.manifest == process_manifest
+    assert application.operational_resolution.configuration.ready is True
+    assert application.operational.adapter_key == 'alternate'
+    assert application.operational.manifest == alternate_manifest
 
 
-def test_web_definition_wires_generic_operational_and_manager_modules(
-    monkeypatch, tmp_path
-) -> None:
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(composition, 'create_ada_navigation_module', lambda: 'ada-navigation')
-    monkeypatch.setattr(
-        composition,
-        'create_unified_presentation_module',
-        lambda _composition: 'unified-presentation',
-    )
+def test_web_definition_delegates_generic_host_with_concrete_artifact_inputs(monkeypatch) -> None:
     metadata = SimpleNamespace()
-    manager = SimpleNamespace(
-        web_modules=(
-            'manager-principal',
-            'manager-services',
-            'manager-callbacks',
-            'manager-presentation',
-        )
-    )
-    application = SimpleNamespace(
-        operational=SimpleNamespace(modules=('operational-module',)),
-        manager=manager,
-    )
+    application = SimpleNamespace()
+    captured = {}
+    expected = object()
 
-    definition = composition.build_web_definition(
+    def build_generic(**kwargs):
+        captured.update(kwargs)
+        return expected
+
+    monkeypatch.setattr(composition, 'build_ada_web_definition', build_generic)
+
+    result = composition.build_web_definition(
         metadata=metadata,
         deployment_modules=('identity', 'users'),
         composition=application,
         flask_config={'SECRET_KEY': 'secret'},
     )
 
-    assert definition.metadata is metadata
-    assert definition.modules == (
-        'identity',
-        'users',
-        'operational-module',
-        'ada-navigation',
-        'manager-principal',
-        'manager-services',
-        'manager-callbacks',
-        'manager-presentation',
-        'unified-presentation',
-    )
-    assert definition.page_packages == ('integrated_operations.pages',)
-    assert definition.publications_root == tmp_path / '.runtime' / 'assets'
-    assert definition.flask_config == {'SECRET_KEY': 'secret'}
-    assert definition.asset_layers == (composition.APPLICATION_ASSET_LAYER,)
-    assert definition.layout.keywords['composition'] is application
+    assert result is expected
+    assert captured == {
+        'import_name': 'integrated_operations',
+        'metadata': metadata,
+        'deployment_modules': ('identity', 'users'),
+        'composition': application,
+        'page_packages': ('integrated_operations.pages',),
+        'asset_layers': (composition.APPLICATION_ASSET_LAYER,),
+        'flask_config': {'SECRET_KEY': 'secret'},
+    }
 
 
 def test_incompatible_projected_manifest_falls_back_to_baseline_and_stays_invalid() -> None:
@@ -126,7 +110,7 @@ def test_incompatible_projected_manifest_falls_back_to_baseline_and_stays_invali
         tool_manifest_resolution=ToolManifestResolution.resolved(invalid_manifest)
     )
 
-    assert application.configuration_resolution == ToolManifestResolution.invalid()
+    assert application.operational_resolution.configuration == ToolManifestResolution.invalid()
     assert application.operational.adapter_key == 'integrated_operations'
     assert application.operational.manifest == INTEGRATED_OPERATIONS_MANIFEST
 
@@ -136,11 +120,11 @@ def test_source_error_keeps_baseline_operational() -> None:
         tool_manifest_resolution=ToolManifestResolution.source_error()
     )
 
-    assert application.configuration_resolution == ToolManifestResolution.source_error()
+    assert application.operational_resolution.configuration == ToolManifestResolution.source_error()
     assert application.operational.manifest == INTEGRATED_OPERATIONS_MANIFEST
 
 
-def test_application_asset_layer_is_local_and_filename_ordered() -> None:
+def test_application_asset_layer_is_concrete_and_filename_ordered() -> None:
     layer = composition.APPLICATION_ASSET_LAYER
 
     assert layer.package is None

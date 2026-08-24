@@ -30,10 +30,12 @@ def test_deployment_resolves_only_web_environment_and_bootstrap_access_policy() 
     assert 'ATLANTICUS_BOOTSTRAP_ADMIN' in source
 
 
-def test_worker_runtime_does_not_include_sharepoint_or_provisioning() -> None:
+def test_worker_runtime_accepts_pre_resolved_sharepoint_without_owning_configuration() -> None:
     source = (SOURCE_ROOT / 'ada/compositions/web_deployment/runtime.py').read_text()
 
-    assert 'resolve_sharepoint' not in source
+    assert 'SharePointInfrastructureSettings' in source
+    assert 'resolve_sharepoint_infrastructure_settings' not in source
+    assert 'SharePointEnvironmentDefinition' not in source
     assert 'ensure_ada_cosmos_infrastructure' not in source
     assert 'synchronize_ada_access_projections' not in source
     assert 'create_ada_configuration_backends' not in source

@@ -10,12 +10,12 @@ def test_runtime_wires_shared_deployment_operational_and_manager_composition(mon
     environment_kind = object()
     backend_selection = object()
     runtime_projection = object()
+    sharepoint_settings = object()
     deployment_definition = SimpleNamespace()
     deployment = Mock()
     deployment.bootstrap.modules = ('identity', 'users', 'navigation', 'activity')
     deployment.infrastructure = object()
     manager_composition = object()
-    manager_sharepoint = Mock()
     projection = object()
     resolution = object()
     application_composition = object()
@@ -37,6 +37,11 @@ def test_runtime_wires_shared_deployment_operational_and_manager_composition(mon
         '_create_optional_runtime_projection',
         lambda selection, environment: runtime_projection,
     )
+    monkeypatch.setattr(
+        runtime_module,
+        '_resolve_optional_sharepoint_settings',
+        lambda **_kwargs: sharepoint_settings,
+    )
 
     def open_deployment(**kwargs):
         captured['deployment'] = kwargs
@@ -44,14 +49,11 @@ def test_runtime_wires_shared_deployment_operational_and_manager_composition(mon
 
     monkeypatch.setattr(runtime_module, 'open_ada_web_deployment_runtime', open_deployment)
 
-    def open_manager(**kwargs):
+    def create_manager(**kwargs):
         captured['manager'] = kwargs
-        return runtime_module._ManagerRuntimeComposition(
-            manager_composition,
-            manager_sharepoint,
-        )
+        return manager_composition
 
-    monkeypatch.setattr(runtime_module, '_open_manager_composition', open_manager)
+    monkeypatch.setattr(runtime_module, '_create_manager_composition', create_manager)
     monkeypatch.setattr(runtime_module, '_open_tool_projection', lambda _deployment: projection)
 
     def resolve_projection(repository):
@@ -86,11 +88,12 @@ def test_runtime_wires_shared_deployment_operational_and_manager_composition(mon
     assert result.deployment is deployment
     assert result.web is web
     assert result.server is web.server
-    assert result.manager_sharepoint_infrastructure is manager_sharepoint
     assert captured['deployment']['definition'] is deployment_definition
     assert captured['deployment']['runtime_projection'] is runtime_projection
+    assert captured['deployment']['sharepoint'] is sharepoint_settings
     assert captured['manager']['deployment'] is deployment
     assert captured['manager']['deployment_definition'] is deployment_definition
+    assert captured['manager']['sharepoint_ready'] is True
     assert captured['application_composition'] == {
         'tool_manifest_resolution': resolution,
         'manager': manager_composition,
@@ -100,34 +103,26 @@ def test_runtime_wires_shared_deployment_operational_and_manager_composition(mon
     assert captured['web_definition']['flask_config'] == {'SECRET_KEY': 'session-secret'}
 
 
-def test_manager_composition_reuses_deployment_infrastructure(monkeypatch) -> None:
+def test_manager_composition_reuses_same_deployment_infrastructure_for_cosmos_and_sharepoint(
+    monkeypatch,
+) -> None:
     selection = SimpleNamespace(requires_sharepoint=True)
     environment = object()
     web_environment = SimpleNamespace(is_production=True)
-    sharepoint = object()
     deployment_definition = SimpleNamespace(
-        sharepoint=object(),
         bindings=object(),
         configuration_filenames=object(),
     )
-    deployment = SimpleNamespace(infrastructure=object())
+    shared_infrastructure = object()
+    deployment = SimpleNamespace(infrastructure=shared_infrastructure)
     principal_provider = object()
     dependencies = object()
     surface_definition = object()
     surface = SimpleNamespace(web_modules=('manager-module',))
     binding = object()
-    manager_composition = SimpleNamespace(surface=surface, principal_binding=binding)
+    manager_composition = object()
     captured = {}
 
-    def open_sharepoint(**kwargs):
-        captured['sharepoint'] = kwargs
-        return sharepoint
-
-    monkeypatch.setattr(
-        runtime_module,
-        'open_configuration_manager_sharepoint_infrastructure',
-        open_sharepoint,
-    )
     monkeypatch.setattr(
         runtime_module,
         'EffectiveUserManagerPrincipalProvider',
@@ -166,34 +161,45 @@ def test_manager_composition_reuses_deployment_infrastructure(monkeypatch) -> No
         create_manager_composition,
     )
 
-    result = runtime_module._open_manager_composition(
+    result = runtime_module._create_manager_composition(
         selection=selection,
         environment=environment,
         web_environment=web_environment,
         deployment_definition=deployment_definition,
         deployment=deployment,
+        sharepoint_ready=True,
     )
 
-    assert result.sharepoint_infrastructure is sharepoint
-    assert result.composition is manager_composition
+    assert result is manager_composition
     assert captured['manager_composition'] == {
         'surface': surface,
         'principal_binding': binding,
     }
-    assert captured['dependencies']['infrastructure'] is deployment.infrastructure
-    assert captured['dependencies']['sharepoint_infrastructure'] is sharepoint
+    assert captured['dependencies']['infrastructure'] is shared_infrastructure
+    assert captured['dependencies']['sharepoint_infrastructure'] is shared_infrastructure
     assert captured['dependencies']['principal_provider'] is principal_provider
     assert captured['dependencies']['force_publish_enabled'] is True
-    assert captured['surface']['route_prefix'] == '/manager'
+    assert captured['surface']['route_prefix'] == runtime_module.MANAGER_ROUTE_PREFIX
+
+
+def test_missing_required_sharepoint_keeps_manager_optional(monkeypatch) -> None:
+    provider = Mock()
+    monkeypatch.setattr(runtime_module, 'EffectiveUserManagerPrincipalProvider', provider)
+
+    result = runtime_module._create_manager_composition(
+        selection=SimpleNamespace(requires_sharepoint=True),
+        environment=object(),
+        web_environment=SimpleNamespace(is_production=True),
+        deployment_definition=SimpleNamespace(),
+        deployment=SimpleNamespace(infrastructure=object()),
+        sharepoint_ready=False,
+    )
+
+    assert result is None
+    provider.assert_not_called()
 
 
 def test_manager_configuration_failure_does_not_block_operational_runtime(monkeypatch) -> None:
-    sharepoint = Mock()
-    monkeypatch.setattr(
-        runtime_module,
-        'open_configuration_manager_sharepoint_infrastructure',
-        lambda **_kwargs: sharepoint,
-    )
     monkeypatch.setattr(
         runtime_module,
         'EffectiveUserManagerPrincipalProvider',
@@ -205,21 +211,58 @@ def test_manager_configuration_failure_does_not_block_operational_runtime(monkey
         Mock(side_effect=runtime_module.WebConfigurationError('manager unavailable')),
     )
 
-    result = runtime_module._open_manager_composition(
-        selection=SimpleNamespace(requires_sharepoint=True),
+    result = runtime_module._create_manager_composition(
+        selection=SimpleNamespace(requires_sharepoint=False),
         environment=object(),
-        web_environment=SimpleNamespace(is_production=True),
+        web_environment=SimpleNamespace(is_production=False),
         deployment_definition=SimpleNamespace(
-            sharepoint=object(),
             bindings=object(),
             configuration_filenames=object(),
         ),
         deployment=SimpleNamespace(infrastructure=object()),
+        sharepoint_ready=False,
     )
 
-    assert result.composition is None
-    assert result.sharepoint_infrastructure is None
-    sharepoint.close.assert_called_once_with()
+    assert result is None
+
+
+def test_optional_sharepoint_settings_are_resolved_only_when_selected(monkeypatch) -> None:
+    settings = object()
+    environment = object()
+    resolver = Mock(return_value=settings)
+    monkeypatch.setattr(runtime_module, 'resolve_sharepoint_infrastructure_settings', resolver)
+    definition = SimpleNamespace(sharepoint=object())
+
+    without_sharepoint = runtime_module._resolve_optional_sharepoint_settings(
+        selection=SimpleNamespace(requires_sharepoint=False),
+        environment=environment,
+        definition=definition,
+    )
+    with_sharepoint = runtime_module._resolve_optional_sharepoint_settings(
+        selection=SimpleNamespace(requires_sharepoint=True),
+        environment=environment,
+        definition=definition,
+    )
+
+    assert without_sharepoint is None
+    assert with_sharepoint is settings
+    resolver.assert_called_once_with(environment, definition.sharepoint)
+
+
+def test_invalid_sharepoint_settings_keep_manager_optional(monkeypatch) -> None:
+    monkeypatch.setattr(
+        runtime_module,
+        'resolve_sharepoint_infrastructure_settings',
+        Mock(side_effect=runtime_module.WebConfigurationError('sharepoint unavailable')),
+    )
+
+    result = runtime_module._resolve_optional_sharepoint_settings(
+        selection=SimpleNamespace(requires_sharepoint=True),
+        environment=object(),
+        definition=SimpleNamespace(sharepoint=object()),
+    )
+
+    assert result is None
 
 
 def test_invalid_configuration_backend_selection_is_optional(monkeypatch) -> None:
@@ -246,10 +289,9 @@ def test_invalid_configuration_backend_value_error_is_optional(monkeypatch) -> N
     assert result is None
 
 
-def test_runtime_closes_manager_and_deployment_when_web_composition_fails(monkeypatch) -> None:
+def test_runtime_closes_single_deployment_when_web_composition_fails(monkeypatch) -> None:
     deployment = Mock()
     deployment.bootstrap.modules = ()
-    manager_sharepoint = Mock()
     monkeypatch.setattr(runtime_module, 'resolve_environment', lambda: object())
     monkeypatch.setattr(runtime_module, 'build_deployment_definition', lambda _env: object())
     monkeypatch.setattr(
@@ -263,15 +305,17 @@ def test_runtime_closes_manager_and_deployment_when_web_composition_fails(monkey
         lambda _selection, _environment: None,
     )
     monkeypatch.setattr(
+        runtime_module,
+        '_resolve_optional_sharepoint_settings',
+        lambda **_kwargs: None,
+    )
+    monkeypatch.setattr(
         runtime_module, 'open_ada_web_deployment_runtime', lambda **_kwargs: deployment
     )
     monkeypatch.setattr(
         runtime_module,
-        '_open_manager_composition',
-        lambda **_kwargs: runtime_module._ManagerRuntimeComposition(
-            None,
-            manager_sharepoint,
-        ),
+        '_create_manager_composition',
+        lambda **_kwargs: None,
     )
     monkeypatch.setattr(runtime_module, '_open_tool_projection', lambda _deployment: object())
     monkeypatch.setattr(
@@ -294,22 +338,16 @@ def test_runtime_closes_manager_and_deployment_when_web_composition_fails(monkey
     with pytest.raises(RuntimeError, match='composition failed'):
         runtime_module.create_application_runtime()
 
-    manager_sharepoint.close.assert_called_once_with()
     deployment.close.assert_called_once_with()
 
 
-def test_runtime_close_releases_manager_before_deployment() -> None:
-    calls = []
-    manager_sharepoint = Mock()
-    manager_sharepoint.close.side_effect = lambda: calls.append('manager')
+def test_runtime_close_releases_only_shared_deployment() -> None:
     deployment = Mock()
-    deployment.close.side_effect = lambda: calls.append('deployment')
     runtime = runtime_module.IntegratedOperationsApplicationRuntime(
         deployment=deployment,
         web=SimpleNamespace(server=object()),
-        manager_sharepoint_infrastructure=manager_sharepoint,
     )
 
     runtime.close()
 
-    assert calls == ['manager', 'deployment']
+    deployment.close.assert_called_once_with()

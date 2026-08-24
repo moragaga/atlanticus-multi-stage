@@ -93,7 +93,7 @@ def test_tool_projection_is_an_explicit_artifact_dependency() -> None:
     }
 
 
-def test_unified_composition_uses_existing_manager_and_runtime_contracts() -> None:
+def test_unified_composition_uses_existing_manager_runtime_and_application_contracts() -> None:
     document = tomllib.loads((ROOT / 'pyproject.toml').read_text(encoding='utf-8'))
     dependencies = set(document['project']['dependencies'])
     sources = document['tool']['uv']['sources']
@@ -106,6 +106,10 @@ def test_unified_composition_uses_existing_manager_and_runtime_contracts() -> No
         'ada-composition-manager-surface': (
             '0.1.0',
             'ada_composition_manager_surface-0.1.0-py3-none-any.whl',
+        ),
+        'ada-composition-web-application': (
+            '0.1.0',
+            'ada_composition_web_application-0.1.0-py3-none-any.whl',
         ),
         'atlanticus-web-manager': (
             '0.3.10',
@@ -121,63 +125,66 @@ def test_unified_composition_uses_existing_manager_and_runtime_contracts() -> No
         assert sources[package] == {'path': f'wheels/{filename}'}
 
 
-def test_manager_is_composed_as_optional_surface_not_operational_bootstrap_requirement() -> None:
+def test_concrete_artifact_no_longer_owns_generic_application_host() -> None:
+    application = ROOT / 'src/integrated_operations/application'
+    composition = (application / 'composition.py').read_text(encoding='utf-8')
+
+    assert not (application / 'models.py').exists()
+    assert not (application / 'presentation.py').exists()
+    assert not (application / 'layout.py').exists()
+    assert 'AdaApplicationComposition' in composition
+    assert 'build_ada_web_definition' in composition
+    assert 'dcc.Location' not in composition
+    assert 'dcc.Loading' not in composition
+    assert 'build_ada_navigation_offcanvas_from_services' not in composition
+
+
+def test_manager_is_optional_and_route_prefix_remains_concrete() -> None:
     runtime = (ROOT / 'src/integrated_operations/application/runtime.py').read_text(
         encoding='utf-8'
     )
-    models = (ROOT / 'src/integrated_operations/application/models.py').read_text(encoding='utf-8')
+    composition = (ROOT / 'src/integrated_operations/application/composition.py').read_text(
+        encoding='utf-8'
+    )
 
-    assert 'AdaManagerSurfaceComposition | None' in models
+    assert 'AdaManagerSurfaceComposition | None' in runtime
     assert '_resolve_optional_configuration_backends' in runtime
     assert 'resolve_configuration_backend_selection' in runtime
-    assert "_MANAGER_ROUTE_PREFIX = '/manager'" in runtime
+    assert "MANAGER_ROUTE_PREFIX = '/manager'" in composition
+    assert 'administration_route_prefix=MANAGER_ROUTE_PREFIX' in composition
 
 
-def test_manager_presentation_is_owned_by_reusable_ada_manager_composition() -> None:
-    presentation = (ROOT / 'src/integrated_operations/application/presentation.py').read_text(
+def test_manager_and_operational_runtime_share_one_infrastructure_lifecycle() -> None:
+    runtime = (ROOT / 'src/integrated_operations/application/runtime.py').read_text(
         encoding='utf-8'
     )
+
+    assert 'open_configuration_manager_sharepoint_infrastructure' not in runtime
+    assert 'manager_sharepoint_infrastructure' not in runtime
+    assert 'sharepoint=sharepoint' in runtime
+    assert 'sharepoint_infrastructure=(' in runtime
+    assert 'deployment.infrastructure if selection.requires_sharepoint else None' in runtime
+    assert 'self.deployment.close()' in runtime
+
+
+def test_manager_presentation_remains_owned_by_reusable_manager_composition() -> None:
     runtime = (ROOT / 'src/integrated_operations/application/runtime.py').read_text(
+        encoding='utf-8'
+    )
+    composition = (ROOT / 'src/integrated_operations/application/composition.py').read_text(
         encoding='utf-8'
     )
 
     assert 'create_ada_manager_surface_composition' in runtime
-    assert 'composition.manager.build(services)' in presentation
-    assert 'REFRESH_BUTTON_ID' not in presentation
-    assert 'REFRESH_SIGNAL_ID' not in presentation
-    assert 'build_ada_header' not in presentation
-    assert 'ATLANTICUS_BRAND_MANIFEST' not in presentation
+    assert 'REFRESH_BUTTON_ID' not in composition
+    assert 'REFRESH_SIGNAL_ID' not in composition
+    assert 'build_ada_header' not in composition
+    assert 'ATLANTICUS_BRAND_MANIFEST' not in composition
 
 
-def test_unified_presentation_uses_one_dynamic_host_without_legacy_dual_hosts() -> None:
-    presentation = (ROOT / 'src/integrated_operations/application/presentation.py').read_text(
-        encoding='utf-8'
-    )
-
-    assert "SURFACE_HOST_ID = 'ada-unified-application-surface-host'" in presentation
-    assert 'dcc.Loading(' in presentation
-    assert 'build_ada_navigation_offcanvas_from_services' in presentation
-    assert "_MANAGER_ROUTE_PREFIX = '/manager'" in presentation
-    assert '_PAGE_HOST_ID' not in presentation
-    assert '_MANAGER_HOST_ID' not in presentation
-    assert 'hidden=True' not in presentation
-
-
-def test_unified_presentation_uses_existing_navigation_contract() -> None:
-    document = tomllib.loads((ROOT / 'pyproject.toml').read_text(encoding='utf-8'))
-
-    assert 'ada-ui-shell-navigation==0.1.0' in document['project']['dependencies']
-    assert document['tool']['uv']['sources']['ada-ui-shell-navigation'] == {
-        'path': 'wheels/ada_ui_shell_navigation-0.1.0-py3-none-any.whl'
-    }
-
-
-def test_operational_runtime_depends_on_generic_ada_surface_contract() -> None:
+def test_operational_runtime_keeps_concrete_registry_outside_generic_application() -> None:
     document = tomllib.loads((ROOT / 'pyproject.toml').read_text(encoding='utf-8'))
     composition = (ROOT / 'src/integrated_operations/application/composition.py').read_text(
-        encoding='utf-8'
-    )
-    presentation = (ROOT / 'src/integrated_operations/application/presentation.py').read_text(
         encoding='utf-8'
     )
 
@@ -187,6 +194,14 @@ def test_operational_runtime_depends_on_generic_ada_surface_contract() -> None:
     }
     assert 'AdaSurfaceRegistry' in composition
     assert 'IntegratedOperationsSurfaceAdapter' in composition
-    assert 'build_integrated_operations_tool' not in presentation
-    assert 'composition.operational.build(services)' in presentation
-    assert "'data-ada-surface-adapter': composition.operational.adapter_key" in presentation
+    assert 'build_integrated_operations_tool' not in composition
+
+
+def test_unified_presentation_assets_left_concrete_integrated_operations_css() -> None:
+    css = (ROOT / 'src/integrated_operations/resources/css/10-integrated-operations.css').read_text(
+        encoding='utf-8'
+    )
+
+    assert '.integrated-operations' in css
+    assert '.ada-unified-application' not in css
+    assert '#react-entry-point' not in css
