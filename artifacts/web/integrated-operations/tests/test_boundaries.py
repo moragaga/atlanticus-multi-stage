@@ -103,6 +103,10 @@ def test_unified_composition_uses_existing_manager_and_runtime_contracts() -> No
             '0.1.17',
             'ada_composition_configuration_manager-0.1.17-py3-none-any.whl',
         ),
+        'ada-composition-manager-surface': (
+            '0.1.0',
+            'ada_composition_manager_surface-0.1.0-py3-none-any.whl',
+        ),
         'atlanticus-web-manager': (
             '0.3.10',
             'atlanticus_web_manager-0.3.10-py3-none-any.whl',
@@ -123,10 +127,26 @@ def test_manager_is_composed_as_optional_surface_not_operational_bootstrap_requi
     )
     models = (ROOT / 'src/integrated_operations/application/models.py').read_text(encoding='utf-8')
 
-    assert 'ManagerSurfaceComposition | None' in models
+    assert 'AdaManagerSurfaceComposition | None' in models
     assert '_resolve_optional_configuration_backends' in runtime
     assert 'resolve_configuration_backend_selection' in runtime
     assert "_MANAGER_ROUTE_PREFIX = '/manager'" in runtime
+
+
+def test_manager_presentation_is_owned_by_reusable_ada_manager_composition() -> None:
+    presentation = (ROOT / 'src/integrated_operations/application/presentation.py').read_text(
+        encoding='utf-8'
+    )
+    runtime = (ROOT / 'src/integrated_operations/application/runtime.py').read_text(
+        encoding='utf-8'
+    )
+
+    assert 'create_ada_manager_surface_composition' in runtime
+    assert 'composition.manager.build(services)' in presentation
+    assert 'REFRESH_BUTTON_ID' not in presentation
+    assert 'REFRESH_SIGNAL_ID' not in presentation
+    assert 'build_ada_header' not in presentation
+    assert 'ATLANTICUS_BRAND_MANIFEST' not in presentation
 
 
 def test_unified_presentation_uses_one_dynamic_host_without_legacy_dual_hosts() -> None:

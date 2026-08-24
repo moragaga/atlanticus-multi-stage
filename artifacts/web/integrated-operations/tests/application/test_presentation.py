@@ -3,7 +3,6 @@ from types import SimpleNamespace
 from dash import html
 
 import integrated_operations.application.presentation as presentation
-from atlanticus.web.manager.web.ids import REFRESH_BUTTON_ID
 from atlanticus.web.services import ServiceRegistry
 
 
@@ -74,38 +73,35 @@ def test_operational_route_uses_registered_surface_adapter() -> None:
     assert any(_props(node).get('id') == 'operational-tool' for node in nodes)
 
 
-def test_manager_route_wraps_real_manager_surface_with_common_header(monkeypatch) -> None:
+def test_manager_route_delegates_complete_presentation_to_manager_composition() -> None:
     services = ServiceRegistry()
-    manager_content = html.Div(id='manager-content')
-    manager_surface = SimpleNamespace(
-        layout=lambda value: manager_content if value is services else None
+    expected = html.Div(id='manager-composition')
+    captured = []
+
+    def build(value):
+        captured.append(value)
+        return expected
+
+    manager = SimpleNamespace(
+        build=build,
+        matches=lambda pathname: pathname == '/manager/tools',
     )
-    composition = SimpleNamespace(
-        operational=object(),
-        manager=SimpleNamespace(surface=manager_surface),
-    )
-    monkeypatch.setattr(
-        presentation, '_build_manager_header', lambda: html.Div(id='manager-header')
-    )
+    composition = SimpleNamespace(operational=object(), manager=manager)
 
     surface = presentation.build_application_surface(
         services,
         composition=composition,
         pathname='/manager/tools',
     )
-    nodes = tuple(_walk(surface))
 
-    assert _props(surface)['data-ada-unified-surface'] == 'manager'
-    assert any(_props(node).get('id') == 'manager-header' for node in nodes)
-    assert any(_props(node).get('id') == 'manager-content' for node in nodes)
+    assert surface is expected
+    assert captured == [services]
 
 
-def test_manager_header_keeps_navigation_and_refresh_action() -> None:
-    nodes = tuple(_walk(presentation._build_manager_header()))
-    ids = {_props(node).get('id') for node in nodes}
-
-    assert REFRESH_BUTTON_ID in ids
+def test_manager_route_contract_keeps_deep_links() -> None:
     assert presentation._is_manager_route('/manager') is True
+    assert presentation._is_manager_route('/manager/tools') is True
+    assert presentation._is_manager_route('/manager/users') is True
     assert presentation._is_manager_route('/manager/navigation') is True
     assert presentation._is_manager_route('/') is False
 
@@ -117,4 +113,6 @@ def test_manager_unavailable_does_not_replace_operational_baseline() -> None:
         pathname='/manager',
     )
 
-    assert _props(surface)['data-ada-unified-surface'] == 'manager-unavailable'
+    props = _props(surface)
+    assert props['data-ada-unified-surface'] == 'manager-unavailable'
+    assert 'Volver a la aplicación' in str(props['children'])

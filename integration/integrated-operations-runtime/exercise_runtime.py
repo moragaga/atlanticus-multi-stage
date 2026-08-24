@@ -56,6 +56,33 @@ def main() -> None:
     assert 'app-header-desktop-toggle' in dash_layout_json
     assert '"data-ada-surface-adapter": "integrated_operations"' in dash_layout_json
 
+    manager_surface = _request_json(
+        f'{base_url}/_dash-update-component',
+        method='POST',
+        headers={**_identity_headers(), 'Content-Type': 'application/json'},
+        payload={
+            'output': 'ada-unified-application-surface-host.children',
+            'outputs': {
+                'id': 'ada-unified-application-surface-host',
+                'property': 'children',
+            },
+            'inputs': [
+                {
+                    'id': 'ada-unified-application-location',
+                    'property': 'pathname',
+                    'value': '/manager/tools',
+                }
+            ],
+            'state': [],
+            'changedPropIds': ['ada-unified-application-location.pathname'],
+        },
+    )
+    manager_surface_json = json.dumps(manager_surface, ensure_ascii=False)
+    assert 'data-ada-manager-surface' in manager_surface_json
+    assert 'atlanticus-manager-refresh' in manager_surface_json
+    assert 'app-header-desktop-toggle' in manager_surface_json
+    assert 'atlanticus-manager-content' in manager_surface_json
+
     activity = _request_json(
         f'{base_url}/api/user-activity',
         method='POST',
@@ -79,6 +106,7 @@ def main() -> None:
     print('Worker runtime warmup + HTTP: OK')
     print('App Service identity + projected Integrated Operations /: OK')
     print('Unified presentation shell + generic ADA surface adapter: OK')
+    print('Unified Manager surface composition + deep route: OK')
     print('Production asset snapshot: OK')
     print('User activity HTTP + Cosmos persistence: OK')
     print('R19B.2 Projected Tool Runtime smoke passed.')

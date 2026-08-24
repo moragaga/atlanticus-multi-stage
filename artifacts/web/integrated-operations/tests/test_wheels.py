@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 WHEELS = ROOT / 'wheels'
 EXPECTED_ADDITIONAL_PACKAGES = {
     'ada-composition-integrated-operations',
+    'ada-composition-manager-surface',
     'ada-composition-surface',
     'ada-feature-alarms',
     'ada-feature-dashboard',
@@ -56,6 +57,10 @@ CRITICAL_PATH_PINNED_WHEELS = {
     'ada-composition-configuration-manager': (
         '0.1.17',
         'ada_composition_configuration_manager-0.1.17-py3-none-any.whl',
+    ),
+    'ada-composition-manager-surface': (
+        '0.1.0',
+        'ada_composition_manager_surface-0.1.0-py3-none-any.whl',
     ),
     'ada-composition-surface': (
         '0.1.0',

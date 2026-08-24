@@ -12,6 +12,10 @@ from ada.compositions.configuration_manager import (
     open_configuration_manager_sharepoint_infrastructure,
     resolve_configuration_backend_selection,
 )
+from ada.compositions.manager_surface import (
+    AdaManagerSurfaceComposition,
+    create_ada_manager_surface_composition,
+)
 from ada.compositions.web_deployment import (
     AdaWebDeploymentDefinition,
     AdaWebDeploymentRuntime,
@@ -32,7 +36,6 @@ from integrated_operations.application.composition import (
     build_application_composition,
     build_web_definition,
 )
-from integrated_operations.application.models import ManagerSurfaceComposition
 from integrated_operations.deployment.definition import (
     build_deployment_definition,
     build_flask_config,
@@ -71,7 +74,7 @@ class IntegratedOperationsApplicationRuntime:
 
 @dataclass(slots=True)
 class _ManagerRuntimeComposition:
-    composition: ManagerSurfaceComposition | None
+    composition: AdaManagerSurfaceComposition | None
     sharepoint_infrastructure: WebRuntimeInfrastructure | None
 
 
@@ -192,7 +195,7 @@ def _open_manager_composition(
                 route_prefix=_MANAGER_ROUTE_PREFIX,
             )
         )
-        composition = ManagerSurfaceComposition(
+        composition = create_ada_manager_surface_composition(
             surface=surface,
             principal_binding=create_manager_principal_binding_module(principal_provider),
         )

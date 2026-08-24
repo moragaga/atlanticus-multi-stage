@@ -1,17 +1,8 @@
 from __future__ import annotations
 
-from datetime import date
+from dash import Input, Output, dcc, html
 
-from dash import Input, Output, State, dcc, html, no_update
-
-from ada.ui.components.branding import ATLANTICUS_BRAND_MANIFEST, BrandContext, resolve_brand
-from ada.ui.shell.header import HeaderBrandState, HeaderState, build_ada_header
-from ada.ui.shell.navigation import (
-    build_ada_navigation_desktop_trigger,
-    build_ada_navigation_mobile_trigger,
-    build_ada_navigation_offcanvas_from_services,
-)
-from atlanticus.web.manager.web.ids import REFRESH_BUTTON_ID, REFRESH_SIGNAL_ID
+from ada.ui.shell.navigation import build_ada_navigation_offcanvas_from_services
 from atlanticus.web.modules import WebModule
 from atlanticus.web.services import ServiceRegistry
 from integrated_operations.application.models import IntegratedOperationsApplicationComposition
@@ -66,19 +57,6 @@ def create_unified_presentation_module(
                 pathname=pathname,
             )
 
-        if composition.manager is not None:
-
-            @app.callback(
-                Output(REFRESH_SIGNAL_ID, 'data'),
-                Input(REFRESH_BUTTON_ID, 'n_clicks'),
-                State(REFRESH_SIGNAL_ID, 'data'),
-                prevent_initial_call=True,
-            )
-            def request_manager_refresh(clicks: int | None, current: int | None):
-                if not isinstance(clicks, int) or isinstance(clicks, bool) or clicks <= 0:
-                    return no_update
-                return int(current or 0) + 1
-
     return WebModule(
         name='ada-unified-presentation',
         register_callbacks=register_callbacks,
@@ -91,10 +69,10 @@ def build_application_surface(
     composition: IntegratedOperationsApplicationComposition,
     pathname: str | None,
 ):
+    if composition.manager is not None and composition.manager.matches(pathname):
+        return composition.manager.build(services)
     if _is_manager_route(pathname):
-        if composition.manager is None:
-            return _build_manager_unavailable_surface()
-        return _build_manager_surface(services, composition)
+        return _build_manager_unavailable_surface()
     return html.Div(
         composition.operational.build(services),
         className=(
@@ -107,67 +85,12 @@ def build_application_surface(
     )
 
 
-def _build_manager_surface(
-    services: ServiceRegistry,
-    composition: IntegratedOperationsApplicationComposition,
-):
-    manager = composition.manager
-    if manager is None:
-        raise RuntimeError('Manager composition is not available')
-    return html.Div(
-        [
-            _build_manager_header(),
-            html.Div(
-                manager.surface.layout(services),
-                className='ada-unified-application__manager-body',
-            ),
-        ],
-        className=('ada-unified-application__surface ada-unified-application__surface--manager'),
-        **{'data-ada-unified-surface': 'manager'},
-    )
-
-
-def _build_manager_header():
-    header = build_ada_header(
-        HeaderState(
-            tool_key='configuration_manager',
-            brand=HeaderBrandState(
-                resolved_brand=resolve_brand(
-                    ATLANTICUS_BRAND_MANIFEST,
-                    BrandContext(current_date=date.today()),
-                ),
-                application_name='ADA',
-                tool_name='Gestor de configuración',
-            ),
-        ),
-        desktop_navigation_trigger=build_ada_navigation_desktop_trigger(),
-        mobile_navigation_trigger=build_ada_navigation_mobile_trigger(),
-    )
-    return html.Div(
-        [
-            header,
-            html.Div(
-                html.Button(
-                    'Actualizar estados',
-                    id=REFRESH_BUTTON_ID,
-                    className=(
-                        'atlanticus-manager__button atlanticus-manager__button--header '
-                        'ada-unified-application__manager-refresh'
-                    ),
-                ),
-                className='ada-unified-application__manager-header-actions',
-            ),
-        ],
-        className='ada-unified-application__manager-header',
-    )
-
-
 def _build_manager_unavailable_surface():
     return html.Main(
         [
             html.H1('Gestor de configuración'),
             html.P('Configuration Manager is not available in this runtime configuration.'),
-            dcc.Link('Volver a Operaciones Integradas', href='/'),
+            dcc.Link('Volver a la aplicación', href='/'),
         ],
         className=(
             'ada-unified-application__surface ada-unified-application__surface--manager-unavailable'

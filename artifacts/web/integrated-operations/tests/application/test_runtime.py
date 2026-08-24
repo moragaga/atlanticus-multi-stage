@@ -116,6 +116,7 @@ def test_manager_composition_reuses_deployment_infrastructure(monkeypatch) -> No
     surface_definition = object()
     surface = SimpleNamespace(web_modules=('manager-module',))
     binding = object()
+    manager_composition = SimpleNamespace(surface=surface, principal_binding=binding)
     captured = {}
 
     def open_sharepoint(**kwargs):
@@ -155,6 +156,16 @@ def test_manager_composition_reuses_deployment_infrastructure(monkeypatch) -> No
         lambda provider: binding,
     )
 
+    def create_manager_composition(**kwargs):
+        captured['manager_composition'] = kwargs
+        return manager_composition
+
+    monkeypatch.setattr(
+        runtime_module,
+        'create_ada_manager_surface_composition',
+        create_manager_composition,
+    )
+
     result = runtime_module._open_manager_composition(
         selection=selection,
         environment=environment,
@@ -164,9 +175,11 @@ def test_manager_composition_reuses_deployment_infrastructure(monkeypatch) -> No
     )
 
     assert result.sharepoint_infrastructure is sharepoint
-    assert result.composition is not None
-    assert result.composition.surface is surface
-    assert result.composition.principal_binding is binding
+    assert result.composition is manager_composition
+    assert captured['manager_composition'] == {
+        'surface': surface,
+        'principal_binding': binding,
+    }
     assert captured['dependencies']['infrastructure'] is deployment.infrastructure
     assert captured['dependencies']['sharepoint_infrastructure'] is sharepoint
     assert captured['dependencies']['principal_provider'] is principal_provider

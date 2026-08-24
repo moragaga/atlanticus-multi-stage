@@ -1,29 +1,19 @@
 from __future__ import annotations
 
-from datetime import date
+from dash import Input, Output, dcc, html
 
-from dash import Input, Output, State, dcc, html, no_update
-
-from ada.ui.components.branding import ATLANTICUS_BRAND_MANIFEST, BrandContext, resolve_brand
-from ada.ui.shell.header import HeaderBrandState, HeaderState, build_ada_header
-from ada.ui.shell.navigation import (
-    build_ada_navigation_desktop_trigger,
-    build_ada_navigation_mobile_trigger,
-    build_ada_navigation_offcanvas_from_services,
-)
-from atlanticus.web.manager.web.ids import REFRESH_BUTTON_ID, REFRESH_SIGNAL_ID
+from ada.ui.shell.navigation import build_ada_navigation_offcanvas_from_services
 from atlanticus.web.modules import WebModule
 from atlanticus.web.services import ServiceRegistry
 from integrated_operations.application.models import IntegratedOperationsApplicationComposition
 
-# El host unificado observa la URL una sola vez y decide qué superficie presentar.
 LOCATION_ID = 'ada-unified-application-location'
 SURFACE_HOST_ID = 'ada-unified-application-surface-host'
 SURFACE_LOADING_ID = 'ada-unified-application-surface-loading'
 _MANAGER_ROUTE_PREFIX = '/manager'
 
 
-# La raíz mantiene un único host dinámico; no conserva dos aplicaciones ocultas en paralelo.
+# Un único host dinámico contiene la surface activa y comparte la navegación ADA.
 def build_unified_application_layout(
     services: ServiceRegistry,
     *,
@@ -53,7 +43,6 @@ def build_unified_application_layout(
     )
 
 
-# Este módulo registra únicamente routing visual y la actualización global del Manager.
 def create_unified_presentation_module(
     composition: IntegratedOperationsApplicationComposition,
 ) -> WebModule:
@@ -69,36 +58,23 @@ def create_unified_presentation_module(
                 pathname=pathname,
             )
 
-        if composition.manager is not None:
-
-            @app.callback(
-                Output(REFRESH_SIGNAL_ID, 'data'),
-                Input(REFRESH_BUTTON_ID, 'n_clicks'),
-                State(REFRESH_SIGNAL_ID, 'data'),
-                prevent_initial_call=True,
-            )
-            def request_manager_refresh(clicks: int | None, current: int | None):
-                if not isinstance(clicks, int) or isinstance(clicks, bool) or clicks <= 0:
-                    return no_update
-                return int(current or 0) + 1
-
     return WebModule(
         name='ada-unified-presentation',
         register_callbacks=register_callbacks,
     )
 
 
-# La selección por ruta es de presentación; la autorización sigue perteneciendo a Navigation.
+# El host delega la construcción completa del Manager a su propia composición reusable.
 def build_application_surface(
     services: ServiceRegistry,
     *,
     composition: IntegratedOperationsApplicationComposition,
     pathname: str | None,
 ):
+    if composition.manager is not None and composition.manager.matches(pathname):
+        return composition.manager.build(services)
     if _is_manager_route(pathname):
-        if composition.manager is None:
-            return _build_manager_unavailable_surface()
-        return _build_manager_surface(services, composition)
+        return _build_manager_unavailable_surface()
     return html.Div(
         composition.operational.build(services),
         className=(
@@ -111,70 +87,12 @@ def build_application_surface(
     )
 
 
-# Manager reutiliza su surface real y sólo recibe el nuevo marco visual común.
-def _build_manager_surface(
-    services: ServiceRegistry,
-    composition: IntegratedOperationsApplicationComposition,
-):
-    manager = composition.manager
-    if manager is None:
-        raise RuntimeError('Manager composition is not available')
-    return html.Div(
-        [
-            _build_manager_header(),
-            html.Div(
-                manager.surface.layout(services),
-                className='ada-unified-application__manager-body',
-            ),
-        ],
-        className=('ada-unified-application__surface ada-unified-application__surface--manager'),
-        **{'data-ada-unified-surface': 'manager'},
-    )
-
-
-# El header administrativo reutiliza el contrato ADA y deja identidad/navegación en el menú común.
-def _build_manager_header():
-    header = build_ada_header(
-        HeaderState(
-            tool_key='configuration_manager',
-            brand=HeaderBrandState(
-                resolved_brand=resolve_brand(
-                    ATLANTICUS_BRAND_MANIFEST,
-                    BrandContext(current_date=date.today()),
-                ),
-                application_name='ADA',
-                tool_name='Gestor de configuración',
-            ),
-        ),
-        desktop_navigation_trigger=build_ada_navigation_desktop_trigger(),
-        mobile_navigation_trigger=build_ada_navigation_mobile_trigger(),
-    )
-    return html.Div(
-        [
-            header,
-            html.Div(
-                html.Button(
-                    'Actualizar estados',
-                    id=REFRESH_BUTTON_ID,
-                    className=(
-                        'atlanticus-manager__button atlanticus-manager__button--header '
-                        'ada-unified-application__manager-refresh'
-                    ),
-                ),
-                className='ada-unified-application__manager-header-actions',
-            ),
-        ],
-        className='ada-unified-application__manager-header',
-    )
-
-
-# La ausencia del Manager es válida y nunca bloquea la operación principal de ADA.
 def _build_manager_unavailable_surface():
     return html.Main(
         [
             html.H1('Gestor de configuración'),
             html.P('Configuration Manager is not available in this runtime configuration.'),
-            dcc.Link('Volver a Operaciones Integradas', href='/'),
+            dcc.Link('Volver a la aplicación', href='/'),
         ],
         className=(
             'ada-unified-application__surface ada-unified-application__surface--manager-unavailable'

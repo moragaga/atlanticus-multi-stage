@@ -10,7 +10,6 @@ from ada.contracts.tool_manifest import (
     ToolManifest,
     ToolManifestResolution,
 )
-from integrated_operations.application.models import ManagerSurfaceComposition
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,10 +80,13 @@ def test_web_definition_wires_generic_operational_and_manager_modules(
         lambda _composition: 'unified-presentation',
     )
     metadata = SimpleNamespace()
-    manager_surface = SimpleNamespace(web_modules=('manager-services', 'manager-callbacks'))
-    manager = ManagerSurfaceComposition(
-        surface=manager_surface,
-        principal_binding='manager-principal',
+    manager = SimpleNamespace(
+        web_modules=(
+            'manager-principal',
+            'manager-services',
+            'manager-callbacks',
+            'manager-presentation',
+        )
     )
     application = SimpleNamespace(
         operational=SimpleNamespace(modules=('operational-module',)),
@@ -107,6 +109,7 @@ def test_web_definition_wires_generic_operational_and_manager_modules(
         'manager-principal',
         'manager-services',
         'manager-callbacks',
+        'manager-presentation',
         'unified-presentation',
     )
     assert definition.page_packages == ('integrated_operations.pages',)
