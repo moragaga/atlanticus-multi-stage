@@ -1,8 +1,6 @@
-# Páginas: define únicamente las rutas Dash de esta aplicación.
-from dash import register_page
-
-from integrated_operations.tool import build_integrated_operations_tool
+# Dash Pages mantiene registrada la ruta raíz, mientras el layout real de la aplicación se compone con la proyección resuelta.
+from dash import html, register_page
 
 register_page(__name__, path='/', name='Integrated Operations')
 
-layout = build_integrated_operations_tool
+layout = html.Div()

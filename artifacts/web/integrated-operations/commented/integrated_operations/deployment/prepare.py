@@ -5,7 +5,6 @@ import argparse
 from collections.abc import Sequence
 
 from ada.compositions.web_deployment import prepare_ada_web_deployment
-
 from integrated_operations.deployment.definition import build_deployment_definition
 
 

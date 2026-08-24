@@ -1,6 +1,5 @@
 # Espejo comentado de código productivo.
 from atlanticus.web.application import run_web_application
-
 from integrated_operations.application.runtime import create_application_runtime
 
 

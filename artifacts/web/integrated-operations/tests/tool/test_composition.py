@@ -1,4 +1,8 @@
-from integrated_operations.tool import build_integrated_operations_tool
+from ada.contracts.tool_manifest import INTEGRATED_OPERATIONS_MANIFEST
+from integrated_operations.tool import (
+    build_integrated_operations_composition,
+    build_integrated_operations_tool,
+)
 
 
 def _props(component):
@@ -17,9 +21,14 @@ def _walk(component):
             yield from _walk(child)
 
 
+def _tool():
+    return build_integrated_operations_tool(
+        build_integrated_operations_composition(INTEGRATED_OPERATIONS_MANIFEST)
+    )
+
+
 def test_integrated_operations_artifact_mounts_real_tool_surfaces() -> None:
-    tool = build_integrated_operations_tool()
-    nodes = tuple(_walk(tool))
+    nodes = tuple(_walk(_tool()))
 
     assert any(
         _props(node).get('data-ada-integrated-operations-tool') == 'integrated_operations'
@@ -35,8 +44,7 @@ def test_integrated_operations_artifact_mounts_real_tool_surfaces() -> None:
 
 
 def test_integrated_operations_starts_in_overview_without_empty_alarm_message() -> None:
-    tool = build_integrated_operations_tool()
-    nodes = tuple(_walk(tool))
+    nodes = tuple(_walk(_tool()))
     root = next(
         node
         for node in nodes
@@ -53,8 +61,7 @@ def test_integrated_operations_starts_in_overview_without_empty_alarm_message() 
 
 
 def test_integrated_operations_artifact_exposes_overview_mine_plant_controls() -> None:
-    tool = build_integrated_operations_tool()
-    nodes = tuple(_walk(tool))
+    nodes = tuple(_walk(_tool()))
     targets = [
         _props(node).get('data-ada-io-presentation-target')
         for node in nodes

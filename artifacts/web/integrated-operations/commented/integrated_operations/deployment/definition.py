@@ -1,4 +1,4 @@
-# Deployment: traduce environment resuelto y ejecuta prepare de infraestructura/configuración.
+# La versión del artifact cambia porque el runtime ahora consume Tools Projection como autoridad estructural.
 from ada.compositions.web_bootstrap import AdaCosmosBindings
 from ada.compositions.web_deployment import AdaWebDeploymentDefinition
 from atlanticus.web.compositions.runtime_infrastructure import (
@@ -20,7 +20,7 @@ def build_metadata() -> ApplicationMetadata:
     return ApplicationMetadata(
         application_id='ada-integrated-operations',
         display_name='ADA Integrated Operations',
-        version='0.1.1',
+        version='0.1.2',
     )
 
 

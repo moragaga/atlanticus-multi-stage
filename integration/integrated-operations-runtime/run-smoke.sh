@@ -162,4 +162,4 @@ if ! docker run --rm \
 fi
 
 printf 'Gunicorn automatic capacity: OK\n'
-printf 'R18C prepare -> runtime -> HTTP smoke passed.\n'
+printf 'R19B.2 projected Tools prepare -> runtime -> HTTP smoke passed.\n'

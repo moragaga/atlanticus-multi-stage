@@ -7,8 +7,10 @@ import time
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-from integrated_operations.deployment.definition import build_deployment_definition, build_metadata
-from atlanticus.web.compositions.runtime_infrastructure import WebRuntimeInfrastructure, resolve_cosmos_connections
+from atlanticus.web.compositions.runtime_infrastructure import (
+    WebRuntimeInfrastructure,
+    resolve_cosmos_connections,
+)
 from atlanticus.web.environment import EnvironmentReader
 from atlanticus.web.users.activity import (
     COSMOS_USER_ACTIVITY_RECORD_TYPE,
@@ -16,6 +18,7 @@ from atlanticus.web.users.activity import (
 )
 from atlanticus.web.users.activity.models import build_activity_document_id
 from atlanticus.web.users.configuration import UserConfiguration
+from integrated_operations.deployment.definition import build_deployment_definition, build_metadata
 
 _HTTP_TIMEOUT_SECONDS = 60.0
 _HTTP_INTERVAL_SECONDS = 0.5
@@ -24,7 +27,8 @@ _TENANT_ID = '00000000-0000-0000-0000-000000000018'
 _SUBJECT_ID = '00000000-0000-0000-0000-000000000043'
 _EMAIL = 'atlanticus.r18c@example.com'
 _DISPLAY_NAME = 'Atlanticus R18C Operator'
-_CLIENT_SESSION_ID = 'r18c-runtime-smoke'
+_CLIENT_SESSION_ID = 'r19b2-runtime-smoke'
+_PROJECTED_MILL_DISPLAY_NAME = 'Molienda proyectada R19B2'
 
 
 def main() -> None:
@@ -40,6 +44,12 @@ def main() -> None:
     home = _request_text(f'{base_url}/', headers=_identity_headers())
     assert 'app.min.css' in home
     assert 'Integrated Operations' in home
+
+    dash_layout = _request_json(
+        f'{base_url}/_dash-layout',
+        headers=_identity_headers(),
+    )
+    assert _PROJECTED_MILL_DISPLAY_NAME in json.dumps(dash_layout, ensure_ascii=False)
 
     activity = _request_json(
         f'{base_url}/api/user-activity',
@@ -62,10 +72,10 @@ def main() -> None:
     _assert_activity_persisted()
     print('Health live/ready: OK')
     print('Worker runtime warmup + HTTP: OK')
-    print('App Service identity + Integrated Operations /: OK')
+    print('App Service identity + projected Integrated Operations /: OK')
     print('Production asset snapshot: OK')
     print('User activity HTTP + Cosmos persistence: OK')
-    print('R18C Integrated Operations runtime smoke passed.')
+    print('R19B.2 Projected Tool Runtime smoke passed.')
 
 
 def _assert_activity_persisted() -> None:

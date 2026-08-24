@@ -1,10 +1,14 @@
-# Tool: contiene la configuración y composición concreta de Operaciones Integradas.
+# La composición se construye a partir del ToolManifest recibido desde runtime.
+# Los valores de demostración permanecen separados; este cambio sólo mueve la autoridad estructural hacia Tools Projection.
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
 
-from ada.compositions.integrated_operations import create_integrated_operations_tool_composition
-from ada.contracts.tool_manifest import INTEGRATED_OPERATIONS_MANIFEST, ToolScope
+from ada.compositions.integrated_operations import (
+    IntegratedOperationsToolComposition,
+    create_integrated_operations_tool_composition,
+)
+from ada.contracts.tool_manifest import ToolManifest, ToolScope
 from ada.features.alarms.management_summary import (
     AlarmManagementSummarySegmentState,
     AlarmManagementSummaryTone,
@@ -17,29 +21,32 @@ from ada.ui.components.branding import ATLANTICUS_BRAND_MANIFEST, BrandContext, 
 from ada.ui.components.global_indicator import GlobalIndicatorMeasurementState, GlobalIndicatorState
 from ada.ui.shell.header import HeaderIndicatorPlacement, create_header_state
 from ada.ui.shell.time_status import create_time_status_state
-
 from integrated_operations.tool.configuration import (
     build_dashboard_configuration,
     build_polling_settings,
     build_renderer_registry,
 )
 
-MANIFEST = INTEGRATED_OPERATIONS_MANIFEST
-COMPOSITION = create_integrated_operations_tool_composition(
-    MANIFEST,
-    dashboard_configuration=build_dashboard_configuration(),
-    renderers=build_renderer_registry(),
-    polling=build_polling_settings(),
-)
+
+def build_integrated_operations_composition(
+    manifest: ToolManifest,
+) -> IntegratedOperationsToolComposition:
+    return create_integrated_operations_tool_composition(
+        manifest,
+        dashboard_configuration=build_dashboard_configuration(manifest),
+        renderers=build_renderer_registry(manifest),
+        polling=build_polling_settings(),
+    )
 
 
-def build_integrated_operations_tool():
-    return COMPOSITION.build_tool(
-        header_state=_build_header_state(),
-        alarm_management_slot=_build_alarm_management(),
+def build_integrated_operations_tool(composition: IntegratedOperationsToolComposition):
+    manifest = composition.manifest
+    return composition.build_tool(
+        header_state=_build_header_state(manifest),
+        alarm_management_slot=_build_alarm_management(manifest),
         alarm_status_slot=build_alarm_status(AlarmStatusState(active_count=0, managed_count=0)),
         time_status_state=create_time_status_state(
-            manifest=MANIFEST,
+            manifest=manifest,
             snapshot=_runtime_snapshot(),
         ),
         layout_id='integrated-operations-layout',
@@ -47,9 +54,9 @@ def build_integrated_operations_tool():
     )
 
 
-def _build_header_state():
+def _build_header_state(manifest: ToolManifest):
     return create_header_state(
-        manifest=MANIFEST,
+        manifest=manifest,
         brand=resolve_brand(
             ATLANTICUS_BRAND_MANIFEST,
             BrandContext(current_date=date.today()),
@@ -57,7 +64,7 @@ def _build_header_state():
         application_name='ADA',
         global_indicators=tuple(
             HeaderIndicatorPlacement(
-                section_key=_scoped_section_key('global_indicators', scope),
+                section_key=_scoped_section_key(manifest, 'global_indicators', scope),
                 scope=scope,
                 indicator=indicator,
             )
@@ -66,8 +73,12 @@ def _build_header_state():
     )
 
 
-def _scoped_section_key(component: str, scope: ToolScope) -> str:
-    return MANIFEST.subcomponent(
+def _scoped_section_key(
+    manifest: ToolManifest,
+    component: str,
+    scope: ToolScope,
+) -> str:
+    return manifest.subcomponent(
         component=component,
         subcomponent=scope.value,
     ).key
@@ -105,19 +116,19 @@ def _indicator(
     )
 
 
-def _build_alarm_management():
+def _build_alarm_management(manifest: ToolManifest):
     state = create_alarm_management_summary_state(
-        manifest=MANIFEST,
+        manifest=manifest,
         segments=(
             AlarmManagementSummarySegmentState(
-                section_key=_scoped_section_key('alarm_management', ToolScope.MINE),
+                section_key=_scoped_section_key(manifest, 'alarm_management', ToolScope.MINE),
                 scope=ToolScope.MINE,
                 group='G3',
                 management_percentage=60,
                 tone=AlarmManagementSummaryTone.NEUTRAL,
             ),
             AlarmManagementSummarySegmentState(
-                section_key=_scoped_section_key('alarm_management', ToolScope.PLANT),
+                section_key=_scoped_section_key(manifest, 'alarm_management', ToolScope.PLANT),
                 scope=ToolScope.PLANT,
                 group='G1',
                 management_percentage=45,

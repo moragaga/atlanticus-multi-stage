@@ -1,16 +1,14 @@
+from ada.contracts.tool_manifest import INTEGRATED_OPERATIONS_MANIFEST
 from integrated_operations.tool.configuration import (
     build_dashboard_configuration,
-    build_manifest,
     build_renderer_registry,
 )
 
 
-def test_configuration_uses_real_integrated_operations_contract() -> None:
-    manifest = build_manifest()
-    configuration = build_dashboard_configuration()
-    renderers = build_renderer_registry()
+def test_configuration_uses_supplied_integrated_operations_manifest() -> None:
+    configuration = build_dashboard_configuration(INTEGRATED_OPERATIONS_MANIFEST)
+    renderers = build_renderer_registry(INTEGRATED_OPERATIONS_MANIFEST)
 
-    assert manifest.tool_key == 'integrated_operations'
     assert len(configuration.components) == 9
     assert len(renderers.definitions) == 9
     assert configuration.time_series is not None

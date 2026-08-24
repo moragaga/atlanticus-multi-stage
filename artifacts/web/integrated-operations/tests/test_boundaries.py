@@ -64,3 +64,21 @@ def test_artifact_does_not_use_legacy_identity_selector() -> None:
 
     assert 'ATLANTICUS_IDENTITY_PROVIDER' not in content
     assert 'resolve_identity_provider_key' not in content
+
+
+def test_production_runtime_has_no_compiled_tool_manifest_authority() -> None:
+    paths = [*(ROOT / 'src').rglob('*.py')]
+    content = '\n'.join(path.read_text(encoding='utf-8') for path in paths)
+
+    assert 'INTEGRATED_OPERATIONS_MANIFEST' not in content
+    assert 'MANIFEST = ' not in content
+    assert 'COMPOSITION = ' not in content
+
+
+def test_tool_projection_is_an_explicit_artifact_dependency() -> None:
+    document = tomllib.loads((ROOT / 'pyproject.toml').read_text(encoding='utf-8'))
+
+    assert 'ada-configuration-tools==0.1.5' in document['project']['dependencies']
+    assert document['tool']['uv']['sources']['ada-configuration-tools'] == {
+        'path': 'wheels/ada_configuration_tools-0.1.5-py3-none-any.whl'
+    }

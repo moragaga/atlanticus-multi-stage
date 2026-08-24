@@ -3,13 +3,26 @@ from __future__ import annotations
 import base64
 import os
 import time
+from dataclasses import replace
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
+from ada.compositions.web_bootstrap import create_ada_configuration_backends
 from ada.compositions.web_deployment import prepare_ada_web_deployment
-from integrated_operations.deployment.definition import build_deployment_definition
+from ada.configuration.tools import (
+    ToolConfigurationBundle,
+    ToolConfigurationCatalog,
+    ToolProjectionWorkflow,
+    integrated_operations_configuration_from_manifest,
+)
+from ada.configuration.tools.adapters import (
+    SharePointToolConfigurationSettings,
+    SharePointToolConfigurationStore,
+)
+from ada.contracts.tool_manifest import INTEGRATED_OPERATIONS_MANIFEST
 from atlanticus.web.compositions.runtime_infrastructure import (
     WebRuntimeInfrastructure,
+    resolve_cosmos_connections,
     resolve_sharepoint_infrastructure_settings,
 )
 from atlanticus.web.environment import EnvironmentReader
@@ -21,13 +34,14 @@ from atlanticus.web.navigation.configuration import (
     encode_navigation_configuration_source,
 )
 from atlanticus.web.users.configuration import (
+    UserConfiguration,
+    UserProfileConfiguration,
     UsersConfigurationBundle,
     UsersConfigurationCatalog,
     UsersConfigurationSourceDocument,
-    UserConfiguration,
-    UserProfileConfiguration,
     encode_users_configuration_source,
 )
+from integrated_operations.deployment.definition import build_deployment_definition
 
 _READY_TIMEOUT_SECONDS = 120.0
 _READY_INTERVAL_SECONDS = 1.0
@@ -36,6 +50,7 @@ _TENANT_ID = '00000000-0000-0000-0000-000000000018'
 _SUBJECT_ID = '00000000-0000-0000-0000-000000000043'
 _EMAIL = 'atlanticus.r18c@example.com'
 _DISPLAY_NAME = 'Atlanticus R18C Operator'
+_PROJECTED_MILL_DISPLAY_NAME = 'Molienda proyectada R19B2'
 
 
 def main() -> None:
@@ -63,7 +78,7 @@ def main() -> None:
                 ),
                 users=(user,),
             ),
-            saved_by='ada-r18c-smoke',
+            saved_by='ada-r19b2-smoke',
         )
         navigation_bundle = NavigationConfigurationBundle.create(
             catalog=NavigationConfigurationCatalog(
@@ -76,7 +91,7 @@ def main() -> None:
                     ),
                 )
             ),
-            saved_by='ada-r18c-smoke',
+            saved_by='ada-r19b2-smoke',
         )
         gateway.write(
             filename=definition.configuration_filenames.users,
@@ -96,6 +111,11 @@ def main() -> None:
                 )
             ),
         )
+        tool_bundle = _publish_tool_source(
+            gateway=gateway,
+            filename=definition.configuration_filenames.tools,
+            relative_path=paths.tool_relative_path,
+        )
     finally:
         infrastructure.close()
 
@@ -103,7 +123,7 @@ def main() -> None:
         definition=definition,
         environment=environment,
         create_databases_if_missing=True,
-        actor='ada-r18c-smoke',
+        actor='ada-r19b2-smoke',
     )
     assert 'application' in result.provisioning.databases_created
     assert set(result.provisioning.containers_created['application']) == {
@@ -114,9 +134,64 @@ def main() -> None:
     }
     assert result.synchronization.users_projected is True
     assert result.synchronization.navigation_projected is True
-    print('R18C prepare completed.')
-    print(f"Cosmos database: {os.environ['ATLANTICUS_COSMOS_DATABASE']}")
-    print(f"SharePoint root: {os.environ['ATLANTICUS_SHAREPOINT_ROOT_PATH']}")
+    _project_tools(
+        environment=environment,
+        definition=definition,
+        sharepoint_settings=sharepoint_settings,
+        source_revision=tool_bundle.revision,
+    )
+    print('R19B2 prepare completed.')
+    print(f'Cosmos database: {os.environ["ATLANTICUS_COSMOS_DATABASE"]}')
+    print(f'SharePoint root: {os.environ["ATLANTICUS_SHAREPOINT_ROOT_PATH"]}')
+    print(f'Tool projection source revision: {tool_bundle.revision}')
+
+
+def _publish_tool_source(*, gateway, filename: str, relative_path: str) -> ToolConfigurationBundle:
+    base = integrated_operations_configuration_from_manifest(INTEGRATED_OPERATIONS_MANIFEST)
+    components = tuple(
+        replace(component, display_name=_PROJECTED_MILL_DISPLAY_NAME)
+        if component.key == 'molienda'
+        else component
+        for component in base.components
+    )
+    catalog = ToolConfigurationCatalog((replace(base, components=components),))
+    bundle = ToolConfigurationBundle.create(catalog=catalog, saved_by='ada-r19b2-smoke')
+    store = SharePointToolConfigurationStore(
+        gateway=gateway,
+        settings=SharePointToolConfigurationSettings(
+            filename=filename,
+            relative_path=relative_path,
+        ),
+    )
+    current = store.fetch_bundle()
+    store.publish_bundle(
+        bundle,
+        expected_source_revision=current.revision if current is not None else None,
+    )
+    return bundle
+
+
+def _project_tools(*, environment, definition, sharepoint_settings, source_revision: str) -> None:
+    connections = resolve_cosmos_connections(environment, definition.cosmos_connections)
+    infrastructure = WebRuntimeInfrastructure(
+        cosmos_connections=connections,
+        sharepoint=sharepoint_settings,
+    )
+    infrastructure.open()
+    try:
+        configuration = create_ada_configuration_backends(
+            infrastructure=infrastructure,
+            bindings=definition.bindings,
+            filenames=definition.configuration_filenames,
+        )
+        result = ToolProjectionWorkflow(
+            source=configuration.tools_source,
+            projection=configuration.tools_projection,
+            audit_actor_provider=lambda: 'ada-r19b2-smoke',
+        ).project(source_revision)
+        assert result.projected is True
+    finally:
+        infrastructure.close()
 
 
 def _user() -> UserConfiguration:

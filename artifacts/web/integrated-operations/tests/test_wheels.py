@@ -57,6 +57,10 @@ CRITICAL_PATH_PINNED_WHEELS = {
         '0.1.9',
         'ada_composition_web_deployment-0.1.9-py3-none-any.whl',
     ),
+    'ada-configuration-tools': (
+        '0.1.5',
+        'ada_configuration_tools-0.1.5-py3-none-any.whl',
+    ),
     'atlanticus-web-identity': (
         '0.1.0',
         'atlanticus_web_identity-0.1.0-py3-none-any.whl',
@@ -76,10 +80,6 @@ CRITICAL_PATH_PINNED_WHEELS = {
 }
 
 CRITICAL_TRANSITIVE_WHEELS = {
-    'ada-configuration-tools': (
-        '0.1.5',
-        'ada_configuration_tools-0.1.5-py3-none-any.whl',
-    ),
     'atlanticus-web-composition-runtime-infrastructure': (
         '0.1.1',
         'atlanticus_web_composition_runtime_infrastructure-0.1.1-py3-none-any.whl',

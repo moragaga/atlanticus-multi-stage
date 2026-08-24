@@ -1,7 +1,5 @@
-from dash import register_page
-
-from integrated_operations.tool import build_integrated_operations_tool
+from dash import html, register_page
 
 register_page(__name__, path='/', name='Integrated Operations')
 
-layout = build_integrated_operations_tool
+layout = html.Div()

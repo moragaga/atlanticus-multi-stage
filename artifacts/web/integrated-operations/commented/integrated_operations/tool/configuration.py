@@ -1,11 +1,12 @@
-# Tool: contiene la configuración y composición concreta de Operaciones Integradas.
+# Dashboard y renderers derivan sus componentes y subcomponentes del manifiesto proyectado suministrado.
+# No se consulta ninguna constante compilada para decidir la estructura visible.
 from __future__ import annotations
 
 from functools import partial
 
 from dash import dcc, html
 
-from ada.contracts.tool_manifest import INTEGRATED_OPERATIONS_MANIFEST
+from ada.contracts.tool_manifest import ToolManifest
 from ada.features.dashboard import (
     ComponentBundle,
     ComponentProjectionDefinition,
@@ -24,11 +25,7 @@ _TIME_SERIES = {
 }
 
 
-def build_manifest():
-    return INTEGRATED_OPERATIONS_MANIFEST
-
-
-def build_dashboard_configuration() -> DashboardToolConfiguration:
+def build_dashboard_configuration(manifest: ToolManifest) -> DashboardToolConfiguration:
     return DashboardToolConfiguration(
         components=tuple(
             ComponentProjectionDefinition(
@@ -39,7 +36,7 @@ def build_dashboard_configuration() -> DashboardToolConfiguration:
                     for key, hours in _TIME_SERIES.get(component_key, ())
                 ),
             )
-            for component_key in _component_keys()
+            for component_key in _component_keys(manifest)
         ),
         time_series=TimeSeriesSettings(
             step_seconds=60,
@@ -48,14 +45,18 @@ def build_dashboard_configuration() -> DashboardToolConfiguration:
     )
 
 
-def build_renderer_registry() -> ComponentRendererRegistry:
+def build_renderer_registry(manifest: ToolManifest) -> ComponentRendererRegistry:
     return ComponentRendererRegistry(
         definitions=tuple(
             ComponentRendererDefinition(
                 component_key=component_key,
-                renderer=partial(_render_component, component_key=component_key),
+                renderer=partial(
+                    _render_component,
+                    manifest=manifest,
+                    component_key=component_key,
+                ),
             )
-            for component_key in _component_keys()
+            for component_key in _component_keys(manifest)
         )
     )
 
@@ -64,8 +65,7 @@ def build_polling_settings() -> DashboardPollingSettings:
     return DashboardPollingSettings(interval_seconds=2)
 
 
-def _component_keys() -> tuple[str, ...]:
-    manifest = INTEGRATED_OPERATIONS_MANIFEST
+def _component_keys(manifest: ToolManifest) -> tuple[str, ...]:
     return tuple(
         component.key
         for scope_key in ('mine', 'plant')
@@ -73,13 +73,20 @@ def _component_keys() -> tuple[str, ...]:
     )
 
 
-def _render_component(bundle: ComponentBundle, *, component_key: str):
+def _render_component(
+    bundle: ComponentBundle,
+    *,
+    manifest: ToolManifest,
+    component_key: str,
+):
     values = bundle.data or {}
     return {
         subcomponent: _render_card(
-            bundle, subcomponent=subcomponent, value=values.get(subcomponent)
+            bundle,
+            subcomponent=subcomponent,
+            value=values.get(subcomponent),
         )
-        for subcomponent in _expected_subcomponents(component_key)
+        for subcomponent in _expected_subcomponents(manifest, component_key)
     }
 
 
@@ -124,10 +131,13 @@ def _render_card(
     return html.Div(children, className='integrated-operations__card-content')
 
 
-def _expected_subcomponents(component_key: str) -> tuple[str, ...]:
+def _expected_subcomponents(
+    manifest: ToolManifest,
+    component_key: str,
+) -> tuple[str, ...]:
     return tuple(
         section.subcomponent
-        for section in INTEGRATED_OPERATIONS_MANIFEST.children(component_key)
+        for section in manifest.children(component_key)
         if section.subcomponent is not None and not section.linked_component_keys
     )
 
