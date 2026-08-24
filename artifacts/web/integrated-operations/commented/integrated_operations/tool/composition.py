@@ -1,5 +1,3 @@
-# La composición se construye a partir del ToolManifest recibido desde runtime.
-# Los valores de demostración permanecen separados; este cambio sólo mueve la autoridad estructural hacia Tools Projection.
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
@@ -20,6 +18,10 @@ from ada.runtime.web import RuntimeSnapshot, SourceState
 from ada.ui.components.branding import ATLANTICUS_BRAND_MANIFEST, BrandContext, resolve_brand
 from ada.ui.components.global_indicator import GlobalIndicatorMeasurementState, GlobalIndicatorState
 from ada.ui.shell.header import HeaderIndicatorPlacement, create_header_state
+from ada.ui.shell.navigation import (
+    build_ada_navigation_desktop_trigger,
+    build_ada_navigation_mobile_trigger,
+)
 from ada.ui.shell.time_status import create_time_status_state
 from integrated_operations.tool.configuration import (
     build_dashboard_configuration,
@@ -39,6 +41,7 @@ def build_integrated_operations_composition(
     )
 
 
+# Operaciones Integradas conserva Header/Time View/Alarmas/Body y ahora conecta el menú común.
 def build_integrated_operations_tool(composition: IntegratedOperationsToolComposition):
     manifest = composition.manifest
     return composition.build_tool(
@@ -49,6 +52,9 @@ def build_integrated_operations_tool(composition: IntegratedOperationsToolCompos
             manifest=manifest,
             snapshot=_runtime_snapshot(),
         ),
+        # Los triggers son presentación; la autoridad de menú sigue en Navigation.
+        desktop_navigation_trigger=build_ada_navigation_desktop_trigger(),
+        mobile_navigation_trigger=build_ada_navigation_mobile_trigger(),
         layout_id='integrated-operations-layout',
         class_name='integrated-operations',
     )

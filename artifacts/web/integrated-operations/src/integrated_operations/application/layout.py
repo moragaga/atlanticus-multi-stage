@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from atlanticus.web.services import ServiceRegistry
 from integrated_operations.application.models import IntegratedOperationsApplicationComposition
-from integrated_operations.tool import build_integrated_operations_tool
+from integrated_operations.application.presentation import build_unified_application_layout
 
 
 def build_application_layout(
-    _services: ServiceRegistry,
+    services: ServiceRegistry,
     *,
     composition: IntegratedOperationsApplicationComposition,
 ):
-    return build_integrated_operations_tool(composition.operational)
+    return build_unified_application_layout(services, composition=composition)

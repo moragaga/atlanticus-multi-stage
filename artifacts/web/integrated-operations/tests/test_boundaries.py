@@ -127,3 +127,26 @@ def test_manager_is_composed_as_optional_surface_not_operational_bootstrap_requi
     assert '_resolve_optional_configuration_backends' in runtime
     assert 'resolve_configuration_backend_selection' in runtime
     assert "_MANAGER_ROUTE_PREFIX = '/manager'" in runtime
+
+
+def test_unified_presentation_uses_one_dynamic_host_without_legacy_dual_hosts() -> None:
+    presentation = (ROOT / 'src/integrated_operations/application/presentation.py').read_text(
+        encoding='utf-8'
+    )
+
+    assert "SURFACE_HOST_ID = 'ada-unified-application-surface-host'" in presentation
+    assert 'dcc.Loading(' in presentation
+    assert 'build_ada_navigation_offcanvas_from_services' in presentation
+    assert "_MANAGER_ROUTE_PREFIX = '/manager'" in presentation
+    assert '_PAGE_HOST_ID' not in presentation
+    assert '_MANAGER_HOST_ID' not in presentation
+    assert 'hidden=True' not in presentation
+
+
+def test_unified_presentation_uses_existing_navigation_contract() -> None:
+    document = tomllib.loads((ROOT / 'pyproject.toml').read_text(encoding='utf-8'))
+
+    assert 'ada-ui-shell-navigation==0.1.0' in document['project']['dependencies']
+    assert document['tool']['uv']['sources']['ada-ui-shell-navigation'] == {
+        'path': 'wheels/ada_ui_shell_navigation-0.1.0-py3-none-any.whl'
+    }

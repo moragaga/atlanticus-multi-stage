@@ -7,6 +7,7 @@ import time
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+from integrated_operations.deployment.definition import build_deployment_definition, build_metadata
 from atlanticus.web.compositions.runtime_infrastructure import (
     WebRuntimeInfrastructure,
     resolve_cosmos_connections,
@@ -18,7 +19,6 @@ from atlanticus.web.users.activity import (
 )
 from atlanticus.web.users.activity.models import build_activity_document_id
 from atlanticus.web.users.configuration import UserConfiguration
-from integrated_operations.deployment.definition import build_deployment_definition, build_metadata
 
 _HTTP_TIMEOUT_SECONDS = 60.0
 _HTTP_INTERVAL_SECONDS = 0.5
@@ -49,7 +49,11 @@ def main() -> None:
         f'{base_url}/_dash-layout',
         headers=_identity_headers(),
     )
-    assert _PROJECTED_MILL_DISPLAY_NAME in json.dumps(dash_layout, ensure_ascii=False)
+    dash_layout_json = json.dumps(dash_layout, ensure_ascii=False)
+    assert _PROJECTED_MILL_DISPLAY_NAME in dash_layout_json
+    assert 'data-ada-unified-application' in dash_layout_json
+    assert 'app-header-offcanvas' in dash_layout_json
+    assert 'app-header-desktop-toggle' in dash_layout_json
 
     activity = _request_json(
         f'{base_url}/api/user-activity',
@@ -73,6 +77,7 @@ def main() -> None:
     print('Health live/ready: OK')
     print('Worker runtime warmup + HTTP: OK')
     print('App Service identity + projected Integrated Operations /: OK')
+    print('Unified presentation shell + navigation: OK')
     print('Production asset snapshot: OK')
     print('User activity HTTP + Cosmos persistence: OK')
     print('R19B.2 Projected Tool Runtime smoke passed.')

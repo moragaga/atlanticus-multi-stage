@@ -23,6 +23,7 @@ dependencies = [
     "ada-ui-component-state-wrapper==0.1.0",
     "ada-ui-framework-core==0.1.0",
     "ada-ui-shell-header==0.1.0",
+    "ada-ui-shell-navigation==0.1.0",
     "ada-ui-shell-time-status==0.1.0",
     "atlanticus-web==0.1.0",
     "atlanticus-web-composition-runtime-infrastructure==0.1.1",
@@ -77,6 +78,7 @@ ada-ui-component-global-indicator = { path = "wheels/ada_ui_component_global_ind
 ada-ui-component-state-wrapper = { path = "wheels/ada_ui_component_state_wrapper-0.1.0-py3-none-any.whl" }
 ada-ui-framework-core = { path = "wheels/ada_ui_framework_core-0.1.0-py3-none-any.whl" }
 ada-ui-shell-header = { path = "wheels/ada_ui_shell_header-0.1.0-py3-none-any.whl" }
+ada-ui-shell-navigation = { path = "wheels/ada_ui_shell_navigation-0.1.0-py3-none-any.whl" }
 ada-ui-shell-time-status = { path = "wheels/ada_ui_shell_time_status-0.1.0-py3-none-any.whl" }
 atlanticus-web = { path = "wheels/atlanticus_web-0.1.0-py3-none-any.whl" }
 atlanticus-web-composition-runtime-infrastructure = { path = "wheels/atlanticus_web_composition_runtime_infrastructure-0.1.1-py3-none-any.whl" }

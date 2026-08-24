@@ -18,6 +18,7 @@ EXPECTED_ADDITIONAL_PACKAGES = {
     'ada-ui-framework-core',
     'ada-ui-layout-integrated-operations',
     'ada-ui-shell-header',
+    'ada-ui-shell-navigation',
     'ada-ui-shell-time-status',
 }
 EXPECTED_BASE_PACKAGES = {
@@ -78,6 +79,10 @@ CRITICAL_PATH_PINNED_WHEELS = {
     'atlanticus-web-identity-local': (
         '0.1.0',
         'atlanticus_web_identity_local-0.1.0-py3-none-any.whl',
+    ),
+    'ada-ui-shell-navigation': (
+        '0.1.0',
+        'ada_ui_shell_navigation-0.1.0-py3-none-any.whl',
     ),
     'atlanticus-web-manager': (
         '0.3.10',

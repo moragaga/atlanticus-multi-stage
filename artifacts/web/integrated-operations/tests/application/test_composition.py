@@ -19,6 +19,12 @@ def _patch_runtime_modules(monkeypatch) -> None:
         'create_integrated_operations_tool_modules',
         lambda _composition, snapshot_reader: ('io-module',),
     )
+    monkeypatch.setattr(composition, 'create_ada_navigation_module', lambda: 'ada-navigation')
+    monkeypatch.setattr(
+        composition,
+        'create_unified_presentation_module',
+        lambda _composition: 'unified-presentation',
+    )
 
 
 def test_application_composition_keeps_projected_operational_manifest() -> None:
@@ -66,9 +72,11 @@ def test_web_definition_wires_operational_and_manager_modules(monkeypatch, tmp_p
         'identity',
         'users',
         'io-module',
+        'ada-navigation',
         'manager-principal',
         'manager-services',
         'manager-callbacks',
+        'unified-presentation',
     )
     assert definition.page_packages == ('integrated_operations.pages',)
     assert definition.publications_root == tmp_path / '.runtime' / 'assets'

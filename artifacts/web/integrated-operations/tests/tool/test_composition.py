@@ -72,3 +72,11 @@ def test_integrated_operations_artifact_exposes_overview_mine_plant_controls() -
     assert targets.count('overview') == 1
     assert targets.count('mine') == 2
     assert targets.count('plant') == 2
+
+
+def test_integrated_operations_header_exposes_common_navigation_triggers() -> None:
+    nodes = tuple(_walk(_tool()))
+    ids = {_props(node).get('id') for node in nodes}
+
+    assert 'app-header-desktop-toggle' in ids
+    assert 'app-header-mobile-toggle' in ids

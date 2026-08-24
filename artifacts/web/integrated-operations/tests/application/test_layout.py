@@ -4,18 +4,23 @@ from atlanticus.web.services import ServiceRegistry
 from integrated_operations.application.layout import build_application_layout
 
 
-def test_application_layout_uses_effective_operational_composition(monkeypatch) -> None:
-    operational = object()
-    application = SimpleNamespace(operational=operational)
+def test_application_layout_delegates_to_unified_presentation(monkeypatch) -> None:
+    application = SimpleNamespace()
+    services = ServiceRegistry()
     expected = object()
+    captured = {}
+
+    def build_layout(value, *, composition):
+        captured['services'] = value
+        captured['composition'] = composition
+        return expected
+
     monkeypatch.setattr(
-        'integrated_operations.application.layout.build_integrated_operations_tool',
-        lambda value: expected if value is operational else None,
+        'integrated_operations.application.layout.build_unified_application_layout',
+        build_layout,
     )
 
-    result = build_application_layout(
-        ServiceRegistry(),
-        composition=application,
-    )
+    result = build_application_layout(services, composition=application)
 
     assert result is expected
+    assert captured == {'services': services, 'composition': application}

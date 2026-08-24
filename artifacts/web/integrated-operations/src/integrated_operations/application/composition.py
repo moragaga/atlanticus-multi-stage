@@ -11,6 +11,7 @@ from ada.compositions.integrated_operations import (
 )
 from ada.contracts.tool_manifest import INTEGRATED_OPERATIONS_MANIFEST, ToolManifestResolution
 from ada.runtime.web import SharedSnapshotReader
+from ada.ui.shell.navigation import create_ada_navigation_module
 from atlanticus.web.assets import AssetLayer
 from atlanticus.web.index import IndexPageDefinition
 from atlanticus.web.models import ApplicationMetadata, WebApplicationDefinition
@@ -20,6 +21,7 @@ from integrated_operations.application.models import (
     IntegratedOperationsApplicationComposition,
     ManagerSurfaceComposition,
 )
+from integrated_operations.application.presentation import create_unified_presentation_module
 from integrated_operations.runtime.snapshots import IntegratedOperationsSnapshotRepository
 from integrated_operations.tool import build_integrated_operations_composition
 
@@ -63,6 +65,7 @@ def build_web_definition(
             composition.operational,
             snapshot_reader=snapshot_reader,
         ),
+        create_ada_navigation_module(),
     ]
     if composition.manager is not None:
         modules.extend(
@@ -71,6 +74,7 @@ def build_web_definition(
                 *composition.manager.surface.web_modules,
             )
         )
+    modules.append(create_unified_presentation_module(composition))
     return WebApplicationDefinition(
         import_name='integrated_operations',
         metadata=metadata,

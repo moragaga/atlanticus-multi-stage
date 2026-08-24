@@ -1,4 +1,3 @@
-# Espejo pedagógico: compone módulos operacionales y administrativos sobre una misma definición web y conserva el baseline automático.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
@@ -12,6 +11,7 @@ from ada.compositions.integrated_operations import (
 )
 from ada.contracts.tool_manifest import INTEGRATED_OPERATIONS_MANIFEST, ToolManifestResolution
 from ada.runtime.web import SharedSnapshotReader
+from ada.ui.shell.navigation import create_ada_navigation_module
 from atlanticus.web.assets import AssetLayer
 from atlanticus.web.index import IndexPageDefinition
 from atlanticus.web.models import ApplicationMetadata, WebApplicationDefinition
@@ -21,6 +21,7 @@ from integrated_operations.application.models import (
     IntegratedOperationsApplicationComposition,
     ManagerSurfaceComposition,
 )
+from integrated_operations.application.presentation import create_unified_presentation_module
 from integrated_operations.runtime.snapshots import IntegratedOperationsSnapshotRepository
 from integrated_operations.tool import build_integrated_operations_composition
 
@@ -47,6 +48,7 @@ def build_application_composition(
     )
 
 
+# La definición web registra operación, navegación ADA, Manager opcional y el host unificado.
 def build_web_definition(
     *,
     metadata: ApplicationMetadata,
@@ -64,6 +66,8 @@ def build_web_definition(
             composition.operational,
             snapshot_reader=snapshot_reader,
         ),
+        # La navegación visual consume el NavigationMenu ya autorizado por el runtime.
+        create_ada_navigation_module(),
     ]
     if composition.manager is not None:
         modules.extend(
@@ -72,6 +76,8 @@ def build_web_definition(
                 *composition.manager.surface.web_modules,
             )
         )
+    # El host unificado se registra al final para componer las surfaces ya disponibles.
+    modules.append(create_unified_presentation_module(composition))
     return WebApplicationDefinition(
         import_name='integrated_operations',
         metadata=metadata,
