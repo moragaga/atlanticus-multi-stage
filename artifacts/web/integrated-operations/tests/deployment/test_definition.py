@@ -14,7 +14,7 @@ def test_metadata_is_stable() -> None:
 
     assert metadata.application_id == 'ada-integrated-operations'
     assert metadata.display_name == 'ADA Integrated Operations'
-    assert metadata.version == '0.1.0'
+    assert metadata.version == '0.1.1'
 
 
 def test_deployment_definition_binds_all_ada_capabilities_to_application_connection() -> None:

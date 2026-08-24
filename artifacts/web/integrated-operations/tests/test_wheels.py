@@ -49,19 +49,63 @@ EXPECTED_BASE_PACKAGES = {
 }
 
 CRITICAL_PATH_PINNED_WHEELS = {
-    'ada-composition-web-bootstrap': 'ada_composition_web_bootstrap-0.1.0-py3-none-any.whl',
-    'ada-composition-web-deployment': 'ada_composition_web_deployment-0.1.0-py3-none-any.whl',
-    'atlanticus-web-identity': 'atlanticus_web_identity-0.1.0-py3-none-any.whl',
-    'atlanticus-web-identity-local': 'atlanticus_web_identity_local-0.1.0-py3-none-any.whl',
-    'atlanticus-web-users-cosmos': 'atlanticus_web_users_cosmos-0.1.0-py3-none-any.whl',
-    'atlanticus-web-users-local': 'atlanticus_web_users_local-0.1.0-py3-none-any.whl',
+    'ada-composition-web-bootstrap': (
+        '0.1.7',
+        'ada_composition_web_bootstrap-0.1.7-py3-none-any.whl',
+    ),
+    'ada-composition-web-deployment': (
+        '0.1.9',
+        'ada_composition_web_deployment-0.1.9-py3-none-any.whl',
+    ),
+    'atlanticus-web-identity': (
+        '0.1.0',
+        'atlanticus_web_identity-0.1.0-py3-none-any.whl',
+    ),
+    'atlanticus-web-identity-local': (
+        '0.1.0',
+        'atlanticus_web_identity_local-0.1.0-py3-none-any.whl',
+    ),
+    'atlanticus-web-users-cosmos': (
+        '0.1.5',
+        'atlanticus_web_users_cosmos-0.1.5-py3-none-any.whl',
+    ),
+    'atlanticus-web-users-local': (
+        '0.1.0',
+        'atlanticus_web_users_local-0.1.0-py3-none-any.whl',
+    ),
+}
+
+CRITICAL_TRANSITIVE_WHEELS = {
+    'ada-configuration-tools': (
+        '0.1.5',
+        'ada_configuration_tools-0.1.5-py3-none-any.whl',
+    ),
+    'atlanticus-web-composition-runtime-infrastructure': (
+        '0.1.1',
+        'atlanticus_web_composition_runtime_infrastructure-0.1.1-py3-none-any.whl',
+    ),
+    'atlanticus-web-composition-sharepoint-http': (
+        '0.1.1',
+        'atlanticus_web_composition_sharepoint_http-0.1.1-py3-none-any.whl',
+    ),
+    'atlanticus-web-navigation-configuration': (
+        '0.1.4',
+        'atlanticus_web_navigation_configuration-0.1.4-py3-none-any.whl',
+    ),
+    'atlanticus-web-users-configuration': (
+        '0.1.5',
+        'atlanticus_web_users_configuration-0.1.5-py3-none-any.whl',
+    ),
 }
 
 
 def test_internal_wheel_closure_is_present() -> None:
-    names = {_wheel_metadata(path)['Name'] for path in WHEELS.glob('*.whl')}
+    metadata = [_wheel_metadata(path) for path in WHEELS.glob('*.whl')]
+    names = {item['Name'].lower().replace('_', '-') for item in metadata}
+    expected = EXPECTED_BASE_PACKAGES | EXPECTED_ADDITIONAL_PACKAGES
 
-    assert names == EXPECTED_BASE_PACKAGES | EXPECTED_ADDITIONAL_PACKAGES
+    assert names == expected
+    assert len(metadata) == len(expected)
 
 
 def test_internal_wheels_target_python_3142() -> None:
@@ -76,11 +120,20 @@ def test_critical_internal_wheels_are_path_pinned() -> None:
     lock = tomllib.loads((ROOT / 'uv.lock').read_text(encoding='utf-8'))
     locked_packages = {package['name']: package for package in lock['package']}
 
-    for package, filename in CRITICAL_PATH_PINNED_WHEELS.items():
-        assert f'{package}==0.1.0' in dependencies
+    for package, (version, filename) in CRITICAL_PATH_PINNED_WHEELS.items():
+        assert f'{package}=={version}' in dependencies
         expected_source = {'path': f'wheels/{filename}'}
         assert sources[package] == expected_source
         assert locked_packages[package]['source'] == expected_source
+
+
+def test_critical_transitive_wheels_have_current_immutable_versions() -> None:
+    for package, (version, filename) in CRITICAL_TRANSITIVE_WHEELS.items():
+        matches = list(WHEELS.glob(filename))
+        assert len(matches) == 1
+        metadata = _wheel_metadata(matches[0])
+        assert metadata['Name'].lower().replace('_', '-') == package
+        assert metadata['Version'] == version
 
 
 def _wheel_metadata(path: Path):
