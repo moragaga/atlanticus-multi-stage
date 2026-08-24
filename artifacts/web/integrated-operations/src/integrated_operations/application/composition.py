@@ -16,6 +16,10 @@ from atlanticus.web.index import IndexPageDefinition
 from atlanticus.web.models import ApplicationMetadata, WebApplicationDefinition
 from atlanticus.web.modules import WebModule
 from integrated_operations.application.layout import build_application_layout
+from integrated_operations.application.models import (
+    IntegratedOperationsApplicationComposition,
+    ManagerSurfaceComposition,
+)
 from integrated_operations.runtime.snapshots import IntegratedOperationsSnapshotRepository
 from integrated_operations.tool import build_integrated_operations_composition
 
@@ -29,34 +33,49 @@ APPLICATION_ASSET_LAYER = AssetLayer(
 )
 
 
+def build_application_composition(
+    *,
+    tool_manifest_resolution: ToolManifestResolution,
+    manager: ManagerSurfaceComposition | None = None,
+) -> IntegratedOperationsApplicationComposition:
+    configuration_resolution, operational = _resolve_tool_composition(tool_manifest_resolution)
+    return IntegratedOperationsApplicationComposition(
+        configuration_resolution=configuration_resolution,
+        operational=operational,
+        manager=manager,
+    )
+
+
 def build_web_definition(
     *,
     metadata: ApplicationMetadata,
     deployment_modules: Sequence[WebModule],
-    tool_manifest_resolution: ToolManifestResolution,
+    composition: IntegratedOperationsApplicationComposition,
     flask_config: Mapping[str, object] | None = None,
 ) -> WebApplicationDefinition:
-    configuration_resolution, tool_composition = _resolve_tool_composition(tool_manifest_resolution)
     snapshot_reader = SharedSnapshotReader(
-        IntegratedOperationsSnapshotRepository(tool_composition.dashboard),
+        IntegratedOperationsSnapshotRepository(composition.operational.dashboard),
         ttl_seconds=1.0,
     )
     modules = [
         *deployment_modules,
         *create_integrated_operations_tool_modules(
-            tool_composition,
+            composition.operational,
             snapshot_reader=snapshot_reader,
         ),
     ]
+    if composition.manager is not None:
+        modules.extend(
+            (
+                composition.manager.principal_binding,
+                *composition.manager.surface.web_modules,
+            )
+        )
     return WebApplicationDefinition(
         import_name='integrated_operations',
         metadata=metadata,
         publications_root=Path.cwd() / '.runtime' / 'assets',
-        layout=partial(
-            build_application_layout,
-            configuration_resolution=configuration_resolution,
-            composition=tool_composition,
-        ),
+        layout=partial(build_application_layout, composition=composition),
         modules=tuple(modules),
         page_packages=('integrated_operations.pages',),
         asset_layers=(APPLICATION_ASSET_LAYER,),

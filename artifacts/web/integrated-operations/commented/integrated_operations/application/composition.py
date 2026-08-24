@@ -1,5 +1,4 @@
-# La aplicación siempre conserva una composición operativa base definida por el código.
-# La proyección de Tools, cuando existe y es compatible, personaliza esa composición sin convertirse en requisito de arranque.
+# Espejo pedagógico: compone módulos operacionales y administrativos sobre una misma definición web y conserva el baseline automático.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
@@ -18,6 +17,10 @@ from atlanticus.web.index import IndexPageDefinition
 from atlanticus.web.models import ApplicationMetadata, WebApplicationDefinition
 from atlanticus.web.modules import WebModule
 from integrated_operations.application.layout import build_application_layout
+from integrated_operations.application.models import (
+    IntegratedOperationsApplicationComposition,
+    ManagerSurfaceComposition,
+)
 from integrated_operations.runtime.snapshots import IntegratedOperationsSnapshotRepository
 from integrated_operations.tool import build_integrated_operations_composition
 
@@ -31,38 +34,49 @@ APPLICATION_ASSET_LAYER = AssetLayer(
 )
 
 
+def build_application_composition(
+    *,
+    tool_manifest_resolution: ToolManifestResolution,
+    manager: ManagerSurfaceComposition | None = None,
+) -> IntegratedOperationsApplicationComposition:
+    configuration_resolution, operational = _resolve_tool_composition(tool_manifest_resolution)
+    return IntegratedOperationsApplicationComposition(
+        configuration_resolution=configuration_resolution,
+        operational=operational,
+        manager=manager,
+    )
+
+
 def build_web_definition(
     *,
     metadata: ApplicationMetadata,
     deployment_modules: Sequence[WebModule],
-    tool_manifest_resolution: ToolManifestResolution,
+    composition: IntegratedOperationsApplicationComposition,
     flask_config: Mapping[str, object] | None = None,
 ) -> WebApplicationDefinition:
-    # La resolución conserva el estado real de configuración, mientras la composición efectiva siempre existe.
-    configuration_resolution, tool_composition = _resolve_tool_composition(
-        tool_manifest_resolution
-    )
-    # Los módulos y callbacks operativos se registran también cuando no existe configuración proyectada.
     snapshot_reader = SharedSnapshotReader(
-        IntegratedOperationsSnapshotRepository(tool_composition.dashboard),
+        IntegratedOperationsSnapshotRepository(composition.operational.dashboard),
         ttl_seconds=1.0,
     )
     modules = [
         *deployment_modules,
         *create_integrated_operations_tool_modules(
-            tool_composition,
+            composition.operational,
             snapshot_reader=snapshot_reader,
         ),
     ]
+    if composition.manager is not None:
+        modules.extend(
+            (
+                composition.manager.principal_binding,
+                *composition.manager.surface.web_modules,
+            )
+        )
     return WebApplicationDefinition(
         import_name='integrated_operations',
         metadata=metadata,
         publications_root=Path.cwd() / '.runtime' / 'assets',
-        layout=partial(
-            build_application_layout,
-            configuration_resolution=configuration_resolution,
-            composition=tool_composition,
-        ),
+        layout=partial(build_application_layout, composition=composition),
         modules=tuple(modules),
         page_packages=('integrated_operations.pages',),
         asset_layers=(APPLICATION_ASSET_LAYER,),
@@ -74,18 +88,14 @@ def build_web_definition(
 def _resolve_tool_composition(
     resolution: ToolManifestResolution,
 ) -> tuple[ToolManifestResolution, IntegratedOperationsToolComposition]:
-    # Una proyección válida reemplaza declarativamente el baseline para esta ejecución.
     if resolution.ready:
         try:
             composition = build_integrated_operations_composition(resolution.require_manifest())
         except IntegratedOperationsCompositionError:
-            # Una configuración explícita incompatible mantiene su estado INVALID y vuelve al baseline seguro.
             return ToolManifestResolution.invalid(), _build_baseline_composition()
         return resolution, composition
-    # Ausencia, error de lectura o invalidez previa no eliminan el runtime operativo base.
     return resolution, _build_baseline_composition()
 
 
 def _build_baseline_composition() -> IntegratedOperationsToolComposition:
-    # El manifiesto compilado representa la composición automática del código, no una configuración obligatoria.
     return build_integrated_operations_composition(INTEGRATED_OPERATIONS_MANIFEST)

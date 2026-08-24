@@ -91,3 +91,39 @@ def test_tool_projection_is_an_explicit_artifact_dependency() -> None:
     assert document['tool']['uv']['sources']['ada-configuration-tools'] == {
         'path': 'wheels/ada_configuration_tools-0.1.5-py3-none-any.whl'
     }
+
+
+def test_unified_composition_uses_existing_manager_and_runtime_contracts() -> None:
+    document = tomllib.loads((ROOT / 'pyproject.toml').read_text(encoding='utf-8'))
+    dependencies = set(document['project']['dependencies'])
+    sources = document['tool']['uv']['sources']
+
+    expected = {
+        'ada-composition-configuration-manager': (
+            '0.1.17',
+            'ada_composition_configuration_manager-0.1.17-py3-none-any.whl',
+        ),
+        'atlanticus-web-manager': (
+            '0.3.10',
+            'atlanticus_web_manager-0.3.10-py3-none-any.whl',
+        ),
+        'atlanticus-web-composition-runtime-infrastructure': (
+            '0.1.1',
+            'atlanticus_web_composition_runtime_infrastructure-0.1.1-py3-none-any.whl',
+        ),
+    }
+    for package, (version, filename) in expected.items():
+        assert f'{package}=={version}' in dependencies
+        assert sources[package] == {'path': f'wheels/{filename}'}
+
+
+def test_manager_is_composed_as_optional_surface_not_operational_bootstrap_requirement() -> None:
+    runtime = (ROOT / 'src/integrated_operations/application/runtime.py').read_text(
+        encoding='utf-8'
+    )
+    models = (ROOT / 'src/integrated_operations/application/models.py').read_text(encoding='utf-8')
+
+    assert 'ManagerSurfaceComposition | None' in models
+    assert '_resolve_optional_configuration_backends' in runtime
+    assert 'resolve_configuration_backend_selection' in runtime
+    assert "_MANAGER_ROUTE_PREFIX = '/manager'" in runtime

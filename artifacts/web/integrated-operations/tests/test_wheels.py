@@ -21,6 +21,7 @@ EXPECTED_ADDITIONAL_PACKAGES = {
     'ada-ui-shell-time-status',
 }
 EXPECTED_BASE_PACKAGES = {
+    'ada-composition-configuration-manager',
     'ada-composition-web-application',
     'ada-composition-web-bootstrap',
     'ada-composition-web-deployment',
@@ -31,6 +32,7 @@ EXPECTED_BASE_PACKAGES = {
     'atlanticus-kernel',
     'atlanticus-observability',
     'atlanticus-web',
+    'atlanticus-web-manager',
     'atlanticus-web-composition-navigation-activity',
     'atlanticus-web-composition-runtime-infrastructure',
     'atlanticus-web-composition-sharepoint-http',
@@ -49,6 +51,10 @@ EXPECTED_BASE_PACKAGES = {
 }
 
 CRITICAL_PATH_PINNED_WHEELS = {
+    'ada-composition-configuration-manager': (
+        '0.1.17',
+        'ada_composition_configuration_manager-0.1.17-py3-none-any.whl',
+    ),
     'ada-composition-web-bootstrap': (
         '0.1.7',
         'ada_composition_web_bootstrap-0.1.7-py3-none-any.whl',
@@ -61,6 +67,10 @@ CRITICAL_PATH_PINNED_WHEELS = {
         '0.1.5',
         'ada_configuration_tools-0.1.5-py3-none-any.whl',
     ),
+    'atlanticus-web-composition-runtime-infrastructure': (
+        '0.1.1',
+        'atlanticus_web_composition_runtime_infrastructure-0.1.1-py3-none-any.whl',
+    ),
     'atlanticus-web-identity': (
         '0.1.0',
         'atlanticus_web_identity-0.1.0-py3-none-any.whl',
@@ -68,6 +78,10 @@ CRITICAL_PATH_PINNED_WHEELS = {
     'atlanticus-web-identity-local': (
         '0.1.0',
         'atlanticus_web_identity_local-0.1.0-py3-none-any.whl',
+    ),
+    'atlanticus-web-manager': (
+        '0.3.10',
+        'atlanticus_web_manager-0.3.10-py3-none-any.whl',
     ),
     'atlanticus-web-users-cosmos': (
         '0.1.5',
@@ -80,10 +94,6 @@ CRITICAL_PATH_PINNED_WHEELS = {
 }
 
 CRITICAL_TRANSITIVE_WHEELS = {
-    'atlanticus-web-composition-runtime-infrastructure': (
-        '0.1.1',
-        'atlanticus_web_composition_runtime_infrastructure-0.1.1-py3-none-any.whl',
-    ),
     'atlanticus-web-composition-sharepoint-http': (
         '0.1.1',
         'atlanticus_web_composition_sharepoint_http-0.1.1-py3-none-any.whl',
