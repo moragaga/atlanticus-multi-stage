@@ -16,7 +16,6 @@ from ada.configuration.tools.identity import build_identity_key
 from ada.configuration.tools.models import (
     ToolComponentConfiguration,
     ToolConfiguration,
-    ToolConfigurationCatalog,
     ToolConfigurationKind,
     ToolSourceConfiguration,
     ToolSubcomponentConfiguration,
@@ -25,7 +24,6 @@ from ada.configuration.tools.web.ids import (
     ADD_COMPONENT_ID,
     ADD_SUBCOMPONENT_ID,
     APPLICATION_KEY_ID,
-    CATALOG_STORE_ID,
     COMPONENT_CANCEL_ID,
     COMPONENT_EDITOR_STORE_ID,
     COMPONENT_MODAL_ID,
@@ -38,6 +36,7 @@ from ada.configuration.tools.web.ids import (
     COMPONENT_SCOPE_FIELD_ID,
     COMPONENT_SCOPE_ID,
     COMPONENTS_LIST_ID,
+    CONFIGURATION_STORE_ID,
     CREATE_BUTTON_ID,
     CREATE_CANCEL_ID,
     CREATE_KIND_ID,
@@ -55,7 +54,6 @@ from ada.configuration.tools.web.ids import (
     REFERENCE_ID,
     SAVE_BUTTON_ID,
     SAVE_RESULT_ID,
-    SELECTED_TOOL_ID,
     SOURCE_REVISION_STORE_ID,
     SOURCES_ID,
     STRUCTURE_RESULT_ID,
@@ -121,41 +119,28 @@ def _pattern_click_is_real(
 
 def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> None:
     @app.callback(
-        Output(CATALOG_STORE_ID, 'data', allow_duplicate=True),
-        Output(SELECTED_TOOL_ID, 'options', allow_duplicate=True),
-        Output(SELECTED_TOOL_ID, 'value', allow_duplicate=True),
+        Output(CONFIGURATION_STORE_ID, 'data', allow_duplicate=True),
         Output(DRAFT_LOAD_SIGNAL_ID, 'data', allow_duplicate=True),
         Output(SOURCE_REVISION_STORE_ID, 'data', allow_duplicate=True),
         Input(context.draft_store_id, 'data'),
-        State(SELECTED_TOOL_ID, 'value'),
         State(DRAFT_LOAD_SIGNAL_ID, 'data'),
         prevent_initial_call='initial_duplicate',
     )
     def load_browser_draft(
         draft_data: dict[str, object] | None,
-        selected_tool: str | None,
         load_signal: int | None,
     ):
         if draft_data is None:
-            return no_update, no_update, no_update, no_update, no_update
+            return no_update, no_update, no_update
         try:
-            catalog = _catalog_from_browser_draft(draft_data, context.draft_owner_provider())
-        except Exception:
-            catalog = ToolConfigurationCatalog(())
-            return (
-                catalog.to_document(),
-                [],
-                None,
-                int(load_signal or 0) + 1,
-                None,
+            configuration = _configuration_from_browser_draft(
+                draft_data,
+                context.draft_owner_provider(),
             )
-        selected = selected_tool
-        if selected is None or not any(tool.tool_key == selected for tool in catalog.tools):
-            selected = catalog.tools[0].tool_key if catalog.tools else None
+        except Exception:
+            return None, int(load_signal or 0) + 1, None
         return (
-            catalog.to_document(),
-            _tool_options(catalog),
-            selected,
+            configuration.to_document(),
             int(load_signal or 0) + 1,
             _draft_base_source_revision(
                 draft_data,
@@ -166,61 +151,60 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
 
     @app.callback(
         Output(context.editor_revision_store_id, 'data'),
-        Input(SELECTED_TOOL_ID, 'value'),
         Input(TOOL_NAME_ID, 'value'),
         Input(TOOL_SCOPE_ID, 'value'),
         Input(SOURCES_ID, 'value'),
         Input(PI_FRESHNESS_ID, 'value'),
         Input(DISPATCH_FRESHNESS_ID, 'value'),
         Input(STRUCTURE_STORE_ID, 'data'),
-        Input(CATALOG_STORE_ID, 'data'),
+        Input(CONFIGURATION_STORE_ID, 'data'),
         prevent_initial_call=True,
     )
     def track_editor_revision(
-        tool_key: str | None,
         display_name: str | None,
         operational_scope: str | None,
         source_values: list[str] | None,
         pi_freshness: int | None,
         dispatch_freshness: int | None,
         structure_data: list[dict[str, object]] | None,
-        catalog_data: dict[str, object] | None,
+        configuration_data: dict[str, object] | None,
     ):
-        try:
-            catalog = _catalog(catalog_data)
-            if tool_key:
-                current = catalog.require(tool_key)
-                updated = catalog.replace(
-                    _build_tool_from_editor(
-                        current=current,
-                        display_name=str(display_name or ''),
-                        operational_scope=operational_scope,
-                        source_values=source_values or [],
-                        pi_freshness=pi_freshness,
-                        dispatch_freshness=dispatch_freshness,
-                        components=_structure_components(structure_data),
-                    )
-                )
-            else:
-                updated = catalog
-            return build_tool_configuration_digest(updated)
-        except Exception:
+        current = _optional_configuration(configuration_data)
+        if current is None:
             return _raw_editor_revision(
-                tool_key=tool_key,
                 display_name=display_name,
                 operational_scope=operational_scope,
                 source_values=source_values,
                 pi_freshness=pi_freshness,
                 dispatch_freshness=dispatch_freshness,
                 structure_data=structure_data,
-                catalog_data=catalog_data,
+                configuration_data=configuration_data,
+            )
+        try:
+            updated = _build_tool_from_editor(
+                current=current,
+                display_name=str(display_name or ''),
+                operational_scope=operational_scope,
+                source_values=source_values or [],
+                pi_freshness=pi_freshness,
+                dispatch_freshness=dispatch_freshness,
+                components=_structure_components(structure_data),
+            )
+            return build_tool_configuration_digest(updated)
+        except Exception:
+            return _raw_editor_revision(
+                display_name=display_name,
+                operational_scope=operational_scope,
+                source_values=source_values,
+                pi_freshness=pi_freshness,
+                dispatch_freshness=dispatch_freshness,
+                structure_data=structure_data,
+                configuration_data=configuration_data,
             )
 
     @app.callback(
         Output(CREATE_MODAL_ID, 'className'),
-        Output(SELECTED_TOOL_ID, 'options'),
-        Output(SELECTED_TOOL_ID, 'value', allow_duplicate=True),
-        Output(CATALOG_STORE_ID, 'data', allow_duplicate=True),
+        Output(CONFIGURATION_STORE_ID, 'data', allow_duplicate=True),
         Output(CREATE_NAME_ID, 'value'),
         Output(CREATE_KIND_ID, 'value'),
         Output(CREATE_RESULT_ID, 'children'),
@@ -231,7 +215,7 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         Input(CREATE_BUTTON_ID, 'n_clicks'),
         State(CREATE_NAME_ID, 'value'),
         State(CREATE_KIND_ID, 'value'),
-        State(CATALOG_STORE_ID, 'data'),
+        State(CONFIGURATION_STORE_ID, 'data'),
         prevent_initial_call=True,
     )
     def create_tool(
@@ -242,7 +226,7 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         _save_clicks: int,
         display_name: str | None,
         kind_value: str | None,
-        catalog_data: dict[str, object] | None,
+        configuration_data: dict[str, object] | None,
     ):
         trigger = ctx.triggered_id
         if _matches_trigger(
@@ -251,54 +235,53 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
             CREATE_CANCEL_ID + '-header',
             CREATE_CANCEL_ID + '-footer',
         ):
-            return _MODAL_CLOSED, no_update, no_update, no_update, '', None, ''
+            return _MODAL_CLOSED, no_update, '', None, ''
         if trigger == CREATE_OPEN_ID:
-            return _MODAL_OPEN, no_update, no_update, no_update, '', None, ''
+            if _optional_configuration(configuration_data) is not None:
+                return _MODAL_CLOSED, no_update, '', None, ''
+            return _MODAL_OPEN, no_update, '', None, ''
         if trigger != CREATE_BUTTON_ID:
-            return _MODAL_CLOSED, no_update, no_update, no_update, no_update, no_update, ''
+            return _MODAL_CLOSED, no_update, no_update, no_update, ''
         if not context.can_manage():
             return (
                 _MODAL_OPEN,
-                no_update,
-                no_update,
                 no_update,
                 display_name,
                 kind_value,
                 _error('Management access is denied'),
             )
         try:
+            if _optional_configuration(configuration_data) is not None:
+                raise ValueError('Tool configuration already exists')
             name = (display_name or '').strip()
-            key = build_identity_key(name)
             kind = ToolConfigurationKind(str(kind_value or ''))
-            catalog = _catalog(catalog_data)
-            if any(tool.tool_key == key for tool in catalog.tools):
-                raise ValueError('Tool key already exists')
-            tool = ToolConfiguration(
+            key = (
+                kind.value
+                if kind is ToolConfigurationKind.INTEGRATED_OPERATIONS
+                else build_identity_key(name)
+            )
+            configuration = ToolConfiguration(
                 tool_key=key,
                 display_name=name,
                 kind=kind,
                 operational_scope=None,
             )
-            updated = catalog.replace(tool)
         except Exception as error:
             return (
                 _MODAL_OPEN,
-                no_update,
-                no_update,
                 no_update,
                 display_name,
                 kind_value,
                 _error(str(error)),
             )
-        return (
-            _MODAL_CLOSED,
-            _tool_options(updated),
-            key,
-            updated.to_document(),
-            '',
-            None,
-            '',
-        )
+        return _MODAL_CLOSED, configuration.to_document(), '', None, ''
+
+    @app.callback(
+        Output(CREATE_OPEN_ID, 'disabled'),
+        Input(CONFIGURATION_STORE_ID, 'data'),
+    )
+    def toggle_create_tool(configuration_data: dict[str, object] | None) -> bool:
+        return _optional_configuration(configuration_data) is not None
 
     @app.callback(
         Output(TOOL_NAME_ID, 'value'),
@@ -310,15 +293,11 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         Output(SOURCES_ID, 'value'),
         Output(PI_FRESHNESS_ID, 'value'),
         Output(DISPATCH_FRESHNESS_ID, 'value'),
-        Input(SELECTED_TOOL_ID, 'value'),
-        Input(CATALOG_STORE_ID, 'data'),
+        Input(CONFIGURATION_STORE_ID, 'data'),
     )
-    def load_tool(tool_key: str | None, catalog_data: dict[str, object] | None):
-        if not tool_key:
-            return ('', '', '', '', None, True, [], None, None)
-        try:
-            tool = _catalog(catalog_data).require(tool_key)
-        except Exception:
+    def load_tool(configuration_data: dict[str, object] | None):
+        tool = _optional_configuration(configuration_data)
+        if tool is None:
             return ('', '', '', '', None, True, [], None, None)
         freshness = {source.key: source.stale_after_seconds for source in tool.sources}
         is_integrated = tool.kind is ToolConfigurationKind.INTEGRATED_OPERATIONS
@@ -336,16 +315,14 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
 
     @app.callback(
         Output(STRUCTURE_STORE_ID, 'data'),
-        Input(SELECTED_TOOL_ID, 'value'),
+        Input(CONFIGURATION_STORE_ID, 'data'),
         Input(DRAFT_LOAD_SIGNAL_ID, 'data'),
-        State(CATALOG_STORE_ID, 'data'),
     )
     def load_tool_structure(
-        tool_key: str | None,
+        configuration_data: dict[str, object] | None,
         _draft_load_signal: int | None,
-        catalog_data: dict[str, object] | None,
     ):
-        tool = _optional_tool(tool_key, catalog_data)
+        tool = _optional_configuration(configuration_data)
         if tool is None:
             return []
         return [component.to_document() for component in tool.components]
@@ -375,17 +352,15 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         Output(COMPONENTS_LIST_ID, 'children'),
         Output(SUBCOMPONENTS_LIST_ID, 'children'),
         Input(STRUCTURE_STORE_ID, 'data'),
-        State(SELECTED_TOOL_ID, 'value'),
-        State(CATALOG_STORE_ID, 'data'),
+        State(CONFIGURATION_STORE_ID, 'data'),
     )
     def render_structure(
         structure_data: list[dict[str, object]] | None,
-        tool_key: str | None,
-        catalog_data: dict[str, object] | None,
+        configuration_data: dict[str, object] | None,
     ):
-        tool = _optional_tool(tool_key, catalog_data)
+        tool = _optional_configuration(configuration_data)
         if tool is None:
-            empty = _empty_structure('Selecciona o crea una herramienta para comenzar.')
+            empty = _empty_structure('Configura la herramienta para comenzar.')
             return empty, empty
         components = _structure_components(structure_data)
         return (
@@ -417,8 +392,7 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         State(COMPONENT_SCOPE_ID, 'value'),
         State(COMPONENT_PLACEMENT_ID, 'value'),
         State(STRUCTURE_STORE_ID, 'data'),
-        State(SELECTED_TOOL_ID, 'value'),
-        State(CATALOG_STORE_ID, 'data'),
+        State(CONFIGURATION_STORE_ID, 'data'),
         prevent_initial_call=True,
     )
     def component_editor(
@@ -434,13 +408,12 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         scope_value: str | None,
         placement_value: str | None,
         structure_data: list[dict[str, object]] | None,
-        tool_key: str | None,
-        catalog_data: dict[str, object] | None,
+        configuration_data: dict[str, object] | None,
     ):
-        tool = _optional_tool(tool_key, catalog_data)
+        tool = _optional_configuration(configuration_data)
         trigger = ctx.triggered_id
         if tool is None:
-            return _component_modal_response(error='Tool selection is required')
+            return _component_modal_response(error='Tool configuration is required')
         if _matches_trigger(
             trigger,
             COMPONENT_CANCEL_ID,
@@ -578,8 +551,7 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         State(SUBCOMPONENT_NAME_ID, 'value'),
         State(SUBCOMPONENT_LINKED_ID, 'value'),
         State(STRUCTURE_STORE_ID, 'data'),
-        State(SELECTED_TOOL_ID, 'value'),
-        State(CATALOG_STORE_ID, 'data'),
+        State(CONFIGURATION_STORE_ID, 'data'),
         prevent_initial_call=True,
     )
     def subcomponent_editor(
@@ -595,14 +567,13 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         display_name: str | None,
         linked_keys: list[str] | None,
         structure_data: list[dict[str, object]] | None,
-        tool_key: str | None,
-        catalog_data: dict[str, object] | None,
+        configuration_data: dict[str, object] | None,
     ):
-        tool = _optional_tool(tool_key, catalog_data)
+        tool = _optional_configuration(configuration_data)
         trigger = ctx.triggered_id
         components = list(_structure_components(structure_data))
         if tool is None:
-            return _subcomponent_modal_response(error='Tool selection is required')
+            return _subcomponent_modal_response(error='Tool configuration is required')
         options = _component_options(components)
         linked_visible = tool.kind is ToolConfigurationKind.INTEGRATED_OPERATIONS
         if _matches_trigger(
@@ -685,16 +656,14 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         Output(SUBCOMPONENT_LINKED_ID, 'options'),
         Input(SUBCOMPONENT_PARENT_ID, 'value'),
         Input(STRUCTURE_STORE_ID, 'data'),
-        State(SELECTED_TOOL_ID, 'value'),
-        State(CATALOG_STORE_ID, 'data'),
+        State(CONFIGURATION_STORE_ID, 'data'),
     )
     def linked_component_options(
         parent_key: str | None,
         structure_data: list[dict[str, object]] | None,
-        tool_key: str | None,
-        catalog_data: dict[str, object] | None,
+        configuration_data: dict[str, object] | None,
     ):
-        tool = _optional_tool(tool_key, catalog_data)
+        tool = _optional_configuration(configuration_data)
         if tool is None or tool.kind is not ToolConfigurationKind.INTEGRATED_OPERATIONS:
             return []
         components = _structure_components(structure_data)
@@ -779,28 +748,26 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
 
     @app.callback(
         Output(REFERENCE_ID, 'children'),
-        Input(SELECTED_TOOL_ID, 'value'),
         Input(TOOL_NAME_ID, 'value'),
         Input(TOOL_SCOPE_ID, 'value'),
         Input(SOURCES_ID, 'value'),
         Input(PI_FRESHNESS_ID, 'value'),
         Input(DISPATCH_FRESHNESS_ID, 'value'),
         Input(STRUCTURE_STORE_ID, 'data'),
-        State(CATALOG_STORE_ID, 'data'),
+        Input(CONFIGURATION_STORE_ID, 'data'),
     )
     def render_reference(
-        tool_key: str | None,
         display_name: str | None,
         operational_scope: str | None,
         source_values: list[str] | None,
         pi_freshness: int | None,
         dispatch_freshness: int | None,
         structure_data: list[dict[str, object]] | None,
-        catalog_data: dict[str, object] | None,
+        configuration_data: dict[str, object] | None,
     ):
-        current = _optional_tool(tool_key, catalog_data)
+        current = _optional_configuration(configuration_data)
         if current is None:
-            return _empty_structure('No hay una herramienta seleccionada.')
+            return _empty_structure('No hay una herramienta configurada.')
         try:
             draft = _build_tool_from_editor(
                 current=current,
@@ -834,9 +801,9 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
             if ',' not in contents:
                 raise ValueError('Configuration file payload is invalid')
             payload = base64.b64decode(contents.split(',', 1)[1], validate=True)
-            catalog = decode_tool_configuration_import(payload)
+            configuration = decode_tool_configuration_import(payload)
             draft = _browser_draft_document(
-                catalog=catalog,
+                configuration=configuration,
                 owner_subject_id=context.draft_owner_provider(),
                 base_source_revision=source_revision,
             )
@@ -845,20 +812,18 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         return draft, _success('Archivo cargado como borrador local.')
 
     @app.callback(
-        Output(CATALOG_STORE_ID, 'data', allow_duplicate=True),
-        Output(SELECTED_TOOL_ID, 'options', allow_duplicate=True),
+        Output(CONFIGURATION_STORE_ID, 'data', allow_duplicate=True),
         Output(SAVE_RESULT_ID, 'children'),
         Output(context.draft_store_id, 'data', allow_duplicate=True),
         Input(SAVE_BUTTON_ID, 'n_clicks'),
         Input(context.draft_save_action_id, 'n_clicks'),
-        State(SELECTED_TOOL_ID, 'value'),
         State(TOOL_NAME_ID, 'value'),
         State(TOOL_SCOPE_ID, 'value'),
         State(SOURCES_ID, 'value'),
         State(PI_FRESHNESS_ID, 'value'),
         State(DISPATCH_FRESHNESS_ID, 'value'),
         State(STRUCTURE_STORE_ID, 'data'),
-        State(CATALOG_STORE_ID, 'data'),
+        State(CONFIGURATION_STORE_ID, 'data'),
         State(SOURCE_REVISION_STORE_ID, 'data'),
         State(context.draft_store_id, 'data'),
         prevent_initial_call=True,
@@ -866,14 +831,13 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
     def save_tool_draft(
         content_clicks: int,
         workflow_clicks: int,
-        tool_key: str | None,
         display_name: str | None,
         operational_scope: str | None,
         source_values: list[str] | None,
         pi_freshness: int | None,
         dispatch_freshness: int | None,
         structure_data: list[dict[str, object]] | None,
-        catalog_data: dict[str, object] | None,
+        configuration_data: dict[str, object] | None,
         source_revision: str | None,
         current_draft: dict[str, object] | None,
     ):
@@ -884,13 +848,12 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
             workflow_clicks=workflow_clicks,
             workflow_id=context.draft_save_action_id,
         ):
-            return no_update, no_update, no_update, no_update
+            return no_update, no_update, no_update
         if not context.can_manage():
-            return no_update, no_update, _error('Management access is denied'), no_update
+            return no_update, _error('Management access is denied'), no_update
         try:
-            catalog = _catalog(catalog_data)
-            current = catalog.require(str(tool_key or ''))
-            tool = _build_tool_from_editor(
+            current = _require_configuration(configuration_data)
+            updated = _build_tool_from_editor(
                 current=current,
                 display_name=str(display_name or ''),
                 operational_scope=operational_scope,
@@ -899,89 +862,81 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
                 dispatch_freshness=dispatch_freshness,
                 components=_structure_components(structure_data),
             )
-            updated = catalog.replace(tool)
             base_revision = _draft_base_source_revision(
                 current_draft,
                 owner_subject_id=context.draft_owner_provider(),
                 fallback=source_revision,
             )
             draft = _browser_draft_document(
-                catalog=updated,
+                configuration=updated,
                 owner_subject_id=context.draft_owner_provider(),
                 base_source_revision=base_revision,
             )
         except Exception as error:
-            return no_update, no_update, _error(str(error)), no_update
-        return (
-            updated.to_document(),
-            _tool_options(updated),
-            None,
-            draft,
-        )
+            return no_update, _error(str(error)), no_update
+        return updated.to_document(), None, draft
 
 
 def _raw_editor_revision(
     *,
-    tool_key: str | None,
     display_name: str | None,
     operational_scope: str | None,
     source_values: list[str] | None,
     pi_freshness: int | None,
     dispatch_freshness: int | None,
     structure_data: list[dict[str, object]] | None,
-    catalog_data: dict[str, object] | None,
+    configuration_data: dict[str, object] | None,
 ) -> str:
     document = {
-        'tool_key': tool_key,
         'display_name': display_name,
         'operational_scope': operational_scope,
         'source_values': source_values or [],
         'pi_freshness': pi_freshness,
         'dispatch_freshness': dispatch_freshness,
         'structure': structure_data or [],
-        'catalog': catalog_data or {},
+        'configuration': configuration_data,
     }
     encoded = json.dumps(document, sort_keys=True, separators=(',', ':')).encode('utf-8')
     return f'editor:{hashlib.sha256(encoded).hexdigest()}'
 
 
-def _catalog_from_browser_draft(
+def _configuration_from_browser_draft(
     data: dict[str, object] | None,
     owner_subject_id: str,
-) -> ToolConfigurationCatalog:
+) -> ToolConfiguration:
     if not isinstance(data, dict):
         raise ValueError('Browser draft does not exist')
-    if data.get('schema_version') != 1:
+    if data.get('schema_version') != 2:
         raise ValueError('Browser draft schema is invalid')
     if str(data.get('owner_subject_id', '')).strip() != owner_subject_id.strip():
         raise ValueError('Browser draft belongs to another user')
     payload = data.get('payload')
     if not isinstance(payload, dict):
         raise ValueError('Browser draft payload is invalid')
-    catalog = ToolConfigurationCatalog.from_document(dict(payload))
-    revision = build_tool_configuration_digest(catalog)
+    configuration = ToolConfiguration.from_document(dict(payload))
+    revision = build_tool_configuration_digest(configuration)
     if str(data.get('revision', '')).strip() != revision:
         raise ValueError('Browser draft revision does not match content')
-    return catalog
+    return configuration
 
 
 def _browser_draft_document(
     *,
-    catalog: ToolConfigurationCatalog,
+    configuration: ToolConfiguration,
     owner_subject_id: str,
     base_source_revision: str | None,
 ) -> dict[str, object]:
     owner = owner_subject_id.strip()
     if not owner:
         raise ValueError('Browser draft owner is required')
-    revision = build_tool_configuration_digest(catalog)
+    revision = build_tool_configuration_digest(configuration)
     return {
-        'schema_version': 1,
+        'schema_version': 2,
         'owner_subject_id': owner,
         'revision': revision,
         'saved_at': datetime.now(UTC).isoformat(),
         'base_source_revision': base_source_revision,
-        'payload': catalog.to_document(),
+        'payload': configuration.to_document(),
     }
 
 
@@ -1021,26 +976,22 @@ def _click_is_real(clicks: int | None) -> bool:
     return isinstance(clicks, int) and not isinstance(clicks, bool) and clicks > 0
 
 
-def _catalog(data: dict[str, object] | None) -> ToolConfigurationCatalog:
-    if not isinstance(data, dict):
-        return ToolConfigurationCatalog(())
-    return ToolConfigurationCatalog.from_document(data)
-
-
-def _optional_tool(
-    tool_key: str | None,
-    catalog_data: dict[str, object] | None,
+def _optional_configuration(
+    data: dict[str, object] | None,
 ) -> ToolConfiguration | None:
-    if not tool_key:
+    if not isinstance(data, dict):
         return None
     try:
-        return _catalog(catalog_data).require(tool_key)
+        return ToolConfiguration.from_document(data)
     except Exception:
         return None
 
 
-def _tool_options(catalog: ToolConfigurationCatalog) -> list[dict[str, str]]:
-    return [{'label': item.display_name, 'value': item.tool_key} for item in catalog.tools]
+def _require_configuration(data: dict[str, object] | None) -> ToolConfiguration:
+    configuration = _optional_configuration(data)
+    if configuration is None:
+        raise ValueError('Tool configuration is required')
+    return configuration
 
 
 def _scope_value(scope: ToolScope | None) -> str | None:

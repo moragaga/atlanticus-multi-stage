@@ -1,6 +1,6 @@
-# Espejo pedagógico: conserva la misma lógica del archivo productivo.
-# Los comentarios documentan la responsabilidad sin cambiar el comportamiento.
-# Representa exclusivamente el read model runtime derivado de Tools.
+# La Projection publica un único ToolManifest activo.
+# AdaSurfaceRegistry permanece separado: resuelve adapters, no catálogos de herramientas configuradas.
+
 from __future__ import annotations
 
 import hashlib
@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from typing import Any, Literal
 
 from ada.configuration.tools.errors import ToolConfigurationProjectionError
-from ada.contracts.tool_manifest import ToolManifestRegistry
+from ada.contracts.tool_manifest import ToolManifest
 
 IssueLevel = Literal['error', 'warning']
 
@@ -59,7 +59,7 @@ class ToolConfigurationProjection:
     source_revision: str
     projected_by: str
     projected_at_utc: datetime
-    registry: ToolManifestRegistry
+    manifest: ToolManifest
 
     def __post_init__(self) -> None:
         revision = self.revision.strip()
@@ -80,6 +80,8 @@ class ToolConfigurationProjection:
             raise ToolConfigurationProjectionError(
                 'Tool projection revision does not match metadata'
             )
+        if not isinstance(self.manifest, ToolManifest):
+            raise ToolConfigurationProjectionError('Tool projection manifest is invalid')
         object.__setattr__(self, 'projected_at_utc', occurred_at)
 
     @classmethod
@@ -89,7 +91,7 @@ class ToolConfigurationProjection:
         source_revision: str,
         projected_by: str,
         projected_at_utc: datetime,
-        registry: ToolManifestRegistry,
+        manifest: ToolManifest,
     ) -> ToolConfigurationProjection:
         occurred_at = projected_at_utc.astimezone(UTC)
         return cls(
@@ -100,7 +102,7 @@ class ToolConfigurationProjection:
             source_revision=source_revision,
             projected_by=projected_by,
             projected_at_utc=occurred_at,
-            registry=registry,
+            manifest=manifest,
         )
 
     def to_document(self, *, item_id: str, partition_key: str) -> dict[str, object]:
@@ -108,30 +110,30 @@ class ToolConfigurationProjection:
             'id': item_id,
             'partition_key': partition_key,
             'document_type': 'ada_tool_projection',
-            'schema_version': 1,
+            'schema_version': 2,
             'revision': self.revision,
             'source_revision': self.source_revision,
             'projected_by': self.projected_by,
             'projected_at_utc': self.projected_at_utc.isoformat(),
-            'registry': self.registry.to_document(),
+            'manifest': self.manifest.to_document(),
         }
 
     @classmethod
     def from_document(cls, document: dict[str, Any]) -> ToolConfigurationProjection:
         if document.get('document_type') != 'ada_tool_projection':
             raise ToolConfigurationProjectionError('Tool projection document type is invalid')
-        if document.get('schema_version') != 1:
+        if document.get('schema_version') != 2:
             raise ToolConfigurationProjectionError('Tool projection schema version is invalid')
         try:
-            registry = document['registry']
-            if not isinstance(registry, dict):
+            manifest = document['manifest']
+            if not isinstance(manifest, dict):
                 raise TypeError
             return cls(
                 revision=str(document['revision']),
                 source_revision=str(document['source_revision']),
                 projected_by=str(document['projected_by']),
                 projected_at_utc=datetime.fromisoformat(str(document['projected_at_utc'])),
-                registry=ToolManifestRegistry.from_document(dict(registry)),
+                manifest=ToolManifest.from_document(dict(manifest)),
             )
         except (KeyError, TypeError, ValueError) as error:
             raise ToolConfigurationProjectionError('Tool projection contract is invalid') from error

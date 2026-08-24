@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ada.configuration.tools import ToolConfigurationCatalog, ToolConfigurationServices
+from ada.configuration.tools import ToolConfiguration, ToolConfigurationServices
 from atlanticus.web.manager import (
     DraftValidationResult,
     ProjectionAuditRecord,
@@ -32,8 +32,8 @@ class ToolManagerWorkflowAdapter:
         return _status(status)
 
     def validate_draft(self, payload: dict[str, object]) -> DraftValidationResult:
-        catalog = ToolConfigurationCatalog.from_document(payload)
-        result = self._administration.validate_catalog(catalog)
+        configuration = ToolConfiguration.from_document(payload)
+        result = self._administration.validate_configuration(configuration)
         return _validation(result)
 
     def publish_draft(
@@ -41,9 +41,9 @@ class ToolManagerWorkflowAdapter:
         payload: dict[str, object],
         expected_source_revision: str | None,
     ) -> SourcePublicationResult:
-        catalog = ToolConfigurationCatalog.from_document(payload)
-        result = self._administration.publish_catalog(
-            catalog,
+        configuration = ToolConfiguration.from_document(payload)
+        result = self._administration.publish_configuration(
+            configuration,
             expected_source_revision=expected_source_revision,
         )
         return _publication(result)
@@ -52,7 +52,7 @@ class ToolManagerWorkflowAdapter:
         return _projection(self._workflow.project(expected_source_revision))
 
     def load_revision(self, revision: str) -> dict[str, object]:
-        return self._administration.load_revision_catalog(revision).to_document()
+        return self._administration.load_revision_configuration(revision).to_document()
 
     def list_history(self, *, limit: int = 20) -> tuple[RevisionHistoryEntry, ...]:
         status = self._workflow.get_status()

@@ -48,7 +48,7 @@ class AdaCosmosBindings:
 class AdaConfigurationFilenames:
     users: str = 'users_configuration.json.gz'
     navigation: str = 'navigation_configuration.json.gz'
-    tools: str = 'tools_configuration.json.gz'
+    tools: str = 'tool_configuration.json.gz'
 
     def __post_init__(self) -> None:
         for field_name in ('users', 'navigation', 'tools'):

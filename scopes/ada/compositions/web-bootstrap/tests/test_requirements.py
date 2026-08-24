@@ -1,6 +1,7 @@
 import pytest
 
 from ada.compositions.web_bootstrap import (
+    AdaConfigurationFilenames,
     AdaCosmosBindings,
     build_ada_cosmos_requirements,
     ensure_ada_cosmos_infrastructure,
@@ -103,3 +104,7 @@ def test_ensure_ada_cosmos_infrastructure_delegates_local_database_creation(monk
         requirement.container_name
         for requirement in captured['requirements_by_connection']['configuration']
     ] == ['users', 'users_support', 'user_activity', 'configuration']
+
+
+def test_default_tool_configuration_filename_is_singular() -> None:
+    assert AdaConfigurationFilenames().tools == 'tool_configuration.json.gz'

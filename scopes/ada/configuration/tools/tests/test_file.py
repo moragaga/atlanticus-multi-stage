@@ -10,12 +10,11 @@ from ada.configuration.tools.adapters.memory import (
     MemoryToolConfigurationStore,
     MemoryToolProjectionRepository,
 )
-from ada.configuration.tools.builder import build_tool_manifest_registry
+from ada.configuration.tools.builder import build_tool_manifest
 from ada.configuration.tools.bundle import ToolConfigurationBundle
 from ada.configuration.tools.models import (
     ToolComponentConfiguration,
     ToolConfiguration,
-    ToolConfigurationCatalog,
     ToolConfigurationKind,
     ToolSourceConfiguration,
     ToolSubcomponentConfiguration,
@@ -25,7 +24,7 @@ from ada.configuration.tools.services import compose_tool_configuration_services
 from ada.contracts.tool_manifest import ProcessBodySection, ToolScope, ToolSourceKey
 
 
-def _tool_configuration() -> ToolConfiguration:
+def _configuration() -> ToolConfiguration:
     return ToolConfiguration(
         tool_key='flotacion',
         display_name='Flotación',
@@ -48,29 +47,25 @@ def _tool_configuration() -> ToolConfiguration:
     )
 
 
-def _catalog() -> ToolConfigurationCatalog:
-    return ToolConfigurationCatalog((_tool_configuration(),))
-
-
 def test_file_source_uses_one_document_and_unique_history_by_revision(tmp_path) -> None:
     root = tmp_path / 'source'
     store = FileToolConfigurationStore(FileToolConfigurationSettings(root=root))
     bundle = ToolConfigurationBundle.create(
-        catalog=_catalog(),
+        configuration=_configuration(),
         saved_by='tester',
         now_utc=datetime(2026, 8, 18, 14, 0, tzinfo=UTC),
     )
 
     store.publish_bundle(bundle, expected_source_revision=None)
     store.publish_bundle(
-        ToolConfigurationBundle.create(catalog=_catalog(), saved_by='tester-2'),
+        ToolConfigurationBundle.create(configuration=_configuration(), saved_by='tester-2'),
         expected_source_revision=bundle.revision,
     )
 
     assert store.fetch_bundle() == bundle
     assert store.list_history() == (bundle,)
     assert store.fetch_revision(bundle.revision) == bundle
-    assert [path.name for path in root.iterdir()] == ['tools_configuration.json.gz']
+    assert [path.name for path in root.iterdir()] == ['tool_configuration.json.gz']
 
 
 def test_file_projection_persists_only_runtime_projection(tmp_path) -> None:
@@ -81,14 +76,14 @@ def test_file_projection_persists_only_runtime_projection(tmp_path) -> None:
         source_revision='source-revision',
         projected_by='tester',
         projected_at_utc=datetime(2026, 8, 18, 14, 5, tzinfo=UTC),
-        registry=build_tool_manifest_registry(_catalog()),
+        manifest=build_tool_manifest(_configuration()),
     )
 
     repository.save(projection)
 
     assert repository.load() == projection
     assert repository.health_check() is True
-    assert [path.name for path in (tmp_path / 'projection').iterdir()] == ['tools.json']
+    assert [path.name for path in (tmp_path / 'projection').iterdir()] == ['tool.json']
 
 
 def test_file_source_can_project_into_memory_repository(tmp_path) -> None:
@@ -99,8 +94,8 @@ def test_file_source_can_project_into_memory_repository(tmp_path) -> None:
         projection=MemoryToolProjectionRepository(),
         audit_actor_provider=lambda: 'tester',
     )
-    publication = services.administration.publish_catalog(
-        _catalog(),
+    publication = services.administration.publish_configuration(
+        _configuration(),
         expected_source_revision=None,
     )
 
@@ -120,8 +115,8 @@ def test_memory_source_can_project_into_file_repository(tmp_path) -> None:
         projection=projection,
         audit_actor_provider=lambda: 'tester',
     )
-    publication = services.administration.publish_catalog(
-        _catalog(),
+    publication = services.administration.publish_configuration(
+        _configuration(),
         expected_source_revision=None,
     )
 

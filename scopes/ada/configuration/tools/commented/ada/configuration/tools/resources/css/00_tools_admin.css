@@ -1,4 +1,5 @@
-/* Mantiene la identidad Atlanticus y convierte la estructura en listas visuales con formularios modales controlados. */
+/* El estilo acompaña la barra informativa de configuración única y conserva el resto del editor. */
+
 .ada-tools-admin {
     display: grid;
     gap: .9rem;
@@ -75,19 +76,19 @@
     gap: 1rem;
 }
 
-.ada-tools-admin__selector {
+.ada-tools-admin__toolbar-copy {
     flex: 1 1 34rem;
     max-width: 48rem;
 }
 
-.ada-tools-admin__selector,
+.ada-tools-admin__toolbar-copy,
 .ada-tools-admin__field,
 .ada-tools-admin__field--reference {
     display: grid;
     gap: .35rem;
 }
 
-.ada-tools-admin__selector label,
+.ada-tools-admin__toolbar-copy label,
 .ada-tools-admin__field > span,
 .ada-tools-admin__field--reference > span {
     color: var(--atlanticus-manager-text-muted);
@@ -474,7 +475,7 @@
         flex-direction: column;
     }
 
-    .ada-tools-admin__selector {
+    .ada-tools-admin__toolbar-copy {
         width: 100%;
         max-width: none;
     }

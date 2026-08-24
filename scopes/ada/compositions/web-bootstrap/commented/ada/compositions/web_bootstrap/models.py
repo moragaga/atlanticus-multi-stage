@@ -1,6 +1,7 @@
-from __future__ import annotations
+# El bootstrap usa el nuevo archivo singular de Tool Configuration por defecto.
+# El nombre de capability tools se conserva porque identifica el módulo/conexión, no un catálogo multi-tool.
 
-# Espejo comentado: misma lógica productiva con notas pedagógicas en español.
+from __future__ import annotations
 
 from dataclasses import dataclass
 
@@ -50,7 +51,7 @@ class AdaCosmosBindings:
 class AdaConfigurationFilenames:
     users: str = 'users_configuration.json.gz'
     navigation: str = 'navigation_configuration.json.gz'
-    tools: str = 'tools_configuration.json.gz'
+    tools: str = 'tool_configuration.json.gz'
 
     def __post_init__(self) -> None:
         for field_name in ('users', 'navigation', 'tools'):
@@ -77,7 +78,6 @@ class AdaConfigurationBackends:
 
 
 @dataclass(frozen=True, slots=True)
-# Agrupa las vistas runtime que pueden sustituir a los readers Cosmos durante desarrollo local.
 class AdaRuntimeProjection:
     profiles: ProfileCatalog
     navigation_provider: NavigationDefinitionProvider

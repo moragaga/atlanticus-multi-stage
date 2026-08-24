@@ -3,12 +3,10 @@ import pytest
 from ada.configuration.tools import (
     ToolComponentConfiguration,
     ToolConfiguration,
-    ToolConfigurationCatalog,
     ToolConfigurationKind,
     ToolSourceConfiguration,
     ToolSubcomponentConfiguration,
     build_tool_manifest,
-    build_tool_manifest_registry,
     integrated_operations_configuration_from_manifest,
 )
 from ada.configuration.tools.errors import ToolConfigurationValidationError
@@ -128,31 +126,3 @@ def test_process_derives_center_and_context_targets() -> None:
     assert not manifest.section('molienda_molienda').targets
     assert manifest.section('global_indicators').targets == frozenset({ToolTarget.KPI})
     assert manifest.section('time_status').targets == frozenset({ToolTarget.KPI})
-
-
-def test_registry_preserves_catalog_order() -> None:
-    integrated = integrated_operations_configuration_from_manifest(INTEGRATED_OPERATIONS_MANIFEST)
-    process = ToolConfiguration(
-        tool_key='flotacion',
-        display_name='Flotación',
-        kind=ToolConfigurationKind.PROCESS,
-        operational_scope=ToolScope.PLANT,
-        sources=(ToolSourceConfiguration(ToolSourceKey.PI, 300),),
-        components=(
-            ToolComponentConfiguration(
-                key='flotacion',
-                display_name='Flotación',
-                layout_role=ProcessBodySection.CENTER,
-                subcomponents=(
-                    ToolSubcomponentConfiguration(key='colectiva', display_name='Colectiva'),
-                ),
-            ),
-        ),
-    )
-
-    registry = build_tool_manifest_registry(ToolConfigurationCatalog((integrated, process)))
-
-    assert [manifest.tool_key for manifest in registry.manifests] == [
-        'integrated_operations',
-        'flotacion',
-    ]

@@ -18,99 +18,132 @@ from atlanticus.web.users.activity import (
 )
 from atlanticus.web.users.activity.models import build_activity_document_id
 from atlanticus.web.users.configuration import UserConfiguration
-from integrated_operations.deployment.definition import build_deployment_definition, build_metadata
+from integrated_operations.deployment.definition import (
+    build_deployment_definition,
+    build_metadata,
+)
 
 _HTTP_TIMEOUT_SECONDS = 60.0
 _HTTP_INTERVAL_SECONDS = 0.5
-_PROFILE_KEY = 'operator'
-_TENANT_ID = '00000000-0000-0000-0000-000000000018'
-_SUBJECT_ID = '00000000-0000-0000-0000-000000000043'
-_EMAIL = 'atlanticus.r18c@example.com'
-_DISPLAY_NAME = 'Atlanticus R18C Operator'
-_CLIENT_SESSION_ID = 'r19b2-runtime-smoke'
-_PROJECTED_MILL_DISPLAY_NAME = 'Molienda proyectada R19B2'
+_PROFILE_KEY = "operator"
+_TENANT_ID = "00000000-0000-0000-0000-000000000018"
+_SUBJECT_ID = "00000000-0000-0000-0000-000000000043"
+_EMAIL = "atlanticus.r18c@example.com"
+_DISPLAY_NAME = "Atlanticus R18C Operator"
+_ADMIN_SUBJECT_ID = "00000000-0000-0000-0000-000000000044"
+_ADMIN_EMAIL = "atlanticus.r18c.admin@example.com"
+_ADMIN_DISPLAY_NAME = "Atlanticus R18C Administrator"
+_CLIENT_SESSION_ID = "r19b2-runtime-smoke"
+_PROJECTED_MILL_DISPLAY_NAME = "Molienda proyectada R19B2"
 
 
 def main() -> None:
-    base_url = os.environ['ATLANTICUS_SMOKE_APPLICATION_URL'].rstrip('/')
-    live = _request_json(f'{base_url}/health/live')
-    assert live['status'] == 'alive'
-    assert live['application_id'] == 'ada-integrated-operations'
-    assert live['environment'] == 'production'
+    base_url = os.environ["ATLANTICUS_SMOKE_APPLICATION_URL"].rstrip("/")
+    live = _request_json(f"{base_url}/health/live")
+    assert live["status"] == "alive"
+    assert live["application_id"] == "ada-integrated-operations"
+    assert live["environment"] == "production"
 
-    ready = _request_json(f'{base_url}/health/ready')
-    assert ready['status'] == 'ready'
+    ready = _request_json(f"{base_url}/health/ready")
+    assert ready["status"] == "ready"
 
-    home = _request_text(f'{base_url}/', headers=_identity_headers())
-    assert 'app.min.css' in home
-    assert 'Integrated Operations' in home
+    home = _request_text(f"{base_url}/", headers=_identity_headers())
+    assert "app.min.css" in home
+    assert "Integrated Operations" in home
 
     dash_layout = _request_json(
-        f'{base_url}/_dash-layout',
+        f"{base_url}/_dash-layout",
         headers=_identity_headers(),
     )
     dash_layout_json = json.dumps(dash_layout, ensure_ascii=False)
     assert _PROJECTED_MILL_DISPLAY_NAME in dash_layout_json
-    assert 'data-ada-unified-application' in dash_layout_json
-    assert 'app-header-offcanvas' in dash_layout_json
-    assert 'app-header-desktop-toggle' in dash_layout_json
+    assert "data-ada-unified-application" in dash_layout_json
+    assert "app-header-offcanvas" in dash_layout_json
+    assert "app-header-desktop-toggle" in dash_layout_json
     assert '"data-ada-surface-adapter": "integrated_operations"' in dash_layout_json
 
     manager_surface = _request_json(
-        f'{base_url}/_dash-update-component',
-        method='POST',
-        headers={**_identity_headers(), 'Content-Type': 'application/json'},
+        f"{base_url}/_dash-update-component",
+        method="POST",
+        headers={**_admin_identity_headers(), "Content-Type": "application/json"},
         payload={
-            'output': 'ada-unified-application-surface-host.children',
-            'outputs': {
-                'id': 'ada-unified-application-surface-host',
-                'property': 'children',
+            "output": "ada-unified-application-surface-host.children",
+            "outputs": {
+                "id": "ada-unified-application-surface-host",
+                "property": "children",
             },
-            'inputs': [
+            "inputs": [
                 {
-                    'id': 'ada-unified-application-location',
-                    'property': 'pathname',
-                    'value': '/manager/tools',
+                    "id": "ada-unified-application-location",
+                    "property": "pathname",
+                    "value": "/manager/tools",
                 }
             ],
-            'state': [],
-            'changedPropIds': ['ada-unified-application-location.pathname'],
+            "state": [],
+            "changedPropIds": ["ada-unified-application-location.pathname"],
         },
     )
     manager_surface_json = json.dumps(manager_surface, ensure_ascii=False)
-    assert 'data-ada-manager-surface' in manager_surface_json
-    assert 'atlanticus-manager-refresh' in manager_surface_json
-    assert 'app-header-desktop-toggle' in manager_surface_json
-    assert 'atlanticus-manager-content' in manager_surface_json
+    assert "data-ada-manager-surface" in manager_surface_json
+    assert "atlanticus-manager-refresh" in manager_surface_json
+    assert "app-header-desktop-toggle" in manager_surface_json
+    assert "atlanticus-manager-content" in manager_surface_json
 
-    activity = _request_json(
-        f'{base_url}/api/user-activity',
-        method='POST',
-        headers={**_identity_headers(), 'Content-Type': 'application/json'},
+    manager_content = _request_json(
+        f"{base_url}/_dash-update-component",
+        method="POST",
+        headers={**_admin_identity_headers(), "Content-Type": "application/json"},
         payload={
-            'event_id': 'r18c-register',
-            'client_session_id': _CLIENT_SESSION_ID,
-            'sequence': 1,
-            'event_type': 'register',
-            'pathname': '/',
-            'previous_pathname': None,
-            'visibility_state': 'visible',
-            'viewport': {'width': 1440, 'height': 900},
-            'screen': {'width': 1920, 'height': 1080, 'pixel_ratio': 2},
+            "output": "atlanticus-manager-content.children",
+            "outputs": {
+                "id": "atlanticus-manager-content",
+                "property": "children",
+            },
+            "inputs": [
+                {
+                    "id": "atlanticus-manager-location",
+                    "property": "pathname",
+                    "value": "/manager/tools",
+                }
+            ],
+            "state": [],
+            "changedPropIds": ["atlanticus-manager-location.pathname"],
         },
     )
-    assert activity == {'status': 'registered', 'tracked': True}
+    manager_content_json = json.dumps(manager_content, ensure_ascii=False)
+    assert "ada-tools-configuration-store" in manager_content_json
+    assert "Configuración única de herramienta" in manager_content_json
+    assert "ada-tools-selected-tool" not in manager_content_json
+
+    activity = _request_json(
+        f"{base_url}/api/user-activity",
+        method="POST",
+        headers={**_identity_headers(), "Content-Type": "application/json"},
+        payload={
+            "event_id": "r18c-register",
+            "client_session_id": _CLIENT_SESSION_ID,
+            "sequence": 1,
+            "event_type": "register",
+            "pathname": "/",
+            "previous_pathname": None,
+            "visibility_state": "visible",
+            "viewport": {"width": 1440, "height": 900},
+            "screen": {"width": 1920, "height": 1080, "pixel_ratio": 2},
+        },
+    )
+    assert activity == {"status": "registered", "tracked": True}
 
     _assert_activity_persisted()
-    print('Health live/ready: OK')
-    print('Worker runtime warmup + HTTP: OK')
-    print('App Service identity + projected Integrated Operations /: OK')
-    print('Unified presentation shell + generic ADA surface adapter: OK')
-    print('Unified Manager surface composition + deep route: OK')
-    print('Unified runtime + authorization convergence: OK')
-    print('Production asset snapshot: OK')
-    print('User activity HTTP + Cosmos persistence: OK')
-    print('R19B.2 Projected Tool Runtime smoke passed.')
+    print("Health live/ready: OK")
+    print("Worker runtime warmup + HTTP: OK")
+    print("App Service identity + projected Integrated Operations /: OK")
+    print("Unified presentation shell + generic ADA surface adapter: OK")
+    print("Unified Manager surface composition + deep route: OK")
+    print("Unified runtime + authorization convergence: OK")
+    print("Single Tool Configuration + singular projection: OK")
+    print("Production asset snapshot: OK")
+    print("User activity HTTP + Cosmos persistence: OK")
+    print("R19B.2 Projected Tool Runtime smoke passed.")
 
 
 def _assert_activity_persisted() -> None:
@@ -126,20 +159,22 @@ def _assert_activity_persisted() -> None:
             user_id=user.user_id,
             client_session_id=_CLIENT_SESSION_ID,
         )
-        raw = infrastructure.cosmos('application').read_item(
-            container_name='user_activity',
+        raw = infrastructure.cosmos("application").read_item(
+            container_name="user_activity",
             item_id=document_id,
             partition_key=document_id,
             include_metadata=True,
         )
         assert raw is not None
-        assert raw['type'] == COSMOS_USER_ACTIVITY_RECORD_TYPE
-        assert raw['storage_schema_version'] == COSMOS_USER_ACTIVITY_STORAGE_SCHEMA_VERSION
-        assert raw['payload']['user_id'] == user.user_id
-        assert raw['payload']['profile_key'] == _PROFILE_KEY
-        assert raw['payload']['initial_route_key'] == 'home'
-        assert raw['payload']['current_route_key'] == 'home'
-        assert raw['_etag']
+        assert raw["type"] == COSMOS_USER_ACTIVITY_RECORD_TYPE
+        assert (
+            raw["storage_schema_version"] == COSMOS_USER_ACTIVITY_STORAGE_SCHEMA_VERSION
+        )
+        assert raw["payload"]["user_id"] == user.user_id
+        assert raw["payload"]["profile_key"] == _PROFILE_KEY
+        assert raw["payload"]["initial_route_key"] == "home"
+        assert raw["payload"]["current_route_key"] == "home"
+        assert raw["_etag"]
     finally:
         infrastructure.close()
 
@@ -149,63 +184,86 @@ def _user() -> UserConfiguration:
         display_name=_DISPLAY_NAME,
         email=_EMAIL,
         profile_key=_PROFILE_KEY,
-        issuer=f'app_service:aad:tenant:{_TENANT_ID}',
+        issuer=f"app_service:aad:tenant:{_TENANT_ID}",
         subject_id=_SUBJECT_ID,
     )
 
 
 def _identity_headers() -> dict[str, str]:
+    return _headers_for_identity(
+        subject_id=_SUBJECT_ID,
+        email=_EMAIL,
+        display_name=_DISPLAY_NAME,
+    )
+
+
+def _admin_identity_headers() -> dict[str, str]:
+    return _headers_for_identity(
+        subject_id=_ADMIN_SUBJECT_ID,
+        email=_ADMIN_EMAIL,
+        display_name=_ADMIN_DISPLAY_NAME,
+    )
+
+
+def _headers_for_identity(
+    *,
+    subject_id: str,
+    email: str,
+    display_name: str,
+) -> dict[str, str]:
     principal = {
-        'auth_typ': 'aad',
-        'claims': [
-            {'typ': 'tid', 'val': _TENANT_ID},
-            {'typ': 'oid', 'val': _SUBJECT_ID},
-            {'typ': 'email', 'val': _EMAIL},
-            {'typ': 'name', 'val': _DISPLAY_NAME},
+        "auth_typ": "aad",
+        "claims": [
+            {"typ": "tid", "val": _TENANT_ID},
+            {"typ": "oid", "val": subject_id},
+            {"typ": "email", "val": email},
+            {"typ": "name", "val": display_name},
         ],
     }
     encoded = base64.urlsafe_b64encode(
-        json.dumps(principal, separators=(',', ':')).encode('utf-8')
-    ).decode('ascii')
+        json.dumps(principal, separators=(",", ":")).encode("utf-8")
+    ).decode("ascii")
     return {
-        'Accept': 'text/html',
-        'X-MS-CLIENT-PRINCIPAL': encoded,
-        'X-MS-CLIENT-PRINCIPAL-ID': _SUBJECT_ID,
-        'X-MS-CLIENT-PRINCIPAL-IDP': 'aad',
-        'X-MS-CLIENT-PRINCIPAL-NAME': _EMAIL,
+        "Accept": "text/html",
+        "X-MS-CLIENT-PRINCIPAL": encoded,
+        "X-MS-CLIENT-PRINCIPAL-ID": subject_id,
+        "X-MS-CLIENT-PRINCIPAL-IDP": "aad",
+        "X-MS-CLIENT-PRINCIPAL-NAME": email,
     }
 
 
 def _request_text(
     url: str,
     *,
-    method: str = 'GET',
+    method: str = "GET",
     headers: dict[str, str] | None = None,
     payload: dict[str, object] | None = None,
 ) -> str:
-    data = None if payload is None else json.dumps(payload).encode('utf-8')
+    data = None if payload is None else json.dumps(payload).encode("utf-8")
     deadline = time.monotonic() + _HTTP_TIMEOUT_SECONDS
     last_error: BaseException | None = None
     while time.monotonic() < deadline:
         try:
             request = Request(url, data=data, method=method, headers=headers or {})
             with urlopen(request, timeout=3.0) as response:
-                return response.read().decode('utf-8')
+                return response.read().decode("utf-8")
         except (HTTPError, URLError, TimeoutError, OSError) as error:
             last_error = error
         time.sleep(_HTTP_INTERVAL_SECONDS)
-    raise RuntimeError(f'HTTP request did not succeed: {url}') from last_error
+    raise RuntimeError(f"HTTP request did not succeed: {url}") from last_error
 
 
 def _request_json(
     url: str,
     *,
-    method: str = 'GET',
+    method: str = "GET",
     headers: dict[str, str] | None = None,
     payload: dict[str, object] | None = None,
 ) -> dict[str, object]:
-    return json.loads(_request_text(url, method=method, headers=headers, payload=payload))
+    return json.loads(
+        _request_text(url, method=method, headers=headers, payload=payload)
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

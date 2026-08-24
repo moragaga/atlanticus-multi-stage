@@ -2,33 +2,25 @@ from __future__ import annotations
 
 from dash import html
 
-from ada.configuration.tools.models import ToolConfigurationCatalog
+from ada.configuration.tools.models import ToolConfiguration
 
 
 def build_tool_history_preview(payload: dict[str, object]) -> object:
-    catalog = ToolConfigurationCatalog.from_document(payload)
-    component_count = sum(len(tool.components) for tool in catalog.tools)
-    subcomponent_count = sum(
-        len(component.subcomponents) for tool in catalog.tools for component in tool.components
-    )
-    source_count = sum(len(tool.sources) for tool in catalog.tools)
+    configuration = ToolConfiguration.from_document(payload)
+    component_count = len(configuration.components)
+    subcomponent_count = sum(len(component.subcomponents) for component in configuration.components)
+    source_count = len(configuration.sources)
     return html.Div(
         [
             _summary(
                 (
-                    ('Herramientas', str(len(catalog.tools))),
                     ('Componentes', str(component_count)),
                     ('Subcomponentes', str(subcomponent_count)),
                     ('Fuentes', str(source_count)),
                 )
             ),
             html.Div(
-                [_tool(tool) for tool in catalog.tools]
-                if catalog.tools
-                else html.P(
-                    'Sin herramientas configuradas.',
-                    className='atlanticus-manager__preview-empty',
-                ),
+                _tool(configuration),
                 className='atlanticus-manager__preview-tree',
             ),
         ],
@@ -36,7 +28,7 @@ def build_tool_history_preview(payload: dict[str, object]) -> object:
     )
 
 
-def _tool(tool) -> object:
+def _tool(tool: ToolConfiguration) -> object:
     badges = [_badge(f'Tipo: {tool.kind.value}')]
     if tool.operational_scope is not None:
         badges.append(_badge(f'Scope: {tool.operational_scope.value}'))
@@ -145,5 +137,5 @@ def _summary(items: tuple[tuple[str, str], ...]) -> object:
     )
 
 
-def _badge(label: str) -> object:
-    return html.Span(label, className='atlanticus-manager__preview-badge')
+def _badge(value: str) -> object:
+    return html.Span(value, className='atlanticus-manager__preview-badge')

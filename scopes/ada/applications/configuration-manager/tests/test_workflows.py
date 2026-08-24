@@ -7,7 +7,7 @@ from ada.compositions.configuration_manager import (
     UsersManagerWorkflowAdapter,
 )
 from ada.configuration.tools import (
-    ToolConfigurationCatalog,
+    ToolConfiguration,
     integrated_operations_configuration_from_manifest,
 )
 from ada.contracts.tool_manifest import INTEGRATED_OPERATIONS_MANIFEST
@@ -27,10 +27,8 @@ from atlanticus.web.users.profiles import (
 )
 
 
-def _catalog() -> ToolConfigurationCatalog:
-    return ToolConfigurationCatalog(
-        (integrated_operations_configuration_from_manifest(INTEGRATED_OPERATIONS_MANIFEST),)
-    )
+def _configuration() -> ToolConfiguration:
+    return integrated_operations_configuration_from_manifest(INTEGRATED_OPERATIONS_MANIFEST)
 
 
 def _users_catalog() -> UsersConfigurationCatalog:
@@ -70,7 +68,7 @@ def _navigation_catalog() -> NavigationConfigurationCatalog:
 def test_tool_adapter_exposes_draft_publish_projection_and_history(tmp_path) -> None:
     dependencies = build_local_dependencies(runtime_root=tmp_path)
     adapter = ToolManagerWorkflowAdapter(dependencies.tools)
-    payload = _catalog().to_document()
+    payload = _configuration().to_document()
 
     assert resolve_projection_state(adapter.get_status()) is ProjectionState.NO_SOURCE
     validation = adapter.validate_draft(payload)
@@ -90,14 +88,14 @@ def test_tool_adapter_exposes_draft_publish_projection_and_history(tmp_path) -> 
 def test_loading_historical_revision_does_not_mutate_source(tmp_path) -> None:
     dependencies = build_local_dependencies(runtime_root=tmp_path)
     adapter = ToolManagerWorkflowAdapter(dependencies.tools)
-    first = adapter.publish_draft(_catalog().to_document(), None)
-    current_tool = _catalog().tools[0]
-    changed = ToolConfigurationCatalog((replace(current_tool, display_name='Cambio temporal'),))
+    first = adapter.publish_draft(_configuration().to_document(), None)
+    current_tool = _configuration()
+    changed = replace(current_tool, display_name='Cambio temporal')
     second = adapter.publish_draft(changed.to_document(), first.source_revision)
 
     loaded = adapter.load_revision(first.source_revision)
 
-    assert ToolConfigurationCatalog.from_document(loaded) == _catalog()
+    assert ToolConfiguration.from_document(loaded) == _configuration()
     assert adapter.get_status().source_revision == second.source_revision
     assert len(adapter.list_history()) == 2
 

@@ -1,5 +1,5 @@
-# Implementa History local de Tools y aplica optimistic concurrency releyendo la revisión antes de persistir.
-# El backend file mantiene el mismo contrato de publicación que SharePoint para que la composición sea intercambiable.
+# Los backends File usan nombres singulares para Source y Projection de Tool.
+# Esto permite convivir con archivos legacy sin leerlos ni eliminarlos.
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ from ada.configuration.tools.projection import ToolConfigurationProjection
 @dataclass(frozen=True, slots=True)
 class FileToolConfigurationSettings:
     root: Path
-    filename: str = 'tools_configuration.json.gz'
+    filename: str = 'tool_configuration.json.gz'
 
 
 class FileToolConfigurationStore:
@@ -92,9 +92,9 @@ class FileToolConfigurationStore:
 @dataclass(frozen=True, slots=True)
 class FileToolProjectionSettings:
     root: Path
-    projection_filename: str = 'tools.json'
-    item_id: str = 'tools'
-    partition_key: str = 'tools'
+    projection_filename: str = 'tool.json'
+    item_id: str = 'tool'
+    partition_key: str = 'tool'
 
 
 class FileToolProjectionRepository:

@@ -4,7 +4,6 @@ import pytest
 
 from ada.configuration.tools import (
     ToolConfigurationBundle,
-    ToolConfigurationCatalog,
     integrated_operations_configuration_from_manifest,
 )
 from ada.configuration.tools.adapters.sharepoint import (
@@ -30,20 +29,19 @@ class FakeSharePointGateway:
         self.files[(relative_path, filename)] = content
 
 
-def _catalog() -> ToolConfigurationCatalog:
-    return ToolConfigurationCatalog(
-        (integrated_operations_configuration_from_manifest(INTEGRATED_OPERATIONS_MANIFEST),)
-    )
+def _configuration():
+    return integrated_operations_configuration_from_manifest(INTEGRATED_OPERATIONS_MANIFEST)
 
 
 def test_sharepoint_uses_one_read_write_location_for_current_and_versions() -> None:
     gateway = FakeSharePointGateway()
     settings = SharePointToolConfigurationSettings()
+    assert settings.filename == 'tool_configuration.json.gz'
     store = SharePointToolConfigurationStore(gateway=gateway, settings=settings)
-    first = ToolConfigurationBundle.create(catalog=_catalog(), saved_by='Admin A')
-    changed = replace(first.catalog.tools[0], display_name='Operaciones Integradas MLP')
+    first = ToolConfigurationBundle.create(configuration=_configuration(), saved_by='Admin A')
+    changed = replace(first.configuration, display_name='Operaciones Integradas MLP')
     second = ToolConfigurationBundle.create(
-        catalog=ToolConfigurationCatalog((changed,)),
+        configuration=changed,
         saved_by='Admin B',
     )
 
@@ -56,7 +54,7 @@ def test_sharepoint_uses_one_read_write_location_for_current_and_versions() -> N
         second.revision,
         first.revision,
     ]
-    assert store.fetch_revision(first.revision).catalog == first.catalog
+    assert store.fetch_revision(first.revision).configuration == first.configuration
     assert all(read == expected_key for read in gateway.reads)
     assert all(write[:2] == expected_key for write in gateway.writes)
 
@@ -65,8 +63,11 @@ def test_sharepoint_does_not_duplicate_identical_published_content() -> None:
     gateway = FakeSharePointGateway()
     settings = SharePointToolConfigurationSettings()
     store = SharePointToolConfigurationStore(gateway=gateway, settings=settings)
-    first = ToolConfigurationBundle.create(catalog=_catalog(), saved_by='Admin A')
-    same_content = ToolConfigurationBundle.create(catalog=_catalog(), saved_by='Admin B')
+    first = ToolConfigurationBundle.create(configuration=_configuration(), saved_by='Admin A')
+    same_content = ToolConfigurationBundle.create(
+        configuration=_configuration(),
+        saved_by='Admin B',
+    )
 
     store.publish_bundle(first, expected_source_revision=None)
     writes_before = len(gateway.writes)
@@ -83,11 +84,9 @@ def test_sharepoint_rejects_stale_expected_revision_before_write() -> None:
         gateway=gateway,
         settings=SharePointToolConfigurationSettings(),
     )
-    first = ToolConfigurationBundle.create(catalog=_catalog(), saved_by='Admin A')
+    first = ToolConfigurationBundle.create(configuration=_configuration(), saved_by='Admin A')
     second = ToolConfigurationBundle.create(
-        catalog=ToolConfigurationCatalog(
-            (replace(first.catalog.tools[0], display_name='Operaciones Integradas MLP'),)
-        ),
+        configuration=replace(first.configuration, display_name='Operaciones Integradas MLP'),
         saved_by='Admin B',
     )
 

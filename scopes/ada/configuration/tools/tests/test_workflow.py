@@ -3,7 +3,8 @@ from dataclasses import replace
 import pytest
 
 from ada.configuration.tools import (
-    ToolConfigurationCatalog,
+    ToolConfiguration,
+    ToolConfigurationKind,
     compose_tool_configuration_services,
     integrated_operations_configuration_from_manifest,
 )
@@ -18,10 +19,8 @@ from ada.configuration.tools.errors import (
 from ada.contracts.tool_manifest import INTEGRATED_OPERATIONS_MANIFEST
 
 
-def _catalog() -> ToolConfigurationCatalog:
-    return ToolConfigurationCatalog(
-        (integrated_operations_configuration_from_manifest(INTEGRATED_OPERATIONS_MANIFEST),)
-    )
+def _configuration() -> ToolConfiguration:
+    return integrated_operations_configuration_from_manifest(INTEGRATED_OPERATIONS_MANIFEST)
 
 
 def _services():
@@ -39,7 +38,7 @@ def _services():
 def test_draft_validation_is_ephemeral_and_does_not_publish_source() -> None:
     services, source, _projection = _services()
 
-    result = services.administration.validate_catalog(_catalog())
+    result = services.administration.validate_configuration(_configuration())
 
     assert result.valid is True
     assert source.fetch_bundle() is None
@@ -49,8 +48,8 @@ def test_draft_validation_is_ephemeral_and_does_not_publish_source() -> None:
 def test_publish_revalidates_and_creates_first_source_history_version() -> None:
     services, source, _projection = _services()
 
-    result = services.administration.publish_catalog(
-        _catalog(),
+    result = services.administration.publish_configuration(
+        _configuration(),
         expected_source_revision=None,
     )
 
@@ -61,13 +60,13 @@ def test_publish_revalidates_and_creates_first_source_history_version() -> None:
 
 def test_republishing_identical_content_is_idempotent() -> None:
     services, source, _projection = _services()
-    first = services.administration.publish_catalog(
-        _catalog(),
+    first = services.administration.publish_configuration(
+        _configuration(),
         expected_source_revision=None,
     )
 
-    second = services.administration.publish_catalog(
-        _catalog(),
+    second = services.administration.publish_configuration(
+        _configuration(),
         expected_source_revision=first.source_revision,
     )
 
@@ -78,32 +77,32 @@ def test_republishing_identical_content_is_idempotent() -> None:
 
 def test_publish_rejects_stale_source_revision() -> None:
     services, source, _projection = _services()
-    first = services.administration.publish_catalog(
-        _catalog(),
+    first = services.administration.publish_configuration(
+        _configuration(),
         expected_source_revision=None,
     )
-    changed = replace(_catalog().tools[0], display_name='Revision actual')
-    services.administration.publish_catalog(
-        ToolConfigurationCatalog((changed,)),
+    changed = replace(_configuration(), display_name='Revision actual')
+    services.administration.publish_configuration(
+        changed,
         expected_source_revision=first.source_revision,
     )
 
-    stale = replace(_catalog().tools[0], display_name='Revision obsoleta')
+    stale = replace(_configuration(), display_name='Revision obsoleta')
     with pytest.raises(
         ToolConfigurationValidationError,
         match='source revision changed before source publication',
     ):
-        services.administration.publish_catalog(
-            ToolConfigurationCatalog((stale,)),
+        services.administration.publish_configuration(
+            stale,
             expected_source_revision=first.source_revision,
         )
-    assert source.fetch_bundle().catalog.tools[0].display_name == 'Revision actual'
+    assert source.fetch_bundle().configuration.display_name == 'Revision actual'
 
 
-def test_projection_revalidates_published_source_and_writes_runtime_registry() -> None:
+def test_projection_revalidates_published_source_and_writes_runtime_manifest() -> None:
     services, _source, projection = _services()
-    publication = services.administration.publish_catalog(
-        _catalog(),
+    publication = services.administration.publish_configuration(
+        _configuration(),
         expected_source_revision=None,
     )
 
@@ -111,21 +110,18 @@ def test_projection_revalidates_published_source_and_writes_runtime_registry() -
 
     assert result.projected is True
     assert projection.active is not None
-    assert (
-        projection.active.registry.require('integrated_operations')
-        == INTEGRATED_OPERATIONS_MANIFEST
-    )
+    assert projection.active.manifest == INTEGRATED_OPERATIONS_MANIFEST
 
 
 def test_projection_rejects_stale_expected_source_revision() -> None:
     services, _source, _projection = _services()
-    first = services.administration.publish_catalog(
-        _catalog(),
+    first = services.administration.publish_configuration(
+        _configuration(),
         expected_source_revision=None,
     )
-    changed = replace(_catalog().tools[0], display_name='Nueva fuente')
-    services.administration.publish_catalog(
-        ToolConfigurationCatalog((changed,)),
+    changed = replace(_configuration(), display_name='Nueva fuente')
+    services.administration.publish_configuration(
+        changed,
         expected_source_revision=first.source_revision,
     )
 
@@ -133,32 +129,39 @@ def test_projection_rejects_stale_expected_source_revision() -> None:
         services.projection_workflow.project(first.source_revision)
 
 
-def test_empty_catalog_can_be_validated_but_cannot_be_published() -> None:
+def test_incomplete_configuration_can_be_validated_but_cannot_be_published() -> None:
     services, source, _projection = _services()
-    empty = ToolConfigurationCatalog(())
+    incomplete = ToolConfiguration(
+        tool_key='process',
+        display_name='Process',
+        kind=ToolConfigurationKind.PROCESS,
+    )
 
-    validation = services.administration.validate_catalog(empty)
+    validation = services.administration.validate_configuration(incomplete)
 
     assert validation.valid is False
     assert source.fetch_bundle() is None
     with pytest.raises(ToolConfigurationValidationError, match='must be valid'):
-        services.administration.publish_catalog(empty, expected_source_revision=None)
+        services.administration.publish_configuration(
+            incomplete,
+            expected_source_revision=None,
+        )
 
 
 def test_historical_revision_is_loaded_without_changing_source() -> None:
     services, source, _projection = _services()
-    first = services.administration.publish_catalog(
-        _catalog(),
+    first = services.administration.publish_configuration(
+        _configuration(),
         expected_source_revision=None,
     )
-    changed = replace(_catalog().tools[0], display_name='Cambio temporal')
-    second = services.administration.publish_catalog(
-        ToolConfigurationCatalog((changed,)),
+    changed = replace(_configuration(), display_name='Cambio temporal')
+    second = services.administration.publish_configuration(
+        changed,
         expected_source_revision=first.source_revision,
     )
 
-    loaded = services.administration.load_revision_catalog(first.source_revision)
+    loaded = services.administration.load_revision_configuration(first.source_revision)
 
-    assert loaded == _catalog()
+    assert loaded == _configuration()
     assert source.fetch_bundle().revision == second.source_revision
     assert len(source.list_history()) == 2

@@ -1,16 +1,14 @@
-# Construye un editor de Tools inicialmente vacío cuando no existe un borrador local.
-# La importación de archivos se distingue de cargar la configuración publicada desde la fuente de verdad.
+# La pantalla Tools edita una única configuración y no presenta selector de herramienta.
+# El workspace puede iniciar vacío y crear su configuración inicial sin tocar Source.
 
 from __future__ import annotations
 
 from dash import dcc, html
 
-from ada.configuration.tools.models import ToolConfigurationCatalog
 from ada.configuration.tools.web.ids import (
     ADD_COMPONENT_ID,
     ADD_SUBCOMPONENT_ID,
     APPLICATION_KEY_ID,
-    CATALOG_STORE_ID,
     COMPONENT_CANCEL_ID,
     COMPONENT_EDITOR_STORE_ID,
     COMPONENT_MODAL_ID,
@@ -23,6 +21,7 @@ from ada.configuration.tools.web.ids import (
     COMPONENT_SCOPE_FIELD_ID,
     COMPONENT_SCOPE_ID,
     COMPONENTS_LIST_ID,
+    CONFIGURATION_STORE_ID,
     CREATE_BUTTON_ID,
     CREATE_CANCEL_ID,
     CREATE_KIND_ID,
@@ -41,7 +40,6 @@ from ada.configuration.tools.web.ids import (
     REFERENCE_ID,
     SAVE_BUTTON_ID,
     SAVE_RESULT_ID,
-    SELECTED_TOOL_ID,
     SOURCE_NAME_ID,
     SOURCE_REVISION_STORE_ID,
     SOURCES_ID,
@@ -67,12 +65,9 @@ from ada.configuration.tools.web.models import ToolAdminWebContext
 
 
 def build_tool_admin_configuration(context: ToolAdminWebContext) -> object:
-    catalog = ToolConfigurationCatalog(())
-    options = [{'label': tool.display_name, 'value': tool.tool_key} for tool in catalog.tools]
-    selected = catalog.tools[0].tool_key if catalog.tools else None
     return html.Div(
         [
-            dcc.Store(id=CATALOG_STORE_ID, data=catalog.to_document(), storage_type='memory'),
+            dcc.Store(id=CONFIGURATION_STORE_ID, data=None, storage_type='memory'),
             dcc.Store(
                 id=SOURCE_REVISION_STORE_ID,
                 data=None,
@@ -83,7 +78,7 @@ def build_tool_admin_configuration(context: ToolAdminWebContext) -> object:
             dcc.Store(id=COMPONENT_EDITOR_STORE_ID, storage_type='memory'),
             dcc.Store(id=SUBCOMPONENT_EDITOR_STORE_ID, storage_type='memory'),
             _runtime_context(context),
-            _tool_toolbar(options, selected),
+            _tool_toolbar(),
             _general_section(),
             _sources_section(),
             _structure_section(),
@@ -118,7 +113,7 @@ def _runtime_context(context: ToolAdminWebContext) -> object:
                     dcc.Upload(
                         id=IMPORT_UPLOAD_ID,
                         children=html.Button(
-                            'Importar archivo de Tools',
+                            'Importar configuración de herramienta',
                             className=(
                                 'atlanticus-manager__button atlanticus-manager__button--secondary'
                             ),
@@ -141,26 +136,26 @@ def _runtime_context(context: ToolAdminWebContext) -> object:
     )
 
 
-def _tool_toolbar(options: list[dict[str, str]], selected: str | None) -> object:
+def _tool_toolbar() -> object:
     return html.Section(
         [
             html.Div(
                 [
                     html.Div(
                         [
-                            html.Label('Herramienta'),
-                            dcc.Dropdown(
-                                id=SELECTED_TOOL_ID,
-                                options=options,
-                                value=selected,
-                                clearable=False,
-                                placeholder='Selecciona una herramienta',
+                            html.Strong('Configuración única de herramienta'),
+                            html.Span(
+                                (
+                                    'Este despliegue ADA tiene una sola herramienta. '
+                                    'La configuración define su scope, fuentes y estructura.'
+                                ),
+                                className='ada-tools-admin__field-help',
                             ),
                         ],
-                        className='ada-tools-admin__selector',
+                        className='ada-tools-admin__toolbar-copy',
                     ),
                     html.Button(
-                        '+ Nueva herramienta',
+                        'Configurar herramienta',
                         id=CREATE_OPEN_ID,
                         className=(
                             'atlanticus-manager__button atlanticus-manager__button--secondary'
@@ -168,10 +163,6 @@ def _tool_toolbar(options: list[dict[str, str]], selected: str | None) -> object
                     ),
                 ],
                 className='ada-tools-admin__toolbar-row',
-            ),
-            html.Span(
-                'Selecciona el borrador que quieres revisar o modificar.',
-                className='ada-tools-admin__field-help',
             ),
         ],
         className='ada-tools-admin__toolbar',
@@ -196,7 +187,7 @@ def _tool_modal() -> object:
                                         'Herramienta',
                                         className='ada-tools-admin__modal-eyebrow',
                                     ),
-                                    html.H3('Nueva herramienta'),
+                                    html.H3('Configurar herramienta'),
                                 ]
                             ),
                             html.Button(
@@ -253,7 +244,7 @@ def _tool_modal() -> object:
                                 ),
                             ),
                             html.Button(
-                                'Crear borrador',
+                                'Crear configuración',
                                 id=CREATE_BUTTON_ID,
                                 className=(
                                     'atlanticus-manager__button atlanticus-manager__button--primary'

@@ -1,5 +1,5 @@
-# Implementa el History SharePoint de Tools y relee el manifest justo antes de escribir para detectar cambios remotos.
-# No proyecta ni fuerza escrituras: una revisión distinta produce conflicto y preserva la fuente existente.
+# SharePoint usa el archivo singular como nueva fuente de verdad de Tool Configuration.
+# La concurrencia por revision se conserva sin compatibilidad con la schema multi-tool.
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ class SharePointFileGateway(Protocol):
 
 @dataclass(frozen=True, slots=True)
 class SharePointToolConfigurationSettings:
-    filename: str = 'tools_configuration.json.gz'
+    filename: str = 'tool_configuration.json.gz'
     relative_path: str = 'tools'
 
     def __post_init__(self) -> None:

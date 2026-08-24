@@ -1,6 +1,6 @@
-# Espejo pedagógico: conserva la misma lógica del archivo productivo.
-# Los comentarios documentan la responsabilidad sin cambiar el comportamiento.
-# Persiste únicamente el ToolManifestRegistry activo para consumo runtime.
+# Cosmos guarda la nueva Projection singular bajo una identidad propia.
+# El item legacy plural queda fuera de la autoridad nueva y no se migra aquí.
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -32,8 +32,8 @@ class CosmosClient(Protocol):
 @dataclass(frozen=True, slots=True)
 class CosmosToolProjectionSettings:
     container_name: str
-    item_id: str = 'tools'
-    partition_key: str = 'tools'
+    item_id: str = 'tool'
+    partition_key: str = 'tool'
 
     def __post_init__(self) -> None:
         if not self.container_name.strip():

@@ -1,13 +1,12 @@
-# Espejo pedagógico: conserva la misma lógica del archivo productivo.
-# Los comentarios documentan la responsabilidad sin cambiar el comportamiento.
-# Agrupa IDs propios del editor estructural de Tools.
-CATALOG_STORE_ID = 'ada-tools-catalog-store'
+# Los IDs del Manager reflejan un único store de configuración de Tool.
+# Se eliminan los IDs asociados a selección de herramientas.
+
+CONFIGURATION_STORE_ID = 'ada-tools-configuration-store'
 SOURCE_REVISION_STORE_ID = 'ada-tools-source-revision-store'
 STRUCTURE_STORE_ID = 'ada-tools-structure-store'
 DRAFT_LOAD_SIGNAL_ID = 'ada-tools-draft-load-signal'
 COMPONENT_EDITOR_STORE_ID = 'ada-tools-component-editor-store'
 SUBCOMPONENT_EDITOR_STORE_ID = 'ada-tools-subcomponent-editor-store'
-SELECTED_TOOL_ID = 'ada-tools-selected-tool'
 CREATE_OPEN_ID = 'ada-tools-create-open'
 CREATE_MODAL_ID = 'ada-tools-create-modal'
 CREATE_CANCEL_ID = 'ada-tools-create-cancel'

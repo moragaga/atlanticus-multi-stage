@@ -24,7 +24,7 @@ class SharePointFileGateway(Protocol):
 
 @dataclass(frozen=True, slots=True)
 class SharePointToolConfigurationSettings:
-    filename: str = 'tools_configuration.json.gz'
+    filename: str = 'tool_configuration.json.gz'
     relative_path: str = 'tools'
 
     def __post_init__(self) -> None:

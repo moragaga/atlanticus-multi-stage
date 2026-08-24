@@ -23,7 +23,7 @@ from ada.configuration.tools.projection import ToolConfigurationProjection
 @dataclass(frozen=True, slots=True)
 class FileToolConfigurationSettings:
     root: Path
-    filename: str = 'tools_configuration.json.gz'
+    filename: str = 'tool_configuration.json.gz'
 
 
 class FileToolConfigurationStore:
@@ -89,9 +89,9 @@ class FileToolConfigurationStore:
 @dataclass(frozen=True, slots=True)
 class FileToolProjectionSettings:
     root: Path
-    projection_filename: str = 'tools.json'
-    item_id: str = 'tools'
-    partition_key: str = 'tools'
+    projection_filename: str = 'tool.json'
+    item_id: str = 'tool'
+    partition_key: str = 'tool'
 
 
 class FileToolProjectionRepository:

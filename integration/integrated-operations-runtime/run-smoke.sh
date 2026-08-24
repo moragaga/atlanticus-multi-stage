@@ -16,11 +16,12 @@ DATABASE="ada-r18c-${SUFFIX}"
 SAFE_ROOT="conciencia_situacional/__atlanticus_r18c_smoke"
 
 INPUT_ENV_FILE="${1:-${ATLANTICUS_SMOKE_ENV_FILE:-}}"
+PYTHON_BIN="$(uv python find 3.14.2)"
 
 read_env_value() {
     local file="$1"
     local key="$2"
-    python - "$file" "$key" <<'PYENV'
+    "$PYTHON_BIN" - "$file" "$key" <<'PYENV'
 from __future__ import annotations
 
 import sys
@@ -74,6 +75,12 @@ cleanup() {
 }
 trap cleanup EXIT
 
+FLASK_SECRET_KEY="$("$PYTHON_BIN" -c 'import secrets; print(secrets.token_urlsafe(48))')"
+if [[ -z "$FLASK_SECRET_KEY" ]]; then
+    echo 'Failed to generate Flask SECRET_KEY for smoke runtime.' >&2
+    exit 1
+fi
+
 mkdir -p "$RUNTIME_DIR"
 rm -f "$ENV_FILE"
 umask 077
@@ -84,7 +91,7 @@ umask 077
     printf 'ATLANTICUS_COSMOS_KEY=%s\n' "$COSMOS_KEY"
     printf 'ATLANTICUS_COSMOS_DATABASE=%s\n' "$DATABASE"
     printf 'ATLANTICUS_COSMOS_ALLOW_INSECURE_HTTP=true\n'
-    printf 'ATLANTICUS_FLASK_SECRET_KEY=%s\n' "$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+    printf 'ATLANTICUS_FLASK_SECRET_KEY=%s\n' "$FLASK_SECRET_KEY"
     printf 'ATLANTICUS_SHAREPOINT_READ_ENDPOINT=%s\n' "$ATLANTICUS_SHAREPOINT_READ_ENDPOINT"
     printf 'ATLANTICUS_SHAREPOINT_WRITE_ENDPOINT=%s\n' "$ATLANTICUS_SHAREPOINT_WRITE_ENDPOINT"
     printf 'ATLANTICUS_SHAREPOINT_ROOT_PATH=%s\n' "$SAFE_ROOT"
@@ -158,6 +165,13 @@ if ! docker run --rm \
     python /smoke/exercise_runtime.py; then
     echo 'R18C runtime exercise failed; application logs follow.' >&2
     docker logs "$APP_CONTAINER" >&2 || true
+    exit 1
+fi
+
+POST_EXERCISE_LOGS="$(docker logs "$APP_CONTAINER" 2>&1)"
+if [[ "$POST_EXERCISE_LOGS" == *'Access snapshot is not available for this page load'* ]]; then
+    echo 'Health/layout validation used request-scoped access before an AccessSnapshot was available.' >&2
+    printf '%s\n' "$POST_EXERCISE_LOGS" >&2
     exit 1
 fi
 

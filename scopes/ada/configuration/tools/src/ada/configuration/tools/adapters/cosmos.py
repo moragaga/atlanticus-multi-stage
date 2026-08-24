@@ -29,8 +29,8 @@ class CosmosClient(Protocol):
 @dataclass(frozen=True, slots=True)
 class CosmosToolProjectionSettings:
     container_name: str
-    item_id: str = 'tools'
-    partition_key: str = 'tools'
+    item_id: str = 'tool'
+    partition_key: str = 'tool'
 
     def __post_init__(self) -> None:
         if not self.container_name.strip():

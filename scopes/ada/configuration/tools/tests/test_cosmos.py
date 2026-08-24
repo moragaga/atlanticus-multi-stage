@@ -1,9 +1,8 @@
 from datetime import UTC, datetime
 
 from ada.configuration.tools import (
-    ToolConfigurationCatalog,
     ToolConfigurationProjection,
-    build_tool_manifest_registry,
+    build_tool_manifest,
     integrated_operations_configuration_from_manifest,
 )
 from ada.configuration.tools.adapters.cosmos import (
@@ -34,20 +33,18 @@ def test_cosmos_repository_roundtrips_only_active_runtime_projection() -> None:
         client=client,
         settings=CosmosToolProjectionSettings(container_name='configuration'),
     )
-    registry = build_tool_manifest_registry(
-        ToolConfigurationCatalog(
-            (integrated_operations_configuration_from_manifest(INTEGRATED_OPERATIONS_MANIFEST),)
-        )
+    manifest = build_tool_manifest(
+        integrated_operations_configuration_from_manifest(INTEGRATED_OPERATIONS_MANIFEST)
     )
     projection = ToolConfigurationProjection.create(
         source_revision='source-revision',
         projected_by='Admin',
         projected_at_utc=datetime(2026, 8, 18, 12, 0, tzinfo=UTC),
-        registry=registry,
+        manifest=manifest,
     )
 
     repository.save(projection)
 
     assert repository.load() == projection
     assert repository.health_check()
-    assert set(client.items) == {'tools'}
+    assert set(client.items) == {'tool'}

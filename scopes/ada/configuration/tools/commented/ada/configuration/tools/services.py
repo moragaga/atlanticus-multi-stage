@@ -1,12 +1,12 @@
-# Orquesta la administración de Tools y propaga expected_source_revision hasta la frontera final de persistencia.
-# La validación de contenido y la protección de concurrencia permanecen responsabilidades distintas.
+# Administra Draft/Source/History/Projection para una única ToolConfiguration.
+# Validar y proyectar construye exactamente un ToolManifest.
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from ada.configuration.tools.builder import build_tool_manifest_registry
+from ada.configuration.tools.builder import build_tool_manifest
 from ada.configuration.tools.bundle import (
     ToolConfigurationBundle,
     build_tool_configuration_digest,
@@ -22,7 +22,7 @@ from ada.configuration.tools.errors import (
     ToolConfigurationSourceError,
     ToolConfigurationValidationError,
 )
-from ada.configuration.tools.models import ToolConfigurationCatalog
+from ada.configuration.tools.models import ToolConfiguration
 from ada.configuration.tools.projection import (
     ToolConfigurationProjection,
     ToolDraftValidationResult,
@@ -63,24 +63,27 @@ class ToolAdministrationService:
             raise ToolConfigurationSourceError('Tool configuration source does not exist')
         return bundle
 
-    def load_catalog(self) -> ToolConfigurationCatalog:
-        return self.load_bundle().catalog
+    def load_configuration(self) -> ToolConfiguration:
+        return self.load_bundle().configuration
 
-    def validate_catalog(self, catalog: ToolConfigurationCatalog) -> ToolDraftValidationResult:
+    def validate_configuration(
+        self,
+        configuration: ToolConfiguration,
+    ) -> ToolDraftValidationResult:
         actor = self._audit_actor_provider()
         occurred_at = datetime.now(UTC)
-        issues = _validate_catalog(catalog)
+        issues = _validate_configuration(configuration)
         return ToolDraftValidationResult(
-            draft_revision=build_tool_configuration_digest(catalog),
+            draft_revision=build_tool_configuration_digest(configuration),
             valid=not any(issue.level == 'error' for issue in issues),
             audit=ToolProjectionAuditRecord(actor=actor, occurred_at_utc=occurred_at),
             issues=issues,
-            summary=_catalog_summary(catalog),
+            summary=_configuration_summary(configuration),
         )
 
-    def publish_catalog(
+    def publish_configuration(
         self,
-        catalog: ToolConfigurationCatalog,
+        configuration: ToolConfiguration,
         *,
         expected_source_revision: str | None,
     ) -> ToolSourcePublicationResult:
@@ -90,7 +93,7 @@ class ToolAdministrationService:
             raise ToolConfigurationValidationError(
                 'Tool source revision changed before source publication'
             )
-        validation = self.validate_catalog(catalog)
+        validation = self.validate_configuration(configuration)
         if not validation.valid:
             raise ToolConfigurationValidationError(
                 'Tool configuration must be valid before source publication'
@@ -98,7 +101,7 @@ class ToolAdministrationService:
         actor = self._audit_actor_provider()
         occurred_at = datetime.now(UTC)
         bundle = ToolConfigurationBundle.create(
-            catalog=catalog,
+            configuration=configuration,
             saved_by=actor,
             now_utc=occurred_at,
         )
@@ -111,17 +114,17 @@ class ToolAdministrationService:
             source_revision=bundle.revision,
             published=published,
             audit=ToolProjectionAuditRecord(actor=actor, occurred_at_utc=occurred_at),
-            summary=_catalog_summary(catalog),
+            summary=_configuration_summary(configuration),
         )
 
     def list_history(self, *, limit: int = 20) -> tuple[ToolConfigurationBundle, ...]:
         return self._source.list_history(limit=limit)
 
-    def load_revision_catalog(self, revision: str) -> ToolConfigurationCatalog:
+    def load_revision_configuration(self, revision: str) -> ToolConfiguration:
         bundle = self._source.fetch_revision(revision.strip())
         if bundle is None:
             raise ToolConfigurationSourceError('Tool configuration revision does not exist')
-        return bundle.catalog
+        return bundle.configuration
 
 
 class ToolProjectionWorkflow:
@@ -168,12 +171,12 @@ class ToolProjectionWorkflow:
                 'Expected tool source revision must not be empty'
             )
         bundle = self._require_source_bundle(expected_revision=expected)
-        issues = _validate_catalog(bundle.catalog)
+        issues = _validate_configuration(bundle.configuration)
         if any(issue.level == 'error' for issue in issues):
             raise ToolConfigurationProjectionError(
                 'Published tool configuration is not valid for projection'
             )
-        registry = build_tool_manifest_registry(bundle.catalog)
+        manifest = build_tool_manifest(bundle.configuration)
         self._require_source_bundle(expected_revision=expected)
         actor = self._audit_actor_provider()
         occurred_at = datetime.now(UTC)
@@ -181,7 +184,7 @@ class ToolProjectionWorkflow:
             source_revision=bundle.revision,
             projected_by=actor,
             projected_at_utc=occurred_at,
-            registry=registry,
+            manifest=manifest,
         )
         self._require_source_bundle(expected_revision=expected)
         saved = self._projection.save(projection)
@@ -190,7 +193,7 @@ class ToolProjectionWorkflow:
             projection_revision=saved.revision,
             projected=True,
             audit=ToolProjectionAuditRecord(actor=actor, occurred_at_utc=occurred_at),
-            summary=_catalog_summary(bundle.catalog),
+            summary=_configuration_summary(bundle.configuration),
         )
 
     def _require_source_bundle(
@@ -230,39 +233,29 @@ def compose_tool_configuration_services(
     )
 
 
-def _validate_catalog(catalog: ToolConfigurationCatalog) -> tuple[ToolProjectionIssue, ...]:
-    issues: list[ToolProjectionIssue] = []
-    if not catalog.tools:
+def _validate_configuration(
+    configuration: ToolConfiguration,
+) -> tuple[ToolProjectionIssue, ...]:
+    try:
+        build_tool_manifest(configuration)
+    except ToolConfigurationValidationError as error:
         return (
             ToolProjectionIssue(
-                code='tools.empty',
-                message='At least one tool is required before publication',
-                path='tools',
+                code='tool.invalid',
+                message=str(error),
+                path='tool',
             ),
         )
-    for index, tool in enumerate(catalog.tools):
-        try:
-            build_tool_manifest_registry(ToolConfigurationCatalog((tool,)))
-        except ToolConfigurationValidationError as error:
-            issues.append(
-                ToolProjectionIssue(
-                    code='tool.invalid',
-                    message=str(error),
-                    path=f'tools[{index}]',
-                )
-            )
-    return tuple(issues)
+    return ()
 
 
-def _catalog_summary(
-    catalog: ToolConfigurationCatalog,
+def _configuration_summary(
+    configuration: ToolConfiguration,
 ) -> tuple[ToolProjectionSummaryItem, ...]:
-    components = sum(len(tool.components) for tool in catalog.tools)
-    subcomponents = sum(
-        len(component.subcomponents) for tool in catalog.tools for component in tool.components
-    )
+    components = len(configuration.components)
+    subcomponents = sum(len(component.subcomponents) for component in configuration.components)
     return (
-        ToolProjectionSummaryItem('Herramientas', str(len(catalog.tools))),
+        ToolProjectionSummaryItem('Herramienta', configuration.display_name),
         ToolProjectionSummaryItem('Componentes', str(components)),
         ToolProjectionSummaryItem('Subcomponentes', str(subcomponents)),
     )

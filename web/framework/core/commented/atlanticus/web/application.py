@@ -6,6 +6,9 @@ import importlib.util
 import re
 from pathlib import Path
 
+from dash import Dash
+from flask import Flask, request
+
 from atlanticus.web.assets import AssetLayer, publish_asset_layers
 from atlanticus.web.environment import WebEnvironment, resolve_environment
 from atlanticus.web.errors import WebDefinitionError
@@ -18,6 +21,18 @@ from atlanticus.web.services import ServiceRegistry
 
 _APPLICATION_ID_PATTERN = re.compile(r'^[a-z0-9][a-z0-9._-]*$')
 _EXTENSION_KEY = 'atlanticus_web'
+_DASH_SETUP_DEFERRED_PATH_PREFIXES = ('/assets/', '/health/', '/.auth/')
+
+
+# Las rutas públicas de infraestructura no deben disparar la validación inicial de una UI
+# que puede depender de identidad request-scoped. Dash se inicializa en el primer request UI real.
+class _AtlanticusDash(Dash):
+    def _setup_server(self):
+        if request.path.startswith(_DASH_SETUP_DEFERRED_PATH_PREFIXES):
+            return None
+        return super()._setup_server()
+
+
 BASE_ASSET_LAYER = AssetLayer(
     name='atlanticus_web',
     load_order=10,
@@ -69,9 +84,6 @@ def _compose_web_application(
     environment: WebEnvironment,
     observability: WebObservability,
 ) -> WebApplicationRuntime:
-    from dash import Dash
-    from flask import Flask
-
     services = ServiceRegistry()
     health = HealthRegistry()
 
@@ -131,7 +143,7 @@ def _compose_web_application(
     )
 
     dash_settings = definition.dash
-    dash_app = Dash(
+    dash_app = _AtlanticusDash(
         definition.import_name,
         server=server,
         routes_pathname_prefix='/',

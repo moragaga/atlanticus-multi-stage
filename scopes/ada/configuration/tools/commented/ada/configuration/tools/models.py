@@ -1,6 +1,5 @@
-# Espejo pedagógico: este archivo conserva exactamente la lógica del código productivo.
-# Configuración de herramientas del scope ADA. Convierte datos administrativos mínimos en contratos runtime ToolManifest sin acoplar el dominio a la UI.
-# Los comentarios explican la intención arquitectónica; no agregan ramas, estado ni comportamiento.
+# Modela una sola herramienta y su topología configurable.
+# Componentes, subcomponentes, scopes y sources pertenecen a esa única configuración.
 
 from __future__ import annotations
 
@@ -243,56 +242,6 @@ class ToolConfiguration:
             raise ToolConfigurationValidationError(
                 'Tool configuration contract is invalid'
             ) from error
-
-
-@dataclass(frozen=True, slots=True)
-class ToolConfigurationCatalog:
-    tools: tuple[ToolConfiguration, ...]
-
-    def __post_init__(self) -> None:
-        tools = tuple(self.tools)
-        keys = tuple(tool.tool_key for tool in tools)
-        if len(keys) != len(set(keys)):
-            raise ToolConfigurationValidationError('Tool configuration keys must be unique')
-        object.__setattr__(self, 'tools', tools)
-
-    def require(self, tool_key: str) -> ToolConfiguration:
-        normalized = tool_key.strip().casefold()
-        for tool in self.tools:
-            if tool.tool_key == normalized:
-                return tool
-        raise ToolConfigurationValidationError(f'Tool configuration does not exist: {normalized}')
-
-    def replace(self, tool: ToolConfiguration) -> ToolConfigurationCatalog:
-        replaced = False
-        values: list[ToolConfiguration] = []
-        for current in self.tools:
-            if current.tool_key == tool.tool_key:
-                values.append(tool)
-                replaced = True
-            else:
-                values.append(current)
-        if not replaced:
-            values.append(tool)
-        return ToolConfigurationCatalog(tuple(values))
-
-    def remove(self, tool_key: str) -> ToolConfigurationCatalog:
-        normalized = tool_key.strip().casefold()
-        return ToolConfigurationCatalog(
-            tuple(tool for tool in self.tools if tool.tool_key != normalized)
-        )
-
-    def to_document(self) -> dict[str, object]:
-        return {
-            'tools': [tool.to_document() for tool in self.tools],
-        }
-
-    @classmethod
-    def from_document(cls, document: dict[str, Any]) -> ToolConfigurationCatalog:
-        tools = document.get('tools')
-        if not isinstance(tools, list) or not all(isinstance(item, dict) for item in tools):
-            raise ToolConfigurationValidationError('Tool catalog contract is invalid')
-        return cls(tuple(ToolConfiguration.from_document(dict(item)) for item in tools))
 
 
 def _optional_string(value: object) -> str | None:

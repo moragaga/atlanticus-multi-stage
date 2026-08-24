@@ -9,24 +9,24 @@ from io import BytesIO
 from typing import Any
 
 from ada.configuration.tools.errors import ToolConfigurationValidationError
-from ada.configuration.tools.models import ToolConfigurationCatalog
+from ada.configuration.tools.models import ToolConfiguration
 
 BUNDLE_DOCUMENT_TYPE = 'ada_tool_configuration'
 SOURCE_DOCUMENT_TYPE = 'ada_tool_configuration_source'
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 DEFAULT_MAX_COMPRESSED_BYTES = 5 * 1024 * 1024
 DEFAULT_MAX_DECOMPRESSED_BYTES = 20 * 1024 * 1024
 
 
 @dataclass(frozen=True, slots=True)
 class ToolConfigurationBundle:
-    catalog: ToolConfigurationCatalog
+    configuration: ToolConfiguration
     revision: str
     saved_by: str
     saved_at_utc: datetime
 
     def __post_init__(self) -> None:
-        revision = build_tool_configuration_digest(self.catalog)
+        revision = build_tool_configuration_digest(self.configuration)
         saved_by = self.saved_by.strip()
         if self.revision.strip() != revision:
             raise ToolConfigurationValidationError(
@@ -48,13 +48,13 @@ class ToolConfigurationBundle:
     def create(
         cls,
         *,
-        catalog: ToolConfigurationCatalog,
+        configuration: ToolConfiguration,
         saved_by: str,
         now_utc: datetime | None = None,
     ) -> ToolConfigurationBundle:
         return cls(
-            catalog=catalog,
-            revision=build_tool_configuration_digest(catalog),
+            configuration=configuration,
+            revision=build_tool_configuration_digest(configuration),
             saved_by=saved_by,
             saved_at_utc=(now_utc or datetime.now(UTC)).astimezone(UTC),
         )
@@ -66,7 +66,7 @@ class ToolConfigurationBundle:
             'revision': self.revision,
             'saved_by': self.saved_by,
             'saved_at_utc': self.saved_at_utc.isoformat(),
-            'catalog': self.catalog.to_document(),
+            'configuration': self.configuration.to_document(),
         }
 
     @classmethod
@@ -76,11 +76,11 @@ class ToolConfigurationBundle:
         if document.get('schema_version') != SCHEMA_VERSION:
             raise ToolConfigurationValidationError('Tool configuration schema version is invalid')
         try:
-            catalog = document['catalog']
-            if not isinstance(catalog, dict):
+            configuration = document['configuration']
+            if not isinstance(configuration, dict):
                 raise TypeError
             return cls(
-                catalog=ToolConfigurationCatalog.from_document(dict(catalog)),
+                configuration=ToolConfiguration.from_document(dict(configuration)),
                 revision=str(document['revision']),
                 saved_by=str(document['saved_by']),
                 saved_at_utc=datetime.fromisoformat(str(document['saved_at_utc'])),
@@ -93,13 +93,13 @@ class ToolConfigurationBundle:
 
 @dataclass(frozen=True, slots=True)
 class ToolConfigurationVersion:
-    catalog: ToolConfigurationCatalog
+    configuration: ToolConfiguration
     revision: str
     created_by: str
     created_at_utc: datetime
 
     def __post_init__(self) -> None:
-        expected = build_tool_configuration_digest(self.catalog)
+        expected = build_tool_configuration_digest(self.configuration)
         actor = self.created_by.strip()
         if self.revision.strip() != expected:
             raise ToolConfigurationValidationError(
@@ -120,7 +120,7 @@ class ToolConfigurationVersion:
     @classmethod
     def from_bundle(cls, bundle: ToolConfigurationBundle) -> ToolConfigurationVersion:
         return cls(
-            catalog=bundle.catalog,
+            configuration=bundle.configuration,
             revision=bundle.revision,
             created_by=bundle.saved_by,
             created_at_utc=bundle.saved_at_utc,
@@ -131,17 +131,17 @@ class ToolConfigurationVersion:
             'revision': self.revision,
             'created_by': self.created_by,
             'created_at_utc': self.created_at_utc.isoformat(),
-            'catalog': self.catalog.to_document(),
+            'configuration': self.configuration.to_document(),
         }
 
     @classmethod
     def from_document(cls, document: dict[str, Any]) -> ToolConfigurationVersion:
         try:
-            catalog = document['catalog']
-            if not isinstance(catalog, dict):
+            configuration = document['configuration']
+            if not isinstance(configuration, dict):
                 raise TypeError
             return cls(
-                catalog=ToolConfigurationCatalog.from_document(dict(catalog)),
+                configuration=ToolConfiguration.from_document(dict(configuration)),
                 revision=str(document['revision']),
                 created_by=str(document['created_by']),
                 created_at_utc=datetime.fromisoformat(str(document['created_at_utc'])),
@@ -334,16 +334,16 @@ class ToolConfigurationSourceDocument:
             item for item in reversed(self.publications) if item.revision == revision
         )
         return ToolConfigurationBundle(
-            catalog=version.catalog,
+            configuration=version.configuration,
             revision=version.revision,
             saved_by=publication.published_by,
             saved_at_utc=publication.published_at_utc,
         )
 
 
-def build_tool_configuration_digest(catalog: ToolConfigurationCatalog) -> str:
+def build_tool_configuration_digest(configuration: ToolConfiguration) -> str:
     canonical = json.dumps(
-        catalog.to_document(),
+        configuration.to_document(),
         ensure_ascii=False,
         sort_keys=True,
         separators=(',', ':'),
@@ -387,7 +387,7 @@ def decode_tool_configuration_source(
     return ToolConfigurationSourceDocument.from_document(document)
 
 
-def decode_tool_configuration_import(payload: bytes) -> ToolConfigurationCatalog:
+def decode_tool_configuration_import(payload: bytes) -> ToolConfiguration:
     document = _decode_document(
         payload,
         max_compressed_bytes=DEFAULT_MAX_COMPRESSED_BYTES,
@@ -395,9 +395,11 @@ def decode_tool_configuration_import(payload: bytes) -> ToolConfigurationCatalog
     )
     document_type = document.get('document_type')
     if document_type == SOURCE_DOCUMENT_TYPE:
-        return ToolConfigurationSourceDocument.from_document(document).current_bundle().catalog
+        return (
+            ToolConfigurationSourceDocument.from_document(document).current_bundle().configuration
+        )
     if document_type == BUNDLE_DOCUMENT_TYPE:
-        return ToolConfigurationBundle.from_document(document).catalog
+        return ToolConfigurationBundle.from_document(document).configuration
     raise ToolConfigurationValidationError('Tool configuration import document type is invalid')
 
 

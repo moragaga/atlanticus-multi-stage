@@ -126,6 +126,44 @@ def test_application_composes_pages_services_middlewares_routes_and_index(
     assert '"test":{"enabled":true}' in runtime.dash.index_string
 
 
+
+def test_public_infrastructure_requests_defer_dash_layout_initialization(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    package_name = _build_page_package(tmp_path, 'test_deferred_layout_pages')
+    monkeypatch.syspath_prepend(str(tmp_path))
+    monkeypatch.delenv('ATLANTICUS_ENVIRONMENT', raising=False)
+    layout_calls = 0
+
+    def layout(_services: ServiceRegistry):
+        nonlocal layout_calls
+        layout_calls += 1
+        return html.Main([html.Div('Deferred layout'), page_container])
+
+    runtime = create_web_application(
+        WebApplicationDefinition(
+            import_name='test_web_deferred_layout',
+            metadata=ApplicationMetadata(
+                application_id='test-web-deferred-layout',
+                display_name='Deferred Layout',
+                version='0.1.0',
+            ),
+            publications_root=tmp_path / 'published-deferred-layout',
+            layout=layout,
+            modules=(WebModule(name='deferred-layout'),),
+            page_packages=(package_name,),
+        )
+    )
+
+    client = runtime.server.test_client()
+    assert client.get('/health/live').status_code == 200
+    assert client.get('/health/ready').status_code == 200
+    assert layout_calls == 0
+
+    assert client.get('/_dash-layout').status_code == 200
+    assert layout_calls > 0
+
 def test_application_requires_pages(tmp_path: Path) -> None:
     with pytest.raises(WebDefinitionError, match='at least one page package'):
         create_web_application(

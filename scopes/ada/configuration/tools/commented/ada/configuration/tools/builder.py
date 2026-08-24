@@ -1,6 +1,5 @@
-# Espejo pedagógico: este archivo conserva exactamente la lógica del código productivo.
-# Configuración de herramientas del scope ADA. Convierte datos administrativos mínimos en contratos runtime ToolManifest sin acoplar el dominio a la UI.
-# Los comentarios explican la intención arquitectónica; no agregan ramas, estado ni comportamiento.
+# Convierte la única ToolConfiguration en su ToolManifest contractual.
+# La composición concreta sigue determinando la semántica de Integrated Operations o Process.
 
 from __future__ import annotations
 
@@ -8,14 +7,12 @@ from ada.configuration.tools.errors import ToolConfigurationValidationError
 from ada.configuration.tools.models import (
     ToolComponentConfiguration,
     ToolConfiguration,
-    ToolConfigurationCatalog,
     ToolConfigurationKind,
 )
 from ada.contracts.tool_manifest import (
     ProcessBodySection,
     ToolManifest,
     ToolManifestError,
-    ToolManifestRegistry,
     ToolScope,
     ToolSection,
     ToolSectionKind,
@@ -39,12 +36,6 @@ def build_tool_manifest(configuration: ToolConfiguration) -> ToolManifest:
     except ToolManifestError as error:
         raise ToolConfigurationValidationError(str(error)) from error
     raise ToolConfigurationValidationError('Tool kind is not supported')
-
-
-def build_tool_manifest_registry(catalog: ToolConfigurationCatalog) -> ToolManifestRegistry:
-    if not catalog.tools:
-        raise ToolConfigurationValidationError('Tool catalog requires at least one tool')
-    return ToolManifestRegistry(tuple(build_tool_manifest(tool) for tool in catalog.tools))
 
 
 def _build_integrated_operations_manifest(configuration: ToolConfiguration) -> ToolManifest:

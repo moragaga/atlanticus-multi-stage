@@ -1,9 +1,7 @@
-# Espejo pedagógico: conserva la misma lógica del archivo productivo.
-# Los comentarios documentan la responsabilidad sin cambiar el comportamiento.
-from ada.configuration.tools.builder import (
-    build_tool_manifest,
-    build_tool_manifest_registry,
-)
+# Expone el contrato público de Tools Configuration con una única herramienta por aplicación.
+# No exporta catálogos multi-tool ni registries de manifests de configuración.
+
+from ada.configuration.tools.builder import build_tool_manifest
 from ada.configuration.tools.bundle import (
     ToolConfigurationBundle,
     ToolConfigurationSourceDocument,
@@ -15,7 +13,6 @@ from ada.configuration.tools.migration import integrated_operations_configuratio
 from ada.configuration.tools.models import (
     ToolComponentConfiguration,
     ToolConfiguration,
-    ToolConfigurationCatalog,
     ToolConfigurationKind,
     ToolSourceConfiguration,
     ToolSubcomponentConfiguration,
@@ -46,7 +43,6 @@ __all__ = [
     'ToolComponentConfiguration',
     'ToolConfiguration',
     'ToolConfigurationBundle',
-    'ToolConfigurationCatalog',
     'ToolConfigurationKind',
     'ToolConfigurationProjection',
     'ToolConfigurationServices',
@@ -66,7 +62,6 @@ __all__ = [
     'build_identity_key',
     'build_tool_configuration_digest',
     'build_tool_manifest',
-    'build_tool_manifest_registry',
     'compose_tool_configuration_services',
     'decode_tool_configuration_import',
     'integrated_operations_configuration_from_manifest',
