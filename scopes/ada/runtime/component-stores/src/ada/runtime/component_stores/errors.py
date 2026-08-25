@@ -1,0 +1,2 @@
+class RuntimeComponentStoreError(RuntimeError):
+    pass

@@ -16,6 +16,7 @@ dependencies = [
     "ada-composition-integrated-operations==0.1.0",
     "ada-configuration-kpis==0.2.9",
     "ada-runtime-delivery-cache==0.1.0",
+    "ada-runtime-component-stores==0.1.0",
 ]
 
 [dependency-groups]
@@ -76,6 +77,7 @@ atlanticus-cosmos = { path = "../../connectivity/cosmos", editable = true }
 atlanticus-http = { path = "../../connectivity/http-client", editable = true }
 
 ada-runtime-delivery-cache = { workspace = true }
+ada-runtime-component-stores = { workspace = true }
 [tool.uv.workspace]
 members = [
     "contracts/tool-manifest",
@@ -83,6 +85,7 @@ members = [
     "configuration/kpis",
     "runtime/web",
     "runtime/delivery-cache",
+    "runtime/component-stores",
     "compositions/web-application",
     "compositions/web-bootstrap",
     "compositions/web-deployment",
