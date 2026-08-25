@@ -1,4 +1,4 @@
-# Implementa Source/History y Projection local mediante archivos separados.
+# Implementa Source/History y Projection KPI locales en raíces separadas.
 # El código bajo estos comentarios conserva paridad ejecutable con producción.
 from __future__ import annotations
 

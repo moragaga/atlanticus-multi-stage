@@ -1,4 +1,4 @@
-# Implementa Source e History revisionados; el contenido autoritativo sigue separado de Projection.
+# Mantiene Source e History revisionados separados de la proyección de consumo.
 # El código bajo estos comentarios conserva paridad ejecutable con producción.
 from __future__ import annotations
 

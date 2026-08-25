@@ -4,13 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ada-composition-configuration-manager"
-version = "0.1.17"
+version = "0.1.18"
 requires-python = "==3.14.2"
 classifiers = [
     "Private :: Do Not Upload",
 ]
 dependencies = [
     "ada-composition-web-bootstrap==0.1.7",
+    "ada-configuration-kpis[web]==0.2.0",
     "ada-configuration-tools[web]==0.1.5",
     "atlanticus-web==0.1.0",
     "atlanticus-web-manager==0.3.10",
@@ -22,6 +23,7 @@ dependencies = [
 
 [tool.uv.sources]
 ada-composition-web-bootstrap = { workspace = true }
+ada-configuration-kpis = { workspace = true }
 ada-configuration-tools = { workspace = true }
 atlanticus-web = { path = "../../../../web/framework/core", editable = true }
 atlanticus-web-manager = { path = "../../../../web/capabilities/manager", editable = true }

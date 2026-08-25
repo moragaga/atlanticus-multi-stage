@@ -1,4 +1,4 @@
-# Compone administración y proyección sin leer directamente SharePoint, Cosmos ni Tool Source.
+# Compone validación/publicación/proyección sin leer directamente Tool Source o History.
 # El código bajo estos comentarios conserva paridad ejecutable con producción.
 from __future__ import annotations
 

@@ -13,7 +13,15 @@ from ada.compositions.configuration_manager import (
     resolve_configuration_backend_selection,
 )
 from ada.compositions.web_bootstrap import AdaConfigurationFilenames, AdaCosmosBindings
+from ada.configuration.kpis.adapters import (
+    CosmosKpiProjectionRepository,
+    FileKpiConfigurationStore,
+    FileKpiProjectionRepository,
+    SharePointKpiConfigurationStore,
+    ToolProjectionKpiDestinationProvider,
+)
 from ada.configuration.tools.adapters import (
+    CosmosToolProjectionRepository,
     FileToolConfigurationStore,
     FileToolProjectionRepository,
     SharePointToolConfigurationStore,
@@ -320,6 +328,10 @@ def test_local_file_dependencies_keep_history_and_projection_in_separate_roots(t
 
     assert isinstance(dependencies.tools.administration._source, FileToolConfigurationStore)
     assert isinstance(dependencies.tools.projection, FileToolProjectionRepository)
+    assert isinstance(dependencies.kpis.administration._source, FileKpiConfigurationStore)
+    assert isinstance(dependencies.kpis.projection, FileKpiProjectionRepository)
+    assert isinstance(dependencies.kpis.destinations, ToolProjectionKpiDestinationProvider)
+    assert dependencies.kpis.destinations._projection is dependencies.tools.projection
     assert isinstance(dependencies.users.administration._source, FileUsersConfigurationStore)
     assert isinstance(dependencies.users.projection, FileUsersProjectionRepository)
     assert isinstance(
@@ -329,24 +341,30 @@ def test_local_file_dependencies_keep_history_and_projection_in_separate_roots(t
     assert isinstance(dependencies.navigation.projection, FileNavigationProjectionRepository)
     assert dependencies.tools_source_name == 'Archivo local'
     assert dependencies.tools_projection_name == 'Archivo local'
+    assert dependencies.kpis_source_name == 'Archivo local'
+    assert dependencies.kpis_projection_name == 'Archivo local'
 
     roots = {
         dependencies.tools.administration._source._settings.root,
+        dependencies.kpis.administration._source._settings.root,
         dependencies.users.administration._source._settings.root,
         dependencies.navigation.administration._source._settings.root,
     }
     assert roots == {
         Path(tmp_path) / 'source' / 'tools',
+        Path(tmp_path) / 'source' / 'kpis',
         Path(tmp_path) / 'source' / 'users',
         Path(tmp_path) / 'source' / 'navigation',
     }
     projection_roots = {
         dependencies.tools.projection._settings.root,
+        dependencies.kpis.projection._settings.root,
         dependencies.users.projection._settings.root,
         dependencies.navigation.projection._settings.root,
     }
     assert projection_roots == {
         Path(tmp_path) / 'projection' / 'tools',
+        Path(tmp_path) / 'projection' / 'kpis',
         Path(tmp_path) / 'projection' / 'users',
         Path(tmp_path) / 'projection' / 'navigation',
     }
@@ -366,8 +384,13 @@ def test_local_file_history_can_project_to_cosmos_without_sharepoint(tmp_path) -
     )
 
     assert isinstance(dependencies.tools.administration._source, FileToolConfigurationStore)
+    assert isinstance(dependencies.tools.projection, CosmosToolProjectionRepository)
+    assert isinstance(dependencies.kpis.projection, CosmosKpiProjectionRepository)
+    assert dependencies.kpis.projection._client is dependencies.tools.projection._client
     assert dependencies.tools_source_name == 'Archivo local'
     assert dependencies.tools_projection_name == 'Cosmos DB'
+    assert dependencies.kpis_source_name == 'Archivo local'
+    assert dependencies.kpis_projection_name == 'Cosmos DB'
     assert dependencies.users_projection_name == 'Cosmos DB'
     assert dependencies.navigation_projection_name == 'Cosmos DB'
 
@@ -386,15 +409,21 @@ def test_sharepoint_history_uses_separate_history_infrastructure_and_cosmos_proj
     )
 
     assert isinstance(dependencies.tools.administration._source, SharePointToolConfigurationStore)
+    assert isinstance(dependencies.kpis.administration._source, SharePointKpiConfigurationStore)
+    assert dependencies.kpis.administration._source._settings.relative_path == (
+        'configuration/ada/tool'
+    )
     assert isinstance(dependencies.users.administration._source, SharePointUsersConfigurationStore)
     assert isinstance(
         dependencies.navigation.administration._source,
         SharePointNavigationConfigurationStore,
     )
     assert dependencies.tools_source_name == 'SharePoint'
+    assert dependencies.kpis_source_name == 'SharePoint'
     assert dependencies.users_source_name == 'SharePoint'
     assert dependencies.navigation_source_name == 'SharePoint'
     assert dependencies.tools_projection_name == 'Cosmos DB'
+    assert dependencies.kpis_projection_name == 'Cosmos DB'
     assert dependencies.users_projection_name == 'Cosmos DB'
     assert dependencies.navigation_projection_name == 'Cosmos DB'
     assert dependencies.force_publish_enabled is False

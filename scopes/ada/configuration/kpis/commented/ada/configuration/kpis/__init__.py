@@ -1,4 +1,4 @@
-# Expone únicamente los contratos públicos del Core KPI; no expone UI, slots ni runtime.
+# Expone los contratos públicos de KPI Configuration sin introducir topología de Tool.
 # El código bajo estos comentarios conserva paridad ejecutable con producción.
 from ada.configuration.kpis.bundle import (
     KpiConfigurationBundle,

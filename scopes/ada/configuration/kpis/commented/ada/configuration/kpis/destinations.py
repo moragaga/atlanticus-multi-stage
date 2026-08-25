@@ -1,4 +1,4 @@
-# Representa la vista estable y mínima de destinos que KPI recibe desde Tool Projection.
+# Modela el catálogo mínimo de destinos derivado de Tool Projection estable.
 # El código bajo estos comentarios conserva paridad ejecutable con producción.
 from __future__ import annotations
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ada-configuration-kpis"
-version = "0.1.0"
+version = "0.2.0"
 description = "Configuración revisionada de bindings KPI hacia destinos proyectados ADA"
 requires-python = "==3.14.2"
 classifiers = [
@@ -15,9 +15,16 @@ dependencies = [
     "ada-contracts-tool-manifest==0.1.0",
 ]
 
+[project.optional-dependencies]
+web = [
+    "atlanticus-web==0.1.0",
+    "dash==4.4.1",
+]
+
 [tool.uv.sources]
 ada-configuration-tools = { workspace = true }
 ada-contracts-tool-manifest = { workspace = true }
+atlanticus-web = { path = "../../../../web/framework/core", editable = true }
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -28,4 +35,8 @@ namespaces = true
 include = ["ada.configuration.kpis*"]
 
 [tool.setuptools.package-data]
-"ada.configuration.kpis" = ["py.typed"]
+"ada.configuration.kpis" = [
+    "py.typed",
+    "resources/css/*.css",
+    "resources/css/css.list",
+]

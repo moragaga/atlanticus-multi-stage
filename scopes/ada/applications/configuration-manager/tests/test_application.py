@@ -17,26 +17,31 @@ def test_configuration_manager_preview_wraps_reusable_surface(tmp_path) -> None:
         publications_root=Path('.runtime/assets'),
     )
     surface = definition.surface
-    tools, users, navigation = surface.modules
+    tools, kpis, users, navigation = surface.modules
 
-    assert definition.metadata.version == '0.2.17'
+    assert definition.metadata.version == '0.2.18'
     assert surface.default_module_key == 'tools'
     assert surface.route_prefix == ''
-    assert [item.key for item in surface.modules] == ['tools', 'users', 'navigation']
+    assert [item.key for item in surface.modules] == ['tools', 'kpis', 'users', 'navigation']
     assert tools.route == '/tools'
+    assert kpis.route == '/kpis'
     assert users.route == '/users'
     assert navigation.route == '/navigation'
     assert tools.content_section_title == 'Configuración de herramienta'
+    assert kpis.content_section_title == 'Configuración KPI'
     assert users.content_section_title == 'Usuarios y perfiles'
     assert navigation.content_section_title == 'Navegación'
     assert tools.workflow_section_title == 'Estado y trazabilidad'
     assert users.workflow_section_title == 'Estado y trazabilidad'
     assert tools.source_name == 'Archivo local'
+    assert kpis.source_name == 'Archivo local'
+    assert kpis.projection_name == 'Archivo local'
     assert users.source_name == 'Archivo local'
     assert users.projection_name == 'Archivo local'
     assert navigation.source_name == 'Archivo local'
     assert navigation.projection_name == 'Archivo local'
     assert tools.access.publish == 'tools.manage'
+    assert kpis.access.publish == 'kpis.manage'
     assert users.access.publish == 'users.manage'
     assert navigation.access.publish == 'navigation.manage'
 

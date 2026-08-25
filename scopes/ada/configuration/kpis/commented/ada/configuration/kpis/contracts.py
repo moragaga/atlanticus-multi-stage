@@ -1,4 +1,4 @@
-# Declara puertos inyectables para Source, Publisher, Projection y catálogo de destinos.
+# Declara puertos para Source, Publisher, Projection y catálogo de destinos.
 # El código bajo estos comentarios conserva paridad ejecutable con producción.
 from collections.abc import Callable
 from typing import Protocol

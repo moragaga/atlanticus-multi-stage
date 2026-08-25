@@ -1,4 +1,4 @@
-# Implementa únicamente la KPI Projection en Cosmos; Source permanece independiente.
+# Implementa KPI Projection en Cosmos con documento independiente.
 # El código bajo estos comentarios conserva paridad ejecutable con producción.
 from __future__ import annotations
 

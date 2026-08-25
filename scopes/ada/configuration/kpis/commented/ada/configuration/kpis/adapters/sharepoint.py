@@ -1,4 +1,4 @@
-# Implementa el Source/History KPI sobre el gateway SharePoint sin conocer su transporte HTTP.
+# Implementa Source/History KPI sobre el gateway SharePoint.
 # El código bajo estos comentarios conserva paridad ejecutable con producción.
 from __future__ import annotations
 

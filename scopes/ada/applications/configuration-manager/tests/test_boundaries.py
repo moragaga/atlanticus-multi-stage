@@ -15,6 +15,7 @@ def test_application_host_does_not_own_manager_module_workflows() -> None:
     application = (root / 'application.py').read_text(encoding='utf-8')
 
     assert 'ToolManagerWorkflowAdapter' not in application
+    assert 'KpiManagerWorkflowAdapter' not in application
     assert 'UsersManagerWorkflowAdapter' not in application
     assert 'NavigationManagerWorkflowAdapter' not in application
     assert 'ManagerModule(' not in application

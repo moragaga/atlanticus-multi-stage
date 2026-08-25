@@ -1,13 +1,19 @@
-# Compone los módulos Tools, Users y Navigation con sus renderers semánticos de revisiones históricas.
-# Manager solo orquesta la vista previa; cada módulo conserva la responsabilidad de interpretar su propio contrato.
-
+# Registra Tools y KPIs como módulos ADA junto a Users y Navigation Atlanticus.
+# El código bajo estos comentarios conserva paridad ejecutable con producción.
 from ada.compositions.configuration_manager.dependencies import (
     ConfigurationManagerDependencies,
 )
 from ada.compositions.configuration_manager.workflows import (
+    KpiManagerWorkflowAdapter,
     NavigationManagerWorkflowAdapter,
     ToolManagerWorkflowAdapter,
     UsersManagerWorkflowAdapter,
+)
+from ada.configuration.kpis.web import (
+    KpiAdminWebContext,
+    build_kpi_admin_configuration,
+    build_kpi_history_preview,
+    create_kpi_admin_web_module,
 )
 from ada.configuration.tools.web import (
     ToolAdminWebContext,
@@ -23,6 +29,8 @@ from atlanticus.web.manager import (
     ManagerSurfaceDefinition,
 )
 from atlanticus.web.manager.web.ids import (
+    module_section_button_id,
+    module_section_panel_id,
     workflow_action_id,
     workflow_draft_id,
     workflow_editor_revision_id,
@@ -45,6 +53,7 @@ from atlanticus.web.users.configuration.web import (
 )
 
 TOOLS_WORKFLOW_SERVICE = 'ada.configuration-manager.tools.workflow'
+KPIS_WORKFLOW_SERVICE = 'ada.configuration-manager.kpis.workflow'
 USERS_WORKFLOW_SERVICE = 'ada.configuration-manager.users.workflow'
 NAVIGATION_WORKFLOW_SERVICE = 'ada.configuration-manager.navigation.workflow'
 
@@ -64,6 +73,21 @@ def build_configuration_manager_surface(
         can_manage=lambda: _can_manage_tools(dependencies.principal_provider()),
         source_name=dependencies.tools_source_name,
         projection_name=dependencies.tools_projection_name,
+    )
+    kpi_context = KpiAdminWebContext(
+        services=dependencies.kpis,
+        draft_store_id=workflow_draft_id('kpis'),
+        draft_save_action_id=workflow_action_id('kpis', 'save-draft'),
+        workflow_refresh_signal_id=workflow_refresh_signal_id('kpis'),
+        editor_revision_store_id=workflow_editor_revision_id('kpis'),
+        workflow_tab_id=module_section_button_id('kpis', 'workflow'),
+        workflow_panel_id=module_section_panel_id('kpis', 'workflow'),
+        content_panel_id=module_section_panel_id('kpis', 'content'),
+        draft_owner_provider=lambda: dependencies.principal_provider().subject_id,
+        can_manage=lambda: _can_manage_kpis(dependencies.principal_provider()),
+        source_name=dependencies.kpis_source_name,
+        projection_name=dependencies.kpis_projection_name,
+        tools_route=f'{route_prefix}/tools' if route_prefix else '/tools',
     )
     users_context = UsersAdminWebContext(
         services=dependencies.users,
@@ -122,11 +146,34 @@ def build_configuration_manager_surface(
                 force_publish_enabled=dependencies.force_publish_enabled,
             ),
             ManagerModule(
+                key='kpis',
+                group_key='configuration',
+                title='KPIs',
+                route='/kpis',
+                order=20,
+                description='Bindings KPI hacia componentes proyectados de la herramienta ADA.',
+                layout=lambda _services: build_kpi_admin_configuration(kpi_context),
+                history_preview_renderer=build_kpi_history_preview,
+                workflow_service=KPIS_WORKFLOW_SERVICE,
+                access=ManagerModuleAccess(
+                    view='kpis.manage',
+                    validate='kpis.manage',
+                    project='kpis.manage',
+                    publish='kpis.manage',
+                ),
+                web_module=create_kpi_admin_web_module(kpi_context),
+                workflow_section_title='Estado y trazabilidad',
+                content_section_title='Configuración KPI',
+                source_name=dependencies.kpis_source_name,
+                projection_name=dependencies.kpis_projection_name,
+                force_publish_enabled=dependencies.force_publish_enabled,
+            ),
+            ManagerModule(
                 key='users',
                 group_key='configuration',
                 title='Usuarios',
                 route='/users',
-                order=20,
+                order=30,
                 description='Perfiles, usuarios y descubrimiento de identidades Atlanticus.',
                 layout=lambda _services: build_users_admin_configuration(users_context),
                 history_preview_renderer=build_users_history_preview,
@@ -149,7 +196,7 @@ def build_configuration_manager_surface(
                 group_key='configuration',
                 title='Navegación',
                 route='/navigation',
-                order=30,
+                order=40,
                 description='Rutas, secciones y políticas de acceso de Navigation.',
                 layout=lambda _services: build_navigation_admin_configuration(navigation_context),
                 history_preview_renderer=build_navigation_history_preview,
@@ -188,6 +235,10 @@ def _register_services(
         ToolManagerWorkflowAdapter(dependencies.tools),
     )
     services.add(
+        KPIS_WORKFLOW_SERVICE,
+        KpiManagerWorkflowAdapter(dependencies.kpis),
+    )
+    services.add(
         USERS_WORKFLOW_SERVICE,
         UsersManagerWorkflowAdapter(dependencies.users),
     )
@@ -202,6 +253,14 @@ def _can_manage_tools(principal: ManagerPrincipal) -> bool:
         principal.is_local
         or 'administrator' in principal.profile_keys
         or 'tools.manage' in principal.access_keys
+    )
+
+
+def _can_manage_kpis(principal: ManagerPrincipal) -> bool:
+    return (
+        principal.is_local
+        or 'administrator' in principal.profile_keys
+        or 'kpis.manage' in principal.access_keys
     )
 
 

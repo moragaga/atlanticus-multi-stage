@@ -1,4 +1,5 @@
-# La aplicación sólo cambia su identidad de versión; la composición encapsula el nuevo wiring de importación.
+# Host standalone del Configuration Manager; delega módulos y lifecycle a la composición.
+# El código bajo estos comentarios conserva paridad ejecutable con producción.
 from __future__ import annotations
 
 from pathlib import Path
@@ -61,7 +62,7 @@ def build_configuration_manager_definition(
         metadata=ApplicationMetadata(
             application_id='ada-configuration-manager',
             display_name='Gestor de configuración ADA',
-            version='0.2.17',
+            version='0.2.18',
         ),
         publications_root=Path(publications_root),
         surface=build_configuration_manager_surface(

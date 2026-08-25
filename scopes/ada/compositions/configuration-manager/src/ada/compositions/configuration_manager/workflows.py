@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from ada.configuration.kpis import KpiConfiguration, KpiConfigurationServices
 from ada.configuration.tools import ToolConfiguration, ToolConfigurationServices
 from atlanticus.web.manager import (
     DraftValidationResult,
@@ -19,6 +20,51 @@ from atlanticus.web.users.configuration import (
     UsersConfigurationCatalog,
     UsersConfigurationServices,
 )
+
+
+class KpiManagerWorkflowAdapter:
+    def __init__(self, services: KpiConfigurationServices) -> None:
+        self._services = services
+        self._workflow = services.projection_workflow
+        self._administration = services.administration
+
+    def get_status(self) -> ProjectionStatus:
+        return _status(self._workflow.get_status())
+
+    def validate_draft(self, payload: dict[str, object]) -> DraftValidationResult:
+        configuration = KpiConfiguration.from_document(payload)
+        return _validation(self._administration.validate_configuration(configuration))
+
+    def publish_draft(
+        self,
+        payload: dict[str, object],
+        expected_source_revision: str | None,
+    ) -> SourcePublicationResult:
+        configuration = KpiConfiguration.from_document(payload)
+        result = self._administration.publish_configuration(
+            configuration,
+            expected_source_revision=expected_source_revision,
+        )
+        return _publication(result)
+
+    def project(self, expected_source_revision: str) -> ProjectionExecutionResult:
+        return _projection(self._workflow.project(expected_source_revision))
+
+    def load_revision(self, revision: str) -> dict[str, object]:
+        return self._administration.load_revision_configuration(revision).to_document()
+
+    def list_history(self, *, limit: int = 20) -> tuple[RevisionHistoryEntry, ...]:
+        status = self._workflow.get_status()
+        return tuple(
+            RevisionHistoryEntry(
+                revision=bundle.revision,
+                saved_by=bundle.saved_by,
+                saved_at=bundle.saved_at_utc,
+                active=bundle.revision == status.active_source_revision,
+                current=bundle.revision == status.source_revision,
+            )
+            for bundle in self._administration.list_history(limit=limit)
+        )
 
 
 class ToolManagerWorkflowAdapter:

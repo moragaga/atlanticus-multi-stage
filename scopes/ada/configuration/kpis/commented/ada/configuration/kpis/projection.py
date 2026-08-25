@@ -1,4 +1,4 @@
-# Define la proyección KPI estable y registra la revisión exacta de Tool Projection utilizada.
+# Define KPI Projection y registra la revisión exacta de Tool Projection utilizada.
 # El código bajo estos comentarios conserva paridad ejecutable con producción.
 from __future__ import annotations
 

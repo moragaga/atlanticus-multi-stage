@@ -1,4 +1,5 @@
-# Espejo comentado: misma lógica productiva con notas pedagógicas en español.
+# Expone la composición pública del Configuration Manager.
+# El código bajo estos comentarios conserva paridad ejecutable con producción.
 from ada.compositions.configuration_manager.backends import (
     ConfigurationBackendSelection,
     ConfigurationHistoryBackend,
@@ -9,6 +10,7 @@ from ada.compositions.configuration_manager.backends import (
     resolve_configuration_backend_selection,
 )
 from ada.compositions.configuration_manager.composition import (
+    KPIS_WORKFLOW_SERVICE,
     NAVIGATION_WORKFLOW_SERVICE,
     TOOLS_WORKFLOW_SERVICE,
     USERS_WORKFLOW_SERVICE,
@@ -23,6 +25,7 @@ from ada.compositions.configuration_manager.principal import (
     manager_principal_from_effective_user,
 )
 from ada.compositions.configuration_manager.workflows import (
+    KpiManagerWorkflowAdapter,
     NavigationManagerWorkflowAdapter,
     ToolManagerWorkflowAdapter,
     UsersManagerWorkflowAdapter,
@@ -40,6 +43,8 @@ __all__ = [
     'manager_principal_from_effective_user',
     'resolve_configuration_backend_selection',
     'ConfigurationManagerDependencies',
+    'KPIS_WORKFLOW_SERVICE',
+    'KpiManagerWorkflowAdapter',
     'NAVIGATION_WORKFLOW_SERVICE',
     'NavigationManagerWorkflowAdapter',
     'TOOLS_WORKFLOW_SERVICE',

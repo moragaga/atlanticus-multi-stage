@@ -1,4 +1,5 @@
 from ada.compositions.configuration_manager import (
+    KPIS_WORKFLOW_SERVICE,
     NAVIGATION_WORKFLOW_SERVICE,
     TOOLS_WORKFLOW_SERVICE,
     USERS_WORKFLOW_SERVICE,
@@ -11,6 +12,7 @@ from atlanticus.web.manager import ManagerModuleRegistry, ManagerPrincipal
 def _dependencies(*, force_publish_enabled: bool = False) -> ConfigurationManagerDependencies:
     return ConfigurationManagerDependencies(
         tools=object(),
+        kpis=object(),
         users=object(),
         navigation=object(),
         principal_provider=lambda: ManagerPrincipal(
@@ -20,6 +22,8 @@ def _dependencies(*, force_publish_enabled: bool = False) -> ConfigurationManage
         ),
         tools_source_name='Archivo local',
         tools_projection_name='Archivo local',
+        kpis_source_name='Archivo local',
+        kpis_projection_name='Archivo local',
         users_source_name='Archivo local',
         users_projection_name='Archivo local',
         navigation_source_name='Archivo local',
@@ -35,18 +39,21 @@ def test_configuration_manager_surface_registers_existing_modules_under_manager(
         surface.modules,
         route_prefix=surface.route_prefix,
     )
-    tools, users, navigation = surface.modules
+    tools, kpis, users, navigation = surface.modules
 
     assert surface.default_module_key == 'tools'
     assert surface.route_prefix == '/manager'
-    assert [module.key for module in surface.modules] == ['tools', 'users', 'navigation']
+    assert [module.key for module in surface.modules] == ['tools', 'kpis', 'users', 'navigation']
     assert tools.route == '/tools'
+    assert kpis.route == '/kpis'
     assert users.route == '/users'
     assert navigation.route == '/navigation'
     assert registry.route_for(tools) == '/manager/tools'
+    assert registry.route_for(kpis) == '/manager/kpis'
     assert registry.route_for(users) == '/manager/users'
     assert registry.route_for(navigation) == '/manager/navigation'
     assert tools.workflow_service == TOOLS_WORKFLOW_SERVICE
+    assert kpis.workflow_service == KPIS_WORKFLOW_SERVICE
     assert users.workflow_service == USERS_WORKFLOW_SERVICE
     assert navigation.workflow_service == NAVIGATION_WORKFLOW_SERVICE
 
@@ -72,8 +79,10 @@ def test_configuration_manager_surface_registers_semantic_history_previews() -> 
     renderers = {module.key: module.history_preview_renderer for module in surface.modules}
 
     assert renderers['tools'] is not None
+    assert renderers['kpis'] is not None
     assert renderers['users'] is not None
     assert renderers['navigation'] is not None
     assert renderers['tools'].__name__ == 'build_tool_history_preview'
+    assert renderers['kpis'].__name__ == 'build_kpi_history_preview'
     assert renderers['users'].__name__ == 'build_users_history_preview'
     assert renderers['navigation'].__name__ == 'build_navigation_history_preview'

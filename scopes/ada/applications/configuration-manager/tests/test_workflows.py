@@ -2,10 +2,12 @@ from dataclasses import replace
 
 from ada.applications.configuration_manager.local import build_local_dependencies
 from ada.compositions.configuration_manager import (
+    KpiManagerWorkflowAdapter,
     NavigationManagerWorkflowAdapter,
     ToolManagerWorkflowAdapter,
     UsersManagerWorkflowAdapter,
 )
+from ada.configuration.kpis import KpiBinding, KpiConfiguration
 from ada.configuration.tools import (
     ToolConfiguration,
     integrated_operations_configuration_from_manifest,
@@ -100,6 +102,41 @@ def test_loading_historical_revision_does_not_mutate_source(tmp_path) -> None:
     assert len(adapter.list_history()) == 2
 
 
+def test_kpi_adapter_requires_tool_projection_and_then_exposes_full_lifecycle(tmp_path) -> None:
+    dependencies = build_local_dependencies(runtime_root=tmp_path)
+    adapter = KpiManagerWorkflowAdapter(dependencies.kpis)
+    payload = KpiConfiguration(
+        bindings=(
+            KpiBinding(
+                key='produccion_total',
+                destination_keys=('global_indicators', 'molienda'),
+                latest_enabled=True,
+                series_enabled=True,
+                series_hours=24,
+            ),
+        )
+    ).to_document()
+
+    blocked = adapter.validate_draft(payload)
+    assert blocked.valid is False
+    assert blocked.issues[0].code == 'kpi.tool_projection.missing'
+
+    tool_adapter = ToolManagerWorkflowAdapter(dependencies.tools)
+    tool_publication = tool_adapter.publish_draft(_configuration().to_document(), None)
+    tool_adapter.project(tool_publication.source_revision)
+
+    validation = adapter.validate_draft(payload)
+    assert validation.valid
+    publication = adapter.publish_draft(payload, None)
+    assert publication.published
+    assert resolve_projection_state(adapter.get_status()) is ProjectionState.READY
+
+    projection = adapter.project(publication.source_revision)
+    assert projection.projected
+    assert resolve_projection_state(adapter.get_status()) is ProjectionState.SYNCHRONIZED
+    assert adapter.list_history()[0].revision == publication.source_revision
+
+
 def test_users_adapter_exposes_draft_publish_projection_and_history(tmp_path) -> None:
     dependencies = build_local_dependencies(runtime_root=tmp_path)
     adapter = UsersManagerWorkflowAdapter(dependencies.users)
@@ -134,6 +171,9 @@ def test_local_dependencies_start_without_manifest_or_users_bootstrap(tmp_path) 
 
     assert dependencies.tools.administration.load_source() is None
     assert dependencies.tools.projection.load() is None
+    assert dependencies.kpis.administration.load_source() is None
+    assert dependencies.kpis.projection.load() is None
+    assert dependencies.kpis.destinations.load() is None
     assert dependencies.users.administration.load_catalog() is None
     assert dependencies.users.projection.load_state() is None
     assert dependencies.navigation.administration.load_catalog() is None

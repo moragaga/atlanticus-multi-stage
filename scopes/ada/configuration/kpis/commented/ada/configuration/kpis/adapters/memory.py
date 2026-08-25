@@ -1,4 +1,4 @@
-# Proporciona almacenamiento en memoria para pruebas de Source/History y Projection.
+# Implementa repositorios en memoria para pruebas y composición aislada.
 # El código bajo estos comentarios conserva paridad ejecutable con producción.
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-# Normaliza identidades KPI y destinos sin depender de identidades concretas de una Tool.
+# Normaliza identidades KPI y destinos sin conocer herramientas concretas.
 # El código bajo estos comentarios conserva paridad ejecutable con producción.
 import re
 

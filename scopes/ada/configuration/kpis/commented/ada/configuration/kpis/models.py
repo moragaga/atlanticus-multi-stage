@@ -1,4 +1,4 @@
-# Conserva del legacy la unidad KpiBinding, reemplazando Tool/slot por destinos proyectados 1..N.
+# Define KpiBinding multi-destino con Latest y Series independientes.
 # El código bajo estos comentarios conserva paridad ejecutable con producción.
 from __future__ import annotations
 

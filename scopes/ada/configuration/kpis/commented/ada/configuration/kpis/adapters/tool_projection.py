@@ -1,4 +1,4 @@
-# Adapta Tool Projection estable a destinos KPI COMPONENT; no consulta Tool Source ni History.
+# Traduce Tool Projection estable a destinos COMPONENT que aceptan KPI.
 # El código bajo estos comentarios conserva paridad ejecutable con producción.
 from __future__ import annotations
 

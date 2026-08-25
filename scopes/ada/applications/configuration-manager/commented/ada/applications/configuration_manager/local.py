@@ -1,10 +1,19 @@
-# El preview local conserva adapters de archivo y una identidad local fija; estas dependencias no se trasladan al runtime productivo de ADA.
+# Compone backends File locales y conecta KPI exclusivamente a la Tool Projection local.
+# El código bajo estos comentarios conserva paridad ejecutable con producción.
 from __future__ import annotations
 
 import os
 from pathlib import Path
 
 from ada.compositions.configuration_manager import ConfigurationManagerDependencies
+from ada.configuration.kpis import compose_kpi_configuration_services
+from ada.configuration.kpis.adapters.file import (
+    FileKpiConfigurationSettings,
+    FileKpiConfigurationStore,
+    FileKpiProjectionRepository,
+    FileKpiProjectionSettings,
+)
+from ada.configuration.kpis.adapters.tool_projection import ToolProjectionKpiDestinationProvider
 from ada.configuration.tools import compose_tool_configuration_services
 from ada.configuration.tools.adapters.file import (
     FileToolConfigurationSettings,
@@ -50,6 +59,19 @@ def build_local_dependencies(
         projection=tools_projection,
         audit_actor_provider=lambda: 'Administrador local',
     )
+    kpis_source = FileKpiConfigurationStore(
+        FileKpiConfigurationSettings(root=resolved_root / 'source' / 'kpis')
+    )
+    kpis_projection = FileKpiProjectionRepository(
+        FileKpiProjectionSettings(root=resolved_root / 'projection' / 'kpis')
+    )
+    kpis = compose_kpi_configuration_services(
+        source=kpis_source,
+        publisher=kpis_source,
+        projection=kpis_projection,
+        destinations=ToolProjectionKpiDestinationProvider(tools_projection),
+        audit_actor_provider=lambda: 'Administrador local',
+    )
     users_source = FileUsersConfigurationStore(
         FileUsersConfigurationSettings(root=resolved_root / 'source' / 'users')
     )
@@ -78,11 +100,14 @@ def build_local_dependencies(
     )
     return ConfigurationManagerDependencies(
         tools=tools,
+        kpis=kpis,
         users=users,
         navigation=navigation,
         principal_provider=_local_manager_principal,
         tools_source_name='Archivo local',
         tools_projection_name='Archivo local',
+        kpis_source_name='Archivo local',
+        kpis_projection_name='Archivo local',
         users_source_name='Archivo local',
         users_projection_name='Archivo local',
         navigation_source_name='Archivo local',
@@ -90,7 +115,6 @@ def build_local_dependencies(
     )
 
 
-# La identidad fija existe solo para el preview; ADA usará un adapter desde su EffectiveUser en un incremento posterior.
 def _local_manager_principal() -> ManagerPrincipal:
     return ManagerPrincipal(
         subject_id='local',

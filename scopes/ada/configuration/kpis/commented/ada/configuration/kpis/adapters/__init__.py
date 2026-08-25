@@ -1,4 +1,4 @@
-# Agrupa adapters concretos manteniendo el Core dependiente de contratos.
+# Agrupa adapters concretos manteniendo el dominio dependiente de contratos.
 # El código bajo estos comentarios conserva paridad ejecutable con producción.
 from ada.configuration.kpis.adapters.cosmos import (
     CosmosKpiProjectionRepository,

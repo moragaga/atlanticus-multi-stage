@@ -1,4 +1,5 @@
-# Espejo pedagógico: misma implementación productiva, acompañada por esta nota en español.
+# Compone Source/History/Projection y deriva destinos KPI desde Tool Projection.
+# El código bajo estos comentarios conserva paridad ejecutable con producción.
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -10,6 +11,18 @@ from ada.compositions.web_bootstrap import (
     AdaConfigurationFilenames,
     AdaCosmosBindings,
     AdaRuntimeProjection,
+)
+from ada.configuration.kpis import compose_kpi_configuration_services
+from ada.configuration.kpis.adapters import (
+    CosmosKpiProjectionRepository,
+    CosmosKpiProjectionSettings,
+    FileKpiConfigurationSettings,
+    FileKpiConfigurationStore,
+    FileKpiProjectionRepository,
+    FileKpiProjectionSettings,
+    SharePointKpiConfigurationSettings,
+    SharePointKpiConfigurationStore,
+    ToolProjectionKpiDestinationProvider,
 )
 from ada.configuration.tools import TOOL_COSMOS_REQUIREMENTS, compose_tool_configuration_services
 from ada.configuration.tools.adapters import (
@@ -181,9 +194,7 @@ def create_configuration_runtime_projection(
     )
     return AdaRuntimeProjection(
         profiles=FileUsersProjectionProfileCatalog(users_projection),
-        navigation_provider=create_projected_navigation_definition_provider(
-            navigation_projection
-        ),
+        navigation_provider=create_projected_navigation_definition_provider(navigation_projection),
     )
 
 
@@ -240,6 +251,12 @@ def create_configuration_manager_dependencies(
                 relative_path=paths.tool_relative_path,
             ),
         )
+        kpis_source = SharePointKpiConfigurationStore(
+            gateway=gateway,
+            settings=SharePointKpiConfigurationSettings(
+                relative_path=paths.tool_relative_path,
+            ),
+        )
         users_source = SharePointUsersConfigurationStore(
             gateway=gateway,
             settings=SharePointUsersConfigurationSettings(
@@ -261,6 +278,9 @@ def create_configuration_manager_dependencies(
                 root=root / 'source' / 'tools',
                 filename=filenames.tools,
             )
+        )
+        kpis_source = FileKpiConfigurationStore(
+            FileKpiConfigurationSettings(root=root / 'source' / 'kpis')
         )
         users_source = FileUsersConfigurationStore(
             FileUsersConfigurationSettings(
@@ -288,6 +308,15 @@ def create_configuration_manager_dependencies(
                 )
             ),
         )
+        kpis_projection = CosmosKpiProjectionRepository(
+            client=tools_client,
+            settings=CosmosKpiProjectionSettings(
+                container_name=_single_container_name(
+                    TOOL_COSMOS_REQUIREMENTS,
+                    capability='KPI',
+                )
+            ),
+        )
         users_projection = CosmosUsersProjectionRepository(client=users_client)
         users_discovered = CosmosDiscoveredUsersSource(client=users_client)
         navigation_projection = CosmosNavigationProjectionRepository(
@@ -304,6 +333,9 @@ def create_configuration_manager_dependencies(
         tools_projection = FileToolProjectionRepository(
             FileToolProjectionSettings(root=root / 'projection' / 'tools')
         )
+        kpis_projection = FileKpiProjectionRepository(
+            FileKpiProjectionSettings(root=root / 'projection' / 'kpis')
+        )
         users_projection = FileUsersProjectionRepository(
             FileUsersConfigurationSettings(root=root / 'projection' / 'users')
         )
@@ -316,6 +348,13 @@ def create_configuration_manager_dependencies(
         source=tools_source,
         publisher=tools_source,
         projection=tools_projection,
+        audit_actor_provider=actor_provider,
+    )
+    kpis = compose_kpi_configuration_services(
+        source=kpis_source,
+        publisher=kpis_source,
+        projection=kpis_projection,
+        destinations=ToolProjectionKpiDestinationProvider(tools_projection),
         audit_actor_provider=actor_provider,
     )
     users = compose_users_configuration_services(
@@ -333,11 +372,14 @@ def create_configuration_manager_dependencies(
     )
     return ConfigurationManagerDependencies(
         tools=tools,
+        kpis=kpis,
         users=users,
         navigation=navigation,
         principal_provider=principal_provider,
         tools_source_name=_history_label(selection.history),
         tools_projection_name=_projection_label(selection.projection),
+        kpis_source_name=_history_label(selection.history),
+        kpis_projection_name=_projection_label(selection.projection),
         users_source_name=_history_label(selection.history),
         users_projection_name=_projection_label(selection.projection),
         navigation_source_name=_history_label(selection.history),

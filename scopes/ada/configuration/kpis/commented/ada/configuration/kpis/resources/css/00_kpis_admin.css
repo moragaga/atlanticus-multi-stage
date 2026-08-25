@@ -1,0 +1,385 @@
+.ada-kpis-admin {
+    display: grid;
+    gap: .9rem;
+}
+
+.ada-kpis-admin__runtime-context,
+.ada-kpis-admin__toolbar,
+.ada-kpis-admin__section,
+.ada-kpis-admin__protected {
+    min-width: 0;
+    padding: 1rem;
+    background: var(--atlanticus-manager-surface);
+    border: 1px solid var(--atlanticus-manager-border);
+    border-radius: .85rem;
+    box-shadow: 0 4px 16px rgba(25, 30, 38, .035);
+}
+
+.ada-kpis-admin__runtime-context {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .55rem .75rem;
+    padding-block: .72rem;
+    background: var(--atlanticus-manager-surface-muted);
+}
+
+.ada-kpis-admin__runtime-source {
+    display: flex;
+    align-items: baseline;
+    gap: .42rem;
+    padding: .38rem .62rem;
+    color: var(--atlanticus-manager-color-primary-dark);
+    background: var(--atlanticus-manager-color-primary-soft);
+    border: 1px solid rgba(201, 162, 75, .3);
+    border-radius: 999px;
+    font-size: .7rem;
+}
+
+.ada-kpis-admin__runtime-source span {
+    color: var(--atlanticus-manager-text-muted);
+}
+
+.ada-kpis-admin__runtime-source code {
+    color: var(--atlanticus-manager-color-primary-ink);
+    font-size: .68rem;
+}
+
+.ada-kpis-admin__protected {
+    display: grid;
+    justify-items: start;
+    gap: .55rem;
+    padding: 1.2rem;
+    border-top: .22rem solid var(--atlanticus-manager-color-primary);
+}
+
+.ada-kpis-admin__protected--hidden,
+.ada-kpis-admin__editor--hidden,
+.ada-kpis-admin__series-hours--hidden {
+    display: none;
+}
+
+.ada-kpis-admin__protected h3,
+.ada-kpis-admin__protected p {
+    margin: 0;
+}
+
+.ada-kpis-admin__protected h3 {
+    color: var(--atlanticus-manager-color-primary-ink);
+    font-size: 1rem;
+}
+
+.ada-kpis-admin__protected p {
+    max-width: 54rem;
+    color: var(--atlanticus-manager-text-muted);
+    font-size: .76rem;
+    line-height: 1.5;
+}
+
+.ada-kpis-admin__protected-eyebrow,
+.ada-kpis-admin__modal-eyebrow {
+    color: var(--atlanticus-manager-color-primary-dark);
+    font-size: .68rem;
+    font-weight: 780;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.ada-kpis-admin__editor {
+    display: grid;
+    gap: .9rem;
+}
+
+.ada-kpis-admin__toolbar-row,
+.ada-kpis-admin__save-actions {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.ada-kpis-admin__toolbar-copy,
+.ada-kpis-admin__section-heading-copy,
+.ada-kpis-admin__binding-copy,
+.ada-kpis-admin__field {
+    display: grid;
+    gap: .3rem;
+}
+
+.ada-kpis-admin__toolbar-copy {
+    max-width: 52rem;
+}
+
+.ada-kpis-admin__toolbar-copy strong,
+.ada-kpis-admin__section-heading-copy h3 {
+    color: var(--atlanticus-manager-color-primary-ink);
+}
+
+.ada-kpis-admin__section-heading-copy h3,
+.ada-kpis-admin__section-heading-copy p {
+    margin: 0;
+}
+
+.ada-kpis-admin__section-heading-copy h3 {
+    font-size: .9rem;
+    font-weight: 780;
+}
+
+.ada-kpis-admin__section-heading-copy p,
+.ada-kpis-admin__field-help {
+    color: var(--atlanticus-manager-text-muted);
+    font-size: .68rem;
+    line-height: 1.4;
+}
+
+.ada-kpis-admin__bindings-list {
+    display: grid;
+    gap: .62rem;
+    margin-top: .8rem;
+}
+
+.ada-kpis-admin__binding-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .8rem;
+    background: var(--atlanticus-manager-surface-muted);
+    border: 1px solid var(--atlanticus-manager-border);
+    border-radius: .72rem;
+}
+
+.ada-kpis-admin__binding-main {
+    display: grid;
+    flex: 1 1 auto;
+    gap: .48rem;
+    min-width: 0;
+}
+
+.ada-kpis-admin__binding-copy {
+    grid-template-columns: minmax(8rem, auto) 1fr;
+    align-items: center;
+    gap: .6rem;
+}
+
+.ada-kpis-admin__binding-copy strong {
+    color: var(--atlanticus-manager-color-primary-ink);
+    font-size: .84rem;
+}
+
+.ada-kpis-admin__binding-copy > div,
+.ada-kpis-admin__destinations {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+}
+
+.ada-kpis-admin__badge,
+.ada-kpis-admin__destination {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.6rem;
+    padding: .2rem .46rem;
+    border-radius: 999px;
+    font-size: .64rem;
+    font-weight: 700;
+}
+
+.ada-kpis-admin__badge {
+    color: var(--atlanticus-manager-color-primary-dark);
+    background: var(--atlanticus-manager-color-primary-soft);
+    border: 1px solid rgba(201, 162, 75, .28);
+}
+
+.ada-kpis-admin__badge--muted {
+    color: var(--atlanticus-manager-text-muted);
+    background: var(--atlanticus-manager-surface);
+    border-color: var(--atlanticus-manager-border);
+}
+
+.ada-kpis-admin__destination {
+    color: var(--atlanticus-manager-text);
+    background: #FFFFFF;
+    border: 1px solid var(--atlanticus-manager-border);
+}
+
+.ada-kpis-admin__destination--missing {
+    color: var(--atlanticus-manager-danger);
+    border-color: currentColor;
+}
+
+.ada-kpis-admin__binding-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: .35rem;
+}
+
+.ada-kpis-admin__binding-action {
+    min-height: 2rem;
+    padding: .35rem .58rem;
+    color: var(--atlanticus-manager-color-primary-dark);
+    background: #FFFFFF;
+    border: 1px solid var(--atlanticus-manager-border);
+    border-radius: .5rem;
+    font: inherit;
+    font-size: .68rem;
+    font-weight: 700;
+}
+
+.ada-kpis-admin__binding-action:hover {
+    background: var(--atlanticus-manager-color-primary-soft);
+    border-color: var(--atlanticus-manager-color-primary);
+}
+
+.ada-kpis-admin__binding-action--danger {
+    color: var(--atlanticus-manager-danger);
+}
+
+.ada-kpis-admin__empty {
+    padding: .95rem;
+    color: var(--atlanticus-manager-text-muted);
+    background: var(--atlanticus-manager-surface-muted);
+    border: 1px dashed var(--atlanticus-manager-border);
+    border-radius: .7rem;
+    font-size: .72rem;
+}
+
+.ada-kpis-admin__section--footer {
+    border-top: .22rem solid var(--atlanticus-manager-color-primary);
+}
+
+.ada-kpis-admin__modal {
+    position: fixed;
+    z-index: 1300;
+    inset: 0;
+    display: none;
+    place-items: center;
+    padding: 1rem;
+}
+
+.ada-kpis-admin__modal--open {
+    display: grid;
+}
+
+.ada-kpis-admin__modal-backdrop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    background: rgba(7, 21, 34, .56);
+    border: 0;
+}
+
+.ada-kpis-admin__modal-dialog {
+    position: relative;
+    z-index: 1;
+    width: min(42rem, 100%);
+    max-height: min(48rem, calc(100vh - 2rem));
+    overflow-y: auto;
+    background: var(--atlanticus-manager-surface);
+    border: 1px solid var(--atlanticus-manager-border);
+    border-top: .24rem solid var(--atlanticus-manager-color-primary);
+    border-radius: .9rem;
+    box-shadow: var(--atlanticus-manager-shadow);
+}
+
+.ada-kpis-admin__modal-header,
+.ada-kpis-admin__modal-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .85rem 1rem;
+}
+
+.ada-kpis-admin__modal-header {
+    border-bottom: 1px solid var(--atlanticus-manager-border);
+}
+
+.ada-kpis-admin__modal-header h3,
+.ada-kpis-admin__modal-header p {
+    margin: 0;
+}
+
+.ada-kpis-admin__modal-header h3 {
+    color: var(--atlanticus-manager-color-primary-ink);
+    font-size: .95rem;
+}
+
+.ada-kpis-admin__modal-body {
+    display: grid;
+    gap: .85rem;
+    padding: 1rem;
+}
+
+.ada-kpis-admin__modal-actions {
+    justify-content: flex-end;
+    border-top: 1px solid var(--atlanticus-manager-border);
+}
+
+.ada-kpis-admin__field > span {
+    color: var(--atlanticus-manager-text-muted);
+    font-size: .7rem;
+    font-weight: 700;
+}
+
+.ada-kpis-admin__field input {
+    min-height: var(--atlanticus-admin-control-height);
+    padding: .48rem .62rem;
+    color: var(--atlanticus-manager-text);
+    background: #FFFFFF;
+    border: 1px solid var(--atlanticus-manager-border);
+    border-radius: var(--atlanticus-admin-control-radius);
+    font: inherit;
+}
+
+.ada-kpis-admin__field input:focus {
+    border-color: var(--atlanticus-manager-color-primary);
+    box-shadow: var(--atlanticus-admin-focus-ring);
+    outline: none;
+}
+
+.ada-kpis-admin__channels {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(12rem, 1fr));
+    gap: .65rem;
+}
+
+.ada-kpis-admin__channel {
+    display: grid;
+    gap: .3rem;
+    padding: .7rem;
+    background: var(--atlanticus-manager-surface-muted);
+    border: 1px solid var(--atlanticus-manager-border);
+    border-radius: .7rem;
+}
+
+.ada-kpis-admin__channel-toggle label {
+    color: var(--atlanticus-manager-color-primary-ink);
+    font-size: .78rem;
+    font-weight: 750;
+}
+
+.ada-kpis-admin__message {
+    padding: .62rem .7rem;
+    border-radius: .6rem;
+    font-size: .72rem;
+}
+
+.ada-kpis-admin__message--error {
+    color: var(--atlanticus-manager-danger);
+}
+
+@media (max-width: 760px) {
+    .ada-kpis-admin__toolbar-row,
+    .ada-kpis-admin__save-actions,
+    .ada-kpis-admin__binding-card {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .ada-kpis-admin__channels {
+        grid-template-columns: 1fr;
+    }
+}
