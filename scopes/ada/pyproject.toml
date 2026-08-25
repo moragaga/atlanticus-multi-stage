@@ -14,6 +14,7 @@ dependencies = [
     "ada-composition-configuration-manager==0.1.17",
     "ada-composition-process==0.1.0",
     "ada-composition-integrated-operations==0.1.0",
+    "ada-configuration-kpis==0.1.0",
 ]
 
 [dependency-groups]
@@ -35,6 +36,7 @@ ada-application-reference = { workspace = true }
 ada-application-configuration-manager = { workspace = true }
 ada-composition-configuration-manager = { workspace = true }
 ada-configuration-tools = { workspace = true }
+ada-configuration-kpis = { workspace = true }
 ada-contracts-tool-manifest = { workspace = true }
 ada-runtime-web = { workspace = true }
 ada-feature-alarms = { workspace = true }
@@ -76,6 +78,7 @@ atlanticus-http = { path = "../../connectivity/http-client", editable = true }
 members = [
     "contracts/tool-manifest",
     "configuration/tools",
+    "configuration/kpis",
     "runtime/web",
     "compositions/web-application",
     "compositions/web-bootstrap",
@@ -129,6 +132,7 @@ combine-as-imports = true
 testpaths = [
     "contracts/tool-manifest/tests",
     "configuration/tools/tests",
+    "configuration/kpis/tests",
     "runtime/web/tests",
     "compositions/web-application/tests",
     "compositions/web-bootstrap/tests",

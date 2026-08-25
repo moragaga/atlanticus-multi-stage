@@ -25,7 +25,7 @@ dependencies = [
 
 [tool.uv.sources]
 ada-composition-surface = { path = "../surface", editable = true }
-ada-ui-shell-navigation = { path = "../../ui/shell/navigation", editable = true }
+ada-ui-shell-navigation = { workspace = true }
 atlanticus-web = { path = "../../../../web/framework/core", editable = true }
 atlanticus-web-composition-navigation-activity = { path = "../../../../web/compositions/navigation-activity", editable = true }
 atlanticus-web-composition-users-navigation = { path = "../../../../web/compositions/users-navigation", editable = true }
