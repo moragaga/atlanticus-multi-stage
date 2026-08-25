@@ -18,6 +18,7 @@ dependencies = [
     "ada-runtime-delivery-cache==0.1.0",
     "ada-runtime-component-stores==0.1.0",
     "ada-runtime-delivery-collector==0.1.1",
+    "ada-ui-runtime-kpi==0.1.0",
 ]
 
 [dependency-groups]
@@ -80,6 +81,7 @@ atlanticus-http = { path = "../../connectivity/http-client", editable = true }
 ada-runtime-delivery-cache = { workspace = true }
 ada-runtime-component-stores = { workspace = true }
 ada-runtime-delivery-collector = { workspace = true }
+ada-ui-runtime-kpi = { workspace = true }
 [tool.uv.workspace]
 members = [
     "contracts/tool-manifest",
@@ -96,6 +98,7 @@ members = [
     "compositions/process",
     "compositions/integrated-operations",
     "ui/framework/core",
+    "ui/runtime-kpi",
     "ui/layouts/integrated-operations",
     "ui/layouts/process",
     "features/alarms",

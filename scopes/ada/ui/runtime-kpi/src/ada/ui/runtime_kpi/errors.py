@@ -1,0 +1,2 @@
+class RuntimeKpiUiError(ValueError):
+    pass
