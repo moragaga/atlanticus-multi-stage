@@ -11,7 +11,7 @@ def _read(wheel_name: str, member: str) -> str:
 
 
 def test_configuration_manager_transport_has_no_legacy_workspace_import_backend() -> None:
-    wheel = 'ada_composition_configuration_manager-0.1.17-py3-none-any.whl'
+    wheel = 'ada_composition_configuration_manager-0.1.18-py3-none-any.whl'
     backends = _read(wheel, 'ada/compositions/configuration_manager/backends.py')
     composition = _read(wheel, 'ada/compositions/configuration_manager/composition.py')
     dependencies = _read(wheel, 'ada/compositions/configuration_manager/dependencies.py')

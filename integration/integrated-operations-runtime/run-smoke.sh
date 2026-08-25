@@ -10,6 +10,7 @@ NETWORK="atlanticus-r18c-${SUFFIX}"
 COSMOS_CONTAINER="atlanticus-r18c-cosmos-${SUFFIX}"
 APP_CONTAINER="atlanticus-r18c-app-${SUFFIX}"
 RUNTIME_DIR="$SMOKE_DIR/.runtime"
+KPI_SNAPSHOT="$RUNTIME_DIR/kpi_projection_cosmos_snapshot.json"
 ENV_FILE="$RUNTIME_DIR/environment-${SUFFIX}.env"
 COSMOS_KEY='C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=='
 DATABASE="ada-r18c-${SUFFIX}"
@@ -82,7 +83,7 @@ if [[ -z "$FLASK_SECRET_KEY" ]]; then
 fi
 
 mkdir -p "$RUNTIME_DIR"
-rm -f "$ENV_FILE"
+rm -f "$ENV_FILE" "$KPI_SNAPSHOT"
 umask 077
 {
     printf 'ATLANTICUS_ENVIRONMENT=production\n'
@@ -160,7 +161,8 @@ fi
 if ! docker run --rm \
     --network "$NETWORK" \
     --env-file "$ENV_FILE" \
-    -v "$SMOKE_DIR:/smoke:ro" \
+    -e ATLANTICUS_KPI_PROJECTION_SNAPSHOT_PATH=/smoke/.runtime/kpi_projection_cosmos_snapshot.json \
+    -v "$SMOKE_DIR:/smoke" \
     "$IMAGE" \
     python /smoke/exercise_runtime.py; then
     echo 'R18C runtime exercise failed; application logs follow.' >&2
@@ -176,4 +178,5 @@ if [[ "$POST_EXERCISE_LOGS" == *'Access snapshot is not available for this page 
 fi
 
 printf 'Gunicorn automatic capacity: OK\n'
-printf 'R19B.2 projected Tools prepare -> runtime -> HTTP smoke passed.\n'
+printf 'KPI projection snapshot: %s\n' "$KPI_SNAPSHOT"
+printf 'KPI Manager artifact wiring + Cosmos projection E2E smoke passed.\n'

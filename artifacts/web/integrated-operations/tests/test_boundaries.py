@@ -93,6 +93,15 @@ def test_tool_projection_is_an_explicit_artifact_dependency() -> None:
     }
 
 
+def test_kpi_projection_manager_is_an_explicit_artifact_dependency() -> None:
+    document = tomllib.loads((ROOT / 'pyproject.toml').read_text(encoding='utf-8'))
+
+    assert 'ada-configuration-kpis==0.2.0' in document['project']['dependencies']
+    assert document['tool']['uv']['sources']['ada-configuration-kpis'] == {
+        'path': 'wheels/ada_configuration_kpis-0.2.0-py3-none-any.whl'
+    }
+
+
 def test_unified_composition_uses_existing_manager_runtime_and_application_contracts() -> None:
     document = tomllib.loads((ROOT / 'pyproject.toml').read_text(encoding='utf-8'))
     dependencies = set(document['project']['dependencies'])
@@ -100,8 +109,8 @@ def test_unified_composition_uses_existing_manager_runtime_and_application_contr
 
     expected = {
         'ada-composition-configuration-manager': (
-            '0.1.17',
-            'ada_composition_configuration_manager-0.1.17-py3-none-any.whl',
+            '0.1.18',
+            'ada_composition_configuration_manager-0.1.18-py3-none-any.whl',
         ),
         'ada-composition-manager-surface': (
             '0.1.0',

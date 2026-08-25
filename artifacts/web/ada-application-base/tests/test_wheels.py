@@ -10,6 +10,7 @@ EXPECTED_INTERNAL_PACKAGES = {
     'ada-composition-web-application',
     'ada-composition-web-bootstrap',
     'ada-composition-web-deployment',
+    'ada-configuration-kpis',
     'ada-configuration-tools',
     'ada-contracts-tool-manifest',
     'atlanticus-cosmos',
@@ -37,12 +38,16 @@ EXPECTED_INTERNAL_PACKAGES = {
 
 CRITICAL_PATH_PINNED_WHEELS = {
     'ada-composition-configuration-manager': (
-        '0.1.17',
-        'ada_composition_configuration_manager-0.1.17-py3-none-any.whl',
+        '0.1.18',
+        'ada_composition_configuration_manager-0.1.18-py3-none-any.whl',
     ),
     'ada-composition-web-bootstrap': (
         '0.1.7',
         'ada_composition_web_bootstrap-0.1.7-py3-none-any.whl',
+    ),
+    'ada-configuration-kpis': (
+        '0.2.0',
+        'ada_configuration_kpis-0.2.0-py3-none-any.whl',
     ),
     'ada-composition-web-deployment': (
         '0.1.9',
