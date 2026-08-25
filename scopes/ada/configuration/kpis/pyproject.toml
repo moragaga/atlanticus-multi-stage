@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ada-configuration-kpis"
-version = "0.2.8"
+version = "0.2.9"
 description = "Configuración revisionada de bindings KPI hacia destinos proyectados ADA"
 requires-python = "==3.14.2"
 classifiers = [
     "Private :: Do Not Upload",
 ]
 dependencies = [
-    "ada-configuration-tools==0.1.13",
+    "ada-configuration-tools==0.1.14",
     "ada-contracts-tool-manifest==0.1.0",
 ]
 

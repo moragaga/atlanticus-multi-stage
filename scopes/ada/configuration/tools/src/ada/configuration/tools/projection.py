@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from typing import Any, Literal
 
 from ada.configuration.tools.errors import ToolConfigurationProjectionError
+from ada.configuration.tools.runtime import ToolRuntimeBindings, build_tool_runtime_bindings
 from ada.contracts.tool_manifest import ToolManifest
 
 IssueLevel = Literal['error', 'warning']
@@ -57,6 +58,7 @@ class ToolConfigurationProjection:
     projected_by: str
     projected_at_utc: datetime
     manifest: ToolManifest
+    runtime: ToolRuntimeBindings
 
     def __post_init__(self) -> None:
         revision = self.revision.strip()
@@ -79,6 +81,13 @@ class ToolConfigurationProjection:
             )
         if not isinstance(self.manifest, ToolManifest):
             raise ToolConfigurationProjectionError('Tool projection manifest is invalid')
+        if not isinstance(self.runtime, ToolRuntimeBindings):
+            raise ToolConfigurationProjectionError('Tool projection runtime bindings are invalid')
+        expected_runtime = build_tool_runtime_bindings(self.manifest)
+        if self.runtime != expected_runtime:
+            raise ToolConfigurationProjectionError(
+                'Tool projection runtime bindings do not match manifest'
+            )
         object.__setattr__(self, 'projected_at_utc', occurred_at)
 
     @classmethod
@@ -100,6 +109,7 @@ class ToolConfigurationProjection:
             projected_by=projected_by,
             projected_at_utc=occurred_at,
             manifest=manifest,
+            runtime=build_tool_runtime_bindings(manifest),
         )
 
     def to_document(self, *, item_id: str, partition_key: str) -> dict[str, object]:
@@ -107,30 +117,41 @@ class ToolConfigurationProjection:
             'id': item_id,
             'partition_key': partition_key,
             'document_type': 'ada_tool_projection',
-            'schema_version': 2,
+            'schema_version': 3,
             'revision': self.revision,
             'source_revision': self.source_revision,
             'projected_by': self.projected_by,
             'projected_at_utc': self.projected_at_utc.isoformat(),
             'manifest': self.manifest.to_document(),
+            'runtime': self.runtime.to_document(),
         }
 
     @classmethod
     def from_document(cls, document: dict[str, Any]) -> ToolConfigurationProjection:
         if document.get('document_type') != 'ada_tool_projection':
             raise ToolConfigurationProjectionError('Tool projection document type is invalid')
-        if document.get('schema_version') != 2:
+        schema_version = document.get('schema_version')
+        if schema_version not in {2, 3}:
             raise ToolConfigurationProjectionError('Tool projection schema version is invalid')
         try:
             manifest = document['manifest']
             if not isinstance(manifest, dict):
                 raise TypeError
+            resolved_manifest = ToolManifest.from_document(dict(manifest))
+            runtime_document = document.get('runtime')
+            if schema_version == 3:
+                if not isinstance(runtime_document, dict):
+                    raise TypeError
+                runtime = ToolRuntimeBindings.from_document(dict(runtime_document))
+            else:
+                runtime = build_tool_runtime_bindings(resolved_manifest)
             return cls(
                 revision=str(document['revision']),
                 source_revision=str(document['source_revision']),
                 projected_by=str(document['projected_by']),
                 projected_at_utc=datetime.fromisoformat(str(document['projected_at_utc'])),
-                manifest=ToolManifest.from_document(dict(manifest)),
+                manifest=resolved_manifest,
+                runtime=runtime,
             )
         except (KeyError, TypeError, ValueError) as error:
             raise ToolConfigurationProjectionError('Tool projection contract is invalid') from error

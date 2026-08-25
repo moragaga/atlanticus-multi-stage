@@ -1,7 +1,7 @@
 from pathlib import Path
 from zipfile import ZipFile
 
-TOOLS_WHEEL = 'ada_configuration_tools-0.1.13-py3-none-any.whl'
+TOOLS_WHEEL = 'ada_configuration_tools-0.1.14-py3-none-any.whl'
 
 
 def test_integrated_operations_transports_single_tool_configuration_ui() -> None:
@@ -36,3 +36,24 @@ def test_integrated_operations_transports_single_tool_configuration_ui() -> None
     assert 'def toggle_structure_actions(' in callbacks
     assert "Input(TOOL_KIND_ID, 'value')" in callbacks
     assert 'Tool configuration is required' not in callbacks
+
+
+def test_integrated_operations_transports_tool_runtime_binding_contract() -> None:
+    artifact = Path(__file__).resolve().parents[1]
+    wheel = artifact / 'wheels' / TOOLS_WHEEL
+
+    with ZipFile(wheel) as archive:
+        runtime = archive.read('ada/configuration/tools/runtime.py').decode('utf-8')
+        projection = archive.read('ada/configuration/tools/projection.py').decode('utf-8')
+        callbacks = archive.read('ada/configuration/tools/web/callbacks.py').decode('utf-8')
+
+    assert "f'ada-runtime-component-{component_key}'" in runtime
+    assert "f'ada-runtime-kpi-latest-{component_key}'" in runtime
+    assert "f'ada-runtime-kpi-timeseries-{component_key}'" in runtime
+    assert "f'ada-runtime-subcomponent-{component_key}-{subcomponent_key}'" in runtime
+    assert "'schema_version': 3" in projection
+    assert 'schema_version not in {2, 3}' in projection
+    assert "'runtime': self.runtime.to_document()" in projection
+    assert "html.Th('Wrapper runtime')" in callbacks
+    assert "html.Th('KPI Latest Store')" in callbacks
+    assert "html.Th('KPI Timeseries Store')" in callbacks

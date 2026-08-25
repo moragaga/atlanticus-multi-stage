@@ -303,3 +303,20 @@ def test_structure_actions_require_tool_kind_and_parent_component() -> None:
     assert 'has_kind = _optional_tool_kind(kind_value) is not None' in callback
     assert 'has_components = bool(_structure_components(structure_data))' in callback
     assert 'return not has_kind, not (has_kind and has_components)' in callback
+
+
+def test_runtime_reference_exposes_derived_wrapper_and_kpi_store_bindings() -> None:
+    callbacks = _callbacks()
+    preview = callbacks[
+        callbacks.index('def _reference_preview(') : callbacks.index(
+            'def _component_modal_response('
+        )
+    ]
+
+    assert 'build_tool_runtime_bindings(manifest)' in preview
+    assert "html.Th('Wrapper runtime')" in preview
+    assert "html.Th('KPI Latest Store')" in preview
+    assert "html.Th('KPI Timeseries Store')" in preview
+    assert "html.Th('Alarm target')" in preview
+    assert 'Alarmas usa ese mismo binding' in preview
+    assert 'se materializan desde la topología Tool' in preview

@@ -20,6 +20,7 @@ from ada.configuration.tools.models import (
     ToolSourceConfiguration,
     ToolSubcomponentConfiguration,
 )
+from ada.configuration.tools.runtime import build_tool_runtime_bindings
 from ada.configuration.tools.web.ids import (
     ADD_COMPONENT_ID,
     ADD_SUBCOMPONENT_ID,
@@ -81,6 +82,7 @@ from ada.contracts.tool_manifest import (
     ToolScope,
     ToolSectionKind,
     ToolSourceKey,
+    ToolTarget,
 )
 
 _MODAL_CLOSED = 'ada-tools-admin__modal'
@@ -1459,6 +1461,7 @@ def _reference_preview(tool: ToolConfiguration) -> object:
     )
     try:
         manifest = build_tool_manifest(tool)
+        bindings = build_tool_runtime_bindings(manifest)
     except Exception:
         runtime = html.P(
             (
@@ -1474,11 +1477,31 @@ def _reference_preview(tool: ToolConfiguration) -> object:
                 continue
             targets = ', '.join(sorted(target.value.upper() for target in section.targets)) or '—'
             layout = section.layout_role.value if section.layout_role is not None else '—'
+            if section.kind is ToolSectionKind.COMPONENT:
+                binding = bindings.component(section.key)
+                wrapper_id = binding.wrapper_id
+                latest_store_id = binding.kpi_latest_store_id
+                timeseries_store_id = binding.kpi_timeseries_store_id
+            else:
+                if section.component is None or section.subcomponent is None:
+                    continue
+                binding = bindings.subcomponent(
+                    component_key=section.component,
+                    subcomponent_key=section.subcomponent,
+                )
+                wrapper_id = binding.wrapper_id
+                latest_store_id = '—'
+                timeseries_store_id = '—'
+            alarm_target = wrapper_id if ToolTarget.ALARM in section.targets else '—'
             rows.append(
                 html.Tr(
                     [
                         html.Td(section.display_name),
                         html.Td(html.Code(section.key)),
+                        html.Td(html.Code(wrapper_id)),
+                        html.Td(html.Code(latest_store_id)),
+                        html.Td(html.Code(timeseries_store_id)),
+                        html.Td(html.Code(alarm_target)),
                         html.Td(section.scope.value),
                         html.Td(layout),
                         html.Td(targets),
@@ -1488,7 +1511,12 @@ def _reference_preview(tool: ToolConfiguration) -> object:
         runtime = html.Div(
             [
                 html.P(
-                    'Vista derivada; estos valores no son editables.',
+                    (
+                        'Vista derivada y de solo lectura. El wrapper identifica el nodo '
+                        'estructural; Alarmas usa ese mismo binding cuando la sección acepta '
+                        'ALARM. Los stores Latest y Timeseries son los Inputs KPI estables del '
+                        'componente y se materializan desde la topología Tool.'
+                    ),
                     className='ada-tools-admin__reference-help',
                 ),
                 html.Div(
@@ -1498,7 +1526,11 @@ def _reference_preview(tool: ToolConfiguration) -> object:
                                 html.Tr(
                                     [
                                         html.Th('Sección'),
-                                        html.Th('ID runtime'),
+                                        html.Th('Key'),
+                                        html.Th('Wrapper runtime'),
+                                        html.Th('KPI Latest Store'),
+                                        html.Th('KPI Timeseries Store'),
+                                        html.Th('Alarm target'),
                                         html.Th('Scope'),
                                         html.Th('Ubicación'),
                                         html.Th('Targets'),
@@ -1516,12 +1548,15 @@ def _reference_preview(tool: ToolConfiguration) -> object:
         [
             html.H3('Referencia generada'),
             html.P(
-                'ADA deriva estos datos automáticamente a partir de la configuración.',
+                (
+                    'ADA deriva la topología y sus bindings runtime automáticamente a partir '
+                    'de la configuración. Estos IDs son estables mientras sus keys no cambien.'
+                ),
                 className='ada-tools-admin__reference-help',
             ),
             summary,
             html.Details(
-                [html.Summary('Ver manifest runtime generado'), runtime],
+                [html.Summary('Ver contratos y bindings runtime generados'), runtime],
                 className='ada-tools-admin__runtime-preview',
             ),
         ],

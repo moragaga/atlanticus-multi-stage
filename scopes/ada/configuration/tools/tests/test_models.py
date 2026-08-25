@@ -102,6 +102,7 @@ def test_single_tool_documents_use_configuration_and_manifest_roots() -> None:
     assert bundle_document['schema_version'] == 2
     assert 'configuration' in bundle_document
     assert 'catalog' not in bundle_document
-    assert projection_document['schema_version'] == 2
+    assert projection_document['schema_version'] == 3
+    assert 'runtime' in projection_document
     assert 'manifest' in projection_document
     assert 'registry' not in projection_document

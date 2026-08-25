@@ -1,3 +1,6 @@
+# Espejo pedagógico del adapter web de Tool Configuration.
+# Conserva exactamente la lógica productiva y documenta en español los puntos de composición runtime.
+
 from __future__ import annotations
 
 import base64
@@ -20,6 +23,7 @@ from ada.configuration.tools.models import (
     ToolSourceConfiguration,
     ToolSubcomponentConfiguration,
 )
+from ada.configuration.tools.runtime import build_tool_runtime_bindings
 from ada.configuration.tools.web.ids import (
     ADD_COMPONENT_ID,
     ADD_SUBCOMPONENT_ID,
@@ -81,6 +85,7 @@ from ada.contracts.tool_manifest import (
     ToolScope,
     ToolSectionKind,
     ToolSourceKey,
+    ToolTarget,
 )
 
 _MODAL_CLOSED = 'ada-tools-admin__modal'
@@ -112,7 +117,6 @@ def _pattern_click_is_real(
     return False
 
 
-# Los callbacks conservan Source-first: el workspace se hidrata desde Manager y sólo una copia limpia de esa Source se usa como baseline de comparación.
 def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> None:
     @app.callback(
         Output(CONFIGURATION_STORE_ID, 'data'),
@@ -252,7 +256,6 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         Input(TOOL_KIND_ID, 'value'),
         Input(CONFIGURATION_STORE_ID, 'data'),
     )
-    # El tipo controla el contrato de área: Integrated Operations es global y Process requiere un ámbito operacional.
     def synchronize_tool_scope(
         kind_value: str | None,
         configuration_data: dict[str, object] | None,
@@ -273,7 +276,6 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         Input(TOOL_SCOPE_ID, 'value'),
         Input(SOURCE_CONFIGURATION_STORE_ID, 'data'),
     )
-    # La advertencia es deliberadamente no bloqueante: informa qué cambió respecto de la última Source hidratada.
     def render_structural_change_warning(
         tool_key: str | None,
         kind_value: str | None,
@@ -322,8 +324,6 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         Input(TOOL_KIND_ID, 'value'),
         Input(STRUCTURE_STORE_ID, 'data'),
     )
-    # La estructura no puede editarse hasta que el tipo defina las reglas aplicables.
-    # Los subcomponentes requieren además un componente padre existente.
     def toggle_structure_actions(
         kind_value: str | None,
         structure_data: list[dict[str, object]] | None,
@@ -354,7 +354,6 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         structure_data: list[dict[str, object]] | None,
         kind_value: str | None,
     ):
-        # La estructura pertenece al editor actual, no al último borrador guardado.
         kind = _optional_tool_kind(kind_value)
         if kind is None:
             empty = _empty_structure('Define el tipo de herramienta para comenzar.')
@@ -408,7 +407,6 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         kind_value: str | None,
     ):
         trigger = ctx.triggered_id
-        # Cerrar el modal nunca depende de que la configuración sea válida o esté guardada.
         if _matches_trigger(
             trigger,
             COMPONENT_CANCEL_ID,
@@ -416,7 +414,6 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
             COMPONENT_CANCEL_ID + '-footer',
         ):
             return _component_modal_response(closed=True)
-        # Para editar estructura sólo necesitamos el tipo vigente del formulario inline.
         kind = _optional_tool_kind(kind_value)
         if kind is None:
             return _component_modal_response(error='Tool type is required')
@@ -570,7 +567,6 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
     ):
         trigger = ctx.triggered_id
         components = list(_structure_components(structure_data))
-        # Cancelar debe funcionar incluso si el formulario quedó temporalmente incompleto.
         if _matches_trigger(
             trigger,
             SUBCOMPONENT_CANCEL_ID,
@@ -663,7 +659,6 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         structure_data: list[dict[str, object]] | None,
         kind_value: str | None,
     ):
-        # Los vínculos compartidos dependen del tipo que el usuario está editando ahora.
         if _optional_tool_kind(kind_value) is not ToolConfigurationKind.INTEGRATED_OPERATIONS:
             return []
         components = _structure_components(structure_data)
@@ -859,7 +854,6 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
             return no_update, no_update, no_update, no_update
         if not context.can_manage():
             return no_update, _error('Management access is denied'), no_update, no_update
-        # El mismo guardado crea la primera configuración cuando aún no existe Source o workspace previo; no hay modal de creación separado.
         try:
             updated = _build_tool_from_editor(
                 display_name=str(display_name or ''),
@@ -1001,7 +995,6 @@ def _optional_configuration(
 
 
 def _optional_tool_kind(value: str | None) -> ToolConfigurationKind | None:
-    # El formulario puede estar incompleto mientras el usuario edita; por eso el tipo es opcional.
     try:
         return ToolConfigurationKind(str(value or ''))
     except ValueError:
@@ -1375,7 +1368,6 @@ def _component_options(
     return [{'label': component.display_name, 'value': component.key} for component in components]
 
 
-# El editor persiste los valores estructurales elegidos por el usuario; la validación de lifecycle decide después si la combinación es proyectable.
 def _build_tool_from_editor(
     *,
     display_name: str,
@@ -1418,7 +1410,6 @@ def _build_tool_from_editor(
     )
 
 
-# Un ManagerDraft limpio tiene la misma revisión de payload y Source; los drafts editados conservan una revisión distinta.
 def _browser_draft_matches_source(
     data: dict[str, object] | None,
     owner_subject_id: str,
@@ -1432,7 +1423,6 @@ def _browser_draft_matches_source(
     return bool(revision and base_source_revision and revision == base_source_revision)
 
 
-# La comparación se limita a identidad, tipo/aplicación derivada y área; display_name sigue siendo un cambio ordinario.
 def _structural_change_labels(
     *,
     source_configuration_data: dict[str, object] | None,
@@ -1459,6 +1449,8 @@ def _structural_change_labels(
     return tuple(changes)
 
 
+# La referencia runtime hace visibles los bindings derivados sin permitir editarlos.
+# Wrapper es la identidad estructural; los stores serán la frontera estable para los collectors KPI.
 def _reference_preview(tool: ToolConfiguration) -> object:
     summary = html.Div(
         [
@@ -1474,6 +1466,7 @@ def _reference_preview(tool: ToolConfiguration) -> object:
     )
     try:
         manifest = build_tool_manifest(tool)
+        bindings = build_tool_runtime_bindings(manifest)
     except Exception:
         runtime = html.P(
             (
@@ -1489,11 +1482,31 @@ def _reference_preview(tool: ToolConfiguration) -> object:
                 continue
             targets = ', '.join(sorted(target.value.upper() for target in section.targets)) or '—'
             layout = section.layout_role.value if section.layout_role is not None else '—'
+            if section.kind is ToolSectionKind.COMPONENT:
+                binding = bindings.component(section.key)
+                wrapper_id = binding.wrapper_id
+                latest_store_id = binding.kpi_latest_store_id
+                timeseries_store_id = binding.kpi_timeseries_store_id
+            else:
+                if section.component is None or section.subcomponent is None:
+                    continue
+                binding = bindings.subcomponent(
+                    component_key=section.component,
+                    subcomponent_key=section.subcomponent,
+                )
+                wrapper_id = binding.wrapper_id
+                latest_store_id = '—'
+                timeseries_store_id = '—'
+            alarm_target = wrapper_id if ToolTarget.ALARM in section.targets else '—'
             rows.append(
                 html.Tr(
                     [
                         html.Td(section.display_name),
                         html.Td(html.Code(section.key)),
+                        html.Td(html.Code(wrapper_id)),
+                        html.Td(html.Code(latest_store_id)),
+                        html.Td(html.Code(timeseries_store_id)),
+                        html.Td(html.Code(alarm_target)),
                         html.Td(section.scope.value),
                         html.Td(layout),
                         html.Td(targets),
@@ -1503,7 +1516,12 @@ def _reference_preview(tool: ToolConfiguration) -> object:
         runtime = html.Div(
             [
                 html.P(
-                    'Vista derivada; estos valores no son editables.',
+                    (
+                        'Vista derivada y de solo lectura. El wrapper identifica el nodo '
+                        'estructural; Alarmas usa ese mismo binding cuando la sección acepta '
+                        'ALARM. Los stores Latest y Timeseries son los Inputs KPI estables del '
+                        'componente y se materializan desde la topología Tool.'
+                    ),
                     className='ada-tools-admin__reference-help',
                 ),
                 html.Div(
@@ -1513,7 +1531,11 @@ def _reference_preview(tool: ToolConfiguration) -> object:
                                 html.Tr(
                                     [
                                         html.Th('Sección'),
-                                        html.Th('ID runtime'),
+                                        html.Th('Key'),
+                                        html.Th('Wrapper runtime'),
+                                        html.Th('KPI Latest Store'),
+                                        html.Th('KPI Timeseries Store'),
+                                        html.Th('Alarm target'),
                                         html.Th('Scope'),
                                         html.Th('Ubicación'),
                                         html.Th('Targets'),
@@ -1531,12 +1553,15 @@ def _reference_preview(tool: ToolConfiguration) -> object:
         [
             html.H3('Referencia generada'),
             html.P(
-                'ADA deriva estos datos automáticamente a partir de la configuración.',
+                (
+                    'ADA deriva la topología y sus bindings runtime automáticamente a partir '
+                    'de la configuración. Estos IDs son estables mientras sus keys no cambien.'
+                ),
                 className='ada-tools-admin__reference-help',
             ),
             summary,
             html.Details(
-                [html.Summary('Ver manifest runtime generado'), runtime],
+                [html.Summary('Ver contratos y bindings runtime generados'), runtime],
                 className='ada-tools-admin__runtime-preview',
             ),
         ],
