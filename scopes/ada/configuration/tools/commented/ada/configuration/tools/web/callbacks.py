@@ -1,6 +1,3 @@
-# El editor trabaja directamente con una única ToolConfiguration en el workspace del navegador.
-# No existe selector ni alta de múltiples tools; el formulario crea la configuración inicial y luego la edita.
-
 from __future__ import annotations
 
 import base64
@@ -57,8 +54,10 @@ from ada.configuration.tools.web.ids import (
     REFERENCE_ID,
     SAVE_BUTTON_ID,
     SAVE_RESULT_ID,
+    SOURCE_CONFIGURATION_STORE_ID,
     SOURCE_REVISION_STORE_ID,
     SOURCES_ID,
+    STRUCTURAL_CHANGE_WARNING_ID,
     STRUCTURE_RESULT_ID,
     STRUCTURE_STORE_ID,
     SUBCOMPONENT_CANCEL_ID,
@@ -120,11 +119,13 @@ def _pattern_click_is_real(
     return False
 
 
+# Los callbacks conservan Source-first: el workspace se hidrata desde Manager y sólo una copia limpia de esa Source se usa como baseline de comparación.
 def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> None:
     @app.callback(
         Output(CONFIGURATION_STORE_ID, 'data', allow_duplicate=True),
         Output(DRAFT_LOAD_SIGNAL_ID, 'data', allow_duplicate=True),
         Output(SOURCE_REVISION_STORE_ID, 'data', allow_duplicate=True),
+        Output(SOURCE_CONFIGURATION_STORE_ID, 'data', allow_duplicate=True),
         Input(context.draft_store_id, 'data'),
         State(DRAFT_LOAD_SIGNAL_ID, 'data'),
         prevent_initial_call='initial_duplicate',
@@ -134,27 +135,35 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         load_signal: int | None,
     ):
         if draft_data is None:
-            return no_update, no_update, no_update
+            return no_update, no_update, no_update, no_update
         try:
             configuration = _configuration_from_browser_draft(
                 draft_data,
                 context.draft_owner_provider(),
             )
         except Exception:
-            return None, int(load_signal or 0) + 1, None
+            return None, int(load_signal or 0) + 1, None, no_update
+        owner_subject_id = context.draft_owner_provider()
         return (
             configuration.to_document(),
             int(load_signal or 0) + 1,
             _draft_base_source_revision(
                 draft_data,
-                owner_subject_id=context.draft_owner_provider(),
+                owner_subject_id=owner_subject_id,
                 fallback=None,
+            ),
+            (
+                configuration.to_document()
+                if _browser_draft_matches_source(draft_data, owner_subject_id)
+                else no_update
             ),
         )
 
     @app.callback(
         Output(context.editor_revision_store_id, 'data'),
         Input(TOOL_NAME_ID, 'value'),
+        Input(TOOL_KEY_ID, 'value'),
+        Input(TOOL_KIND_ID, 'value'),
         Input(TOOL_SCOPE_ID, 'value'),
         Input(SOURCES_ID, 'value'),
         Input(PI_FRESHNESS_ID, 'value'),
@@ -165,6 +174,8 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
     )
     def track_editor_revision(
         display_name: str | None,
+        tool_key: str | None,
+        kind_value: str | None,
         operational_scope: str | None,
         source_values: list[str] | None,
         pi_freshness: int | None,
@@ -176,6 +187,8 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         if current is None:
             return _raw_editor_revision(
                 display_name=display_name,
+                tool_key=tool_key,
+                kind_value=kind_value,
                 operational_scope=operational_scope,
                 source_values=source_values,
                 pi_freshness=pi_freshness,
@@ -185,8 +198,9 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
             )
         try:
             updated = _build_tool_from_editor(
-                current=current,
                 display_name=str(display_name or ''),
+                tool_key=str(tool_key or ''),
+                kind_value=kind_value,
                 operational_scope=operational_scope,
                 source_values=source_values or [],
                 pi_freshness=pi_freshness,
@@ -197,6 +211,8 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         except Exception:
             return _raw_editor_revision(
                 display_name=display_name,
+                tool_key=tool_key,
+                kind_value=kind_value,
                 operational_scope=operational_scope,
                 source_values=source_values,
                 pi_freshness=pi_freshness,
@@ -288,11 +304,8 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
 
     @app.callback(
         Output(TOOL_NAME_ID, 'value'),
-        Output(TOOL_KEY_ID, 'children'),
-        Output(APPLICATION_KEY_ID, 'children'),
-        Output(TOOL_KIND_ID, 'children'),
-        Output(TOOL_SCOPE_ID, 'value'),
-        Output(TOOL_SCOPE_ID, 'disabled'),
+        Output(TOOL_KEY_ID, 'value'),
+        Output(TOOL_KIND_ID, 'value'),
         Output(SOURCES_ID, 'value'),
         Output(PI_FRESHNESS_ID, 'value'),
         Output(DISPATCH_FRESHNESS_ID, 'value'),
@@ -301,19 +314,81 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
     def load_tool(configuration_data: dict[str, object] | None):
         tool = _optional_configuration(configuration_data)
         if tool is None:
-            return ('', '', '', '', None, True, [], None, None)
+            return ('', '', None, [], None, None)
         freshness = {source.key: source.stale_after_seconds for source in tool.sources}
-        is_integrated = tool.kind is ToolConfigurationKind.INTEGRATED_OPERATIONS
         return (
             tool.display_name,
             tool.tool_key,
-            tool.application_key,
-            'Operaciones Integradas' if is_integrated else 'Process',
-            'global' if is_integrated else _scope_value(tool.operational_scope),
-            is_integrated,
+            tool.kind.value,
             [source.key.value for source in tool.sources],
             freshness.get(ToolSourceKey.PI),
             freshness.get(ToolSourceKey.DISPATCH),
+        )
+
+    @app.callback(
+        Output(APPLICATION_KEY_ID, 'children'),
+        Input(TOOL_KIND_ID, 'value'),
+    )
+    def render_application_key(kind_value: str | None) -> str:
+        try:
+            return ToolConfigurationKind(str(kind_value or '')).value
+        except ValueError:
+            return ''
+
+    @app.callback(
+        Output(TOOL_SCOPE_ID, 'value'),
+        Output(TOOL_SCOPE_ID, 'disabled'),
+        Input(TOOL_KIND_ID, 'value'),
+        Input(CONFIGURATION_STORE_ID, 'data'),
+    )
+    # El tipo controla el contrato de área: Integrated Operations es global y Process requiere un ámbito operacional.
+    def synchronize_tool_scope(
+        kind_value: str | None,
+        configuration_data: dict[str, object] | None,
+    ):
+        if kind_value == ToolConfigurationKind.INTEGRATED_OPERATIONS.value:
+            return 'global', True
+        if kind_value != ToolConfigurationKind.PROCESS.value:
+            return None, True
+        current = _optional_configuration(configuration_data)
+        if current is not None and current.kind is ToolConfigurationKind.PROCESS:
+            return _scope_value(current.operational_scope), False
+        return None, False
+
+    @app.callback(
+        Output(STRUCTURAL_CHANGE_WARNING_ID, 'children'),
+        Input(TOOL_KEY_ID, 'value'),
+        Input(TOOL_KIND_ID, 'value'),
+        Input(TOOL_SCOPE_ID, 'value'),
+        Input(SOURCE_CONFIGURATION_STORE_ID, 'data'),
+    )
+    # La advertencia es deliberadamente no bloqueante: informa qué cambió respecto de la última Source hidratada.
+    def render_structural_change_warning(
+        tool_key: str | None,
+        kind_value: str | None,
+        operational_scope: str | None,
+        source_configuration_data: dict[str, object] | None,
+    ):
+        changes = _structural_change_labels(
+            source_configuration_data=source_configuration_data,
+            tool_key=tool_key,
+            kind_value=kind_value,
+            operational_scope=operational_scope,
+        )
+        if not changes:
+            return None
+        return html.Div(
+            [
+                html.Strong('Cambio de alto impacto'),
+                html.Span(
+                    (
+                        'Estás modificando información estructural de una herramienta ya '
+                        'publicada. Revisa y actualiza las configuraciones dependientes antes '
+                        f'de volver a proyectar. Campos modificados: {", ".join(changes)}.'
+                    )
+                ),
+            ],
+            className='ada-tools-admin__warning ada-tools-admin__warning--high-impact',
         )
 
     @app.callback(
@@ -752,6 +827,8 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
     @app.callback(
         Output(REFERENCE_ID, 'children'),
         Input(TOOL_NAME_ID, 'value'),
+        Input(TOOL_KEY_ID, 'value'),
+        Input(TOOL_KIND_ID, 'value'),
         Input(TOOL_SCOPE_ID, 'value'),
         Input(SOURCES_ID, 'value'),
         Input(PI_FRESHNESS_ID, 'value'),
@@ -761,6 +838,8 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
     )
     def render_reference(
         display_name: str | None,
+        tool_key: str | None,
+        kind_value: str | None,
         operational_scope: str | None,
         source_values: list[str] | None,
         pi_freshness: int | None,
@@ -773,8 +852,9 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
             return _empty_structure('No hay una herramienta configurada.')
         try:
             draft = _build_tool_from_editor(
-                current=current,
                 display_name=str(display_name or ''),
+                tool_key=str(tool_key or ''),
+                kind_value=kind_value,
                 operational_scope=operational_scope,
                 source_values=source_values or [],
                 pi_freshness=pi_freshness,
@@ -818,11 +898,12 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         Output(CONFIGURATION_STORE_ID, 'data', allow_duplicate=True),
         Output(SAVE_RESULT_ID, 'children'),
         Output(context.draft_store_id, 'data', allow_duplicate=True),
-        # Guardar actualiza a la vez el workspace activo y el checkpoint persistente recuperable.
         Output(context.saved_draft_store_id, 'data', allow_duplicate=True),
         Input(SAVE_BUTTON_ID, 'n_clicks'),
         Input(context.draft_save_action_id, 'n_clicks'),
         State(TOOL_NAME_ID, 'value'),
+        State(TOOL_KEY_ID, 'value'),
+        State(TOOL_KIND_ID, 'value'),
         State(TOOL_SCOPE_ID, 'value'),
         State(SOURCES_ID, 'value'),
         State(PI_FRESHNESS_ID, 'value'),
@@ -837,6 +918,8 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         content_clicks: int,
         workflow_clicks: int,
         display_name: str | None,
+        tool_key: str | None,
+        kind_value: str | None,
         operational_scope: str | None,
         source_values: list[str] | None,
         pi_freshness: int | None,
@@ -857,10 +940,11 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         if not context.can_manage():
             return no_update, _error('Management access is denied'), no_update, no_update
         try:
-            current = _require_configuration(configuration_data)
+            _require_configuration(configuration_data)
             updated = _build_tool_from_editor(
-                current=current,
                 display_name=str(display_name or ''),
+                tool_key=str(tool_key or ''),
+                kind_value=kind_value,
                 operational_scope=operational_scope,
                 source_values=source_values or [],
                 pi_freshness=pi_freshness,
@@ -885,6 +969,8 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
 def _raw_editor_revision(
     *,
     display_name: str | None,
+    tool_key: str | None,
+    kind_value: str | None,
     operational_scope: str | None,
     source_values: list[str] | None,
     pi_freshness: int | None,
@@ -894,6 +980,8 @@ def _raw_editor_revision(
 ) -> str:
     document = {
         'display_name': display_name,
+        'tool_key': tool_key,
+        'kind_value': kind_value,
         'operational_scope': operational_scope,
         'source_values': source_values or [],
         'pi_freshness': pi_freshness,
@@ -1366,16 +1454,19 @@ def _component_options(
     return [{'label': component.display_name, 'value': component.key} for component in components]
 
 
+# El editor persiste los valores estructurales elegidos por el usuario; la validación de lifecycle decide después si la combinación es proyectable.
 def _build_tool_from_editor(
     *,
-    current: ToolConfiguration,
     display_name: str,
+    tool_key: str,
+    kind_value: str | None,
     operational_scope: str | None,
     source_values: list[str],
     pi_freshness: int | None,
     dispatch_freshness: int | None,
     components: tuple[ToolComponentConfiguration, ...],
 ) -> ToolConfiguration:
+    kind = ToolConfigurationKind(str(kind_value or ''))
     sources = []
     selected = set(source_values)
     if 'pi' in selected:
@@ -1393,17 +1484,58 @@ def _build_tool_from_editor(
             )
         )
     return ToolConfiguration(
-        tool_key=current.tool_key,
+        tool_key=tool_key,
         display_name=display_name,
-        kind=current.kind,
+        kind=kind,
         operational_scope=(
             ToolScope(operational_scope)
-            if current.kind is ToolConfigurationKind.PROCESS and operational_scope
+            if kind is ToolConfigurationKind.PROCESS and operational_scope
             else None
         ),
         sources=tuple(sources),
         components=components,
     )
+
+
+# Un ManagerDraft limpio tiene la misma revisión de payload y Source; los drafts editados conservan una revisión distinta.
+def _browser_draft_matches_source(
+    data: dict[str, object] | None,
+    owner_subject_id: str,
+) -> bool:
+    if not isinstance(data, dict):
+        return False
+    if str(data.get('owner_subject_id', '')).strip() != owner_subject_id.strip():
+        return False
+    revision = str(data.get('revision', '')).strip()
+    base_source_revision = str(data.get('base_source_revision') or '').strip()
+    return bool(revision and base_source_revision and revision == base_source_revision)
+
+
+# La comparación se limita a identidad, tipo/aplicación derivada y área; display_name sigue siendo un cambio ordinario.
+def _structural_change_labels(
+    *,
+    source_configuration_data: dict[str, object] | None,
+    tool_key: str | None,
+    kind_value: str | None,
+    operational_scope: str | None,
+) -> tuple[str, ...]:
+    source = _optional_configuration(source_configuration_data)
+    if source is None:
+        return ()
+    changes: list[str] = []
+    if str(tool_key or '').strip() != source.tool_key:
+        changes.append('Identificador')
+    selected_kind = str(kind_value or '').strip()
+    if selected_kind != source.kind.value:
+        changes.append('Tipo / aplicación')
+    source_scope = (
+        'global'
+        if source.kind is ToolConfigurationKind.INTEGRATED_OPERATIONS
+        else _scope_value(source.operational_scope)
+    )
+    if (str(operational_scope).strip() if operational_scope is not None else None) != source_scope:
+        changes.append('Área')
+    return tuple(changes)
 
 
 def _reference_preview(tool: ToolConfiguration) -> object:

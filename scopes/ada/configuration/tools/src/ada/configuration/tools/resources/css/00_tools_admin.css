@@ -102,6 +102,35 @@
     line-height: 1.35;
 }
 
+.ada-tools-admin__warning {
+    display: grid;
+    gap: .22rem;
+    margin-top: .7rem;
+    padding: .7rem .78rem;
+    border: 1px solid var(--atlanticus-manager-border);
+    border-radius: .7rem;
+    font-size: .7rem;
+    line-height: 1.4;
+}
+
+.ada-tools-admin__warning strong {
+    color: var(--atlanticus-manager-color-primary-ink);
+    font-size: .72rem;
+}
+
+.ada-tools-admin__warning span {
+    color: var(--atlanticus-manager-text-muted);
+}
+
+.ada-tools-admin__warning--sensitive {
+    background: var(--atlanticus-manager-surface-muted);
+}
+
+.ada-tools-admin__warning--high-impact {
+    background: var(--atlanticus-manager-color-primary-soft);
+    border-color: rgba(201, 162, 75, .38);
+}
+
 .ada-tools-admin__runtime-preview summary {
     color: var(--atlanticus-manager-color-primary-dark);
     font-size: .78rem;

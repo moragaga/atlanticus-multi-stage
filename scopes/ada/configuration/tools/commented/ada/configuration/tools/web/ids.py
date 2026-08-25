@@ -1,8 +1,7 @@
-# Los IDs del Manager reflejan un único store de configuración de Tool.
-# Se eliminan los IDs asociados a selección de herramientas.
-
+# Los IDs separan el workspace editable, la Source publicada y los avisos de riesgo sin acoplarlos a Dash fuera de esta capa.
 CONFIGURATION_STORE_ID = 'ada-tools-configuration-store'
 SOURCE_REVISION_STORE_ID = 'ada-tools-source-revision-store'
+SOURCE_CONFIGURATION_STORE_ID = 'ada-tools-source-configuration-store'
 STRUCTURE_STORE_ID = 'ada-tools-structure-store'
 DRAFT_LOAD_SIGNAL_ID = 'ada-tools-draft-load-signal'
 COMPONENT_EDITOR_STORE_ID = 'ada-tools-component-editor-store'
@@ -19,6 +18,8 @@ TOOL_KEY_ID = 'ada-tools-tool-key'
 APPLICATION_KEY_ID = 'ada-tools-application-key'
 TOOL_KIND_ID = 'ada-tools-tool-kind'
 TOOL_SCOPE_ID = 'ada-tools-tool-scope'
+# Este contenedor muestra una advertencia informativa cuando la identidad estructural difiere de la Source publicada.
+STRUCTURAL_CHANGE_WARNING_ID = 'ada-tools-structural-change-warning'
 SOURCES_ID = 'ada-tools-sources'
 PI_FRESHNESS_ID = 'ada-tools-pi-freshness'
 DISPATCH_FRESHNESS_ID = 'ada-tools-dispatch-freshness'

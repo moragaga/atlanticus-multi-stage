@@ -4,7 +4,7 @@ from importlib.metadata import version
 from pathlib import Path
 from zipfile import ZipFile
 
-TOOLS_VERSION = '0.1.8'
+TOOLS_VERSION = '0.1.9'
 TOOLS_WHEEL_NAME = f'ada_configuration_tools-{TOOLS_VERSION}-py3-none-any.whl'
 
 
@@ -49,3 +49,7 @@ def test_tools_wheel_exposes_only_single_tool_configuration_ui() -> None:
     assert 'Tool configuration already exists' in callbacks
     assert "data.get('schema_version') not in {1, 2}" in callbacks
     assert "'schema_version': 1" in callbacks
+    assert 'Configuración sensible' in layout
+    assert 'id=TOOL_KEY_ID' in layout
+    assert 'id=TOOL_KIND_ID' in layout
+    assert 'Cambio de alto impacto' in callbacks

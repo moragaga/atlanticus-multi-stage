@@ -1,5 +1,4 @@
-/* El estilo acompaña la barra informativa de configuración única y conserva el resto del editor. */
-
+/* Este espejo conserva exactamente los estilos productivos y explica sólo la intención visual. */
 .ada-tools-admin {
     display: grid;
     gap: .9rem;
@@ -102,6 +101,37 @@
     font-size: .64rem;
     font-weight: 500;
     line-height: 1.35;
+}
+
+/* Las advertencias usan el mismo lenguaje visual del Manager y no bloquean controles ni acciones. */
+.ada-tools-admin__warning {
+    display: grid;
+    gap: .22rem;
+    margin-top: .7rem;
+    padding: .7rem .78rem;
+    border: 1px solid var(--atlanticus-manager-border);
+    border-radius: .7rem;
+    font-size: .7rem;
+    line-height: 1.4;
+}
+
+.ada-tools-admin__warning strong {
+    color: var(--atlanticus-manager-color-primary-ink);
+    font-size: .72rem;
+}
+
+.ada-tools-admin__warning span {
+    color: var(--atlanticus-manager-text-muted);
+}
+
+.ada-tools-admin__warning--sensitive {
+    background: var(--atlanticus-manager-surface-muted);
+}
+
+/* El estado de alto impacto resalta diferencias frente a una Source ya publicada. */
+.ada-tools-admin__warning--high-impact {
+    background: var(--atlanticus-manager-color-primary-soft);
+    border-color: rgba(201, 162, 75, .38);
 }
 
 .ada-tools-admin__runtime-preview summary {

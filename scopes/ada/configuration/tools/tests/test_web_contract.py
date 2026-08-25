@@ -7,7 +7,7 @@ def _callbacks() -> str:
     )
 
 
-def test_tool_editor_uses_controlled_structure_forms_and_reference_only_ids() -> None:
+def test_tool_editor_keeps_structural_identity_editable_with_explicit_risk_guidance() -> None:
     root = Path(__file__).parents[1] / 'src/ada/configuration/tools/web'
     layout = (root / 'layout.py').read_text(encoding='utf-8')
     callbacks = _callbacks()
@@ -18,7 +18,15 @@ def test_tool_editor_uses_controlled_structure_forms_and_reference_only_ids() ->
     assert 'CREATE_MODAL_ID' in layout
     assert 'COMPONENT_MODAL_ID' in layout
     assert 'SUBCOMPONENT_MODAL_ID' in layout
-    assert 'El identificador estable se genera automáticamente.' in layout
+    assert 'Configuración sensible' in layout
+    assert 'Define cuidadosamente el identificador, el tipo y el área' in layout
+    assert 'id=TOOL_KEY_ID' in layout
+    assert 'id=TOOL_KIND_ID' in layout
+    assert "_reference_field(\n                        'Aplicación'" in layout
+    assert "Output(TOOL_KEY_ID, 'value')" in callbacks
+    assert "Output(TOOL_KIND_ID, 'value')" in callbacks
+    assert 'render_application_key' in callbacks
+    assert "{'label': 'Mina y Planta', 'value': 'global', 'disabled': True}" in layout
     assert 'if kind is ToolConfigurationKind.INTEGRATED_OPERATIONS' in callbacks
     assert 'else build_identity_key(name)' in callbacks
     assert "if 'pi' in selected:" in callbacks
@@ -166,3 +174,31 @@ def test_tool_editor_exposes_one_configuration_without_tool_selector_or_catalog(
     assert 'Configuración única de herramienta' in layout
     assert 'Tool configuration already exists' in callbacks
     assert 'ToolManifestRegistry' not in callbacks
+
+
+def test_published_source_identity_is_kept_in_memory_for_structural_change_detection() -> None:
+    root = Path(__file__).parents[1] / 'src/ada/configuration/tools/web'
+    layout = (root / 'layout.py').read_text(encoding='utf-8')
+    callbacks = _callbacks()
+
+    assert 'SOURCE_CONFIGURATION_STORE_ID' in layout
+    assert "storage_type='memory'" in layout
+    assert '_browser_draft_matches_source(' in callbacks
+    assert '_structural_change_labels(' in callbacks
+    assert 'context.services.administration.load_source()' not in callbacks
+
+
+def test_structural_change_warning_is_advisory_and_does_not_block_draft_save() -> None:
+    root = Path(__file__).parents[1] / 'src/ada/configuration/tools/web'
+    layout = (root / 'layout.py').read_text(encoding='utf-8')
+    callbacks = _callbacks()
+
+    assert 'Cambio de alto impacto' in callbacks
+    assert 'Revisa y actualiza las configuraciones dependientes antes' in callbacks
+    assert "Output(STRUCTURAL_CHANGE_WARNING_ID, 'children')" in callbacks
+    assert "State(TOOL_KEY_ID, 'value')" in callbacks
+    assert "State(TOOL_KIND_ID, 'value')" in callbacks
+    assert (
+        'disabled=True'
+        not in layout[layout.index('Identificador') : layout.index('Fuentes y freshness')]
+    )

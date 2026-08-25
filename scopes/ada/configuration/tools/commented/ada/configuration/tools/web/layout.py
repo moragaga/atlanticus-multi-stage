@@ -1,6 +1,3 @@
-# La pantalla Tools edita una única configuración y no presenta selector de herramienta.
-# El workspace puede iniciar vacío y crear su configuración inicial sin tocar Source.
-
 from __future__ import annotations
 
 from dash import dcc, html
@@ -40,9 +37,11 @@ from ada.configuration.tools.web.ids import (
     REFERENCE_ID,
     SAVE_BUTTON_ID,
     SAVE_RESULT_ID,
+    SOURCE_CONFIGURATION_STORE_ID,
     SOURCE_NAME_ID,
     SOURCE_REVISION_STORE_ID,
     SOURCES_ID,
+    STRUCTURAL_CHANGE_WARNING_ID,
     STRUCTURE_RESULT_ID,
     STRUCTURE_STORE_ID,
     SUBCOMPONENT_CANCEL_ID,
@@ -64,12 +63,18 @@ from ada.configuration.tools.web.ids import (
 from ada.configuration.tools.web.models import ToolAdminWebContext
 
 
+# La vista mantiene en memoria una copia de la configuración publicada para comparar cambios estructurales sin volver a consultar SharePoint.
 def build_tool_admin_configuration(context: ToolAdminWebContext) -> object:
     return html.Div(
         [
             dcc.Store(id=CONFIGURATION_STORE_ID, data=None, storage_type='memory'),
             dcc.Store(
                 id=SOURCE_REVISION_STORE_ID,
+                data=None,
+                storage_type='memory',
+            ),
+            dcc.Store(
+                id=SOURCE_CONFIGURATION_STORE_ID,
                 data=None,
                 storage_type='memory',
             ),
@@ -209,7 +214,10 @@ def _tool_modal() -> object:
                                     placeholder='Nombre visible de la herramienta',
                                     autoComplete='off',
                                 ),
-                                'El identificador estable se genera automáticamente.',
+                                (
+                                    'Se propone un identificador inicial automáticamente y '
+                                    'puedes corregirlo antes de publicar.'
+                                ),
                             ),
                             _field(
                                 'Tipo',
@@ -262,13 +270,30 @@ def _tool_modal() -> object:
     )
 
 
+# Los campos estructurales permanecen editables; la UI informa el riesgo en vez de imponer un bloqueo técnico.
 def _general_section() -> object:
     return html.Section(
         [
             _section_heading(
                 'Información general',
-                'Define cómo se identifica la herramienta. Los IDs se generan automáticamente.',
+                'Define la identidad y el alcance estructural de la herramienta.',
             ),
+            html.Div(
+                [
+                    html.Strong('Configuración sensible'),
+                    html.Span(
+                        (
+                            'Define cuidadosamente el identificador, el tipo y el área de la '
+                            'herramienta. Estos valores pueden quedar relacionados con '
+                            'configuraciones, componentes y proyecciones dependientes. '
+                            'Modificarlos posteriormente puede requerir actualizar esas '
+                            'referencias para evitar inconsistencias.'
+                        )
+                    ),
+                ],
+                className='ada-tools-admin__warning ada-tools-admin__warning--sensitive',
+            ),
+            html.Div(id=STRUCTURAL_CHANGE_WARNING_ID),
             html.Div(
                 [
                     _field(
@@ -276,20 +301,36 @@ def _general_section() -> object:
                         dcc.Input(id=TOOL_NAME_ID, type='text'),
                         'Nombre visible que verá el usuario en ADA.',
                     ),
-                    _reference_field(
+                    _field(
                         'Identificador',
-                        TOOL_KEY_ID,
-                        'Se crea una vez y permanece estable aunque cambie el nombre.',
+                        dcc.Input(
+                            id=TOOL_KEY_ID,
+                            type='text',
+                            autoComplete='off',
+                        ),
+                        'Identidad estable usada por configuraciones y consumidores dependientes.',
                     ),
+                    # application_key no se edita directamente porque el contrato lo deriva siempre desde el tipo de herramienta.
                     _reference_field(
                         'Aplicación',
                         APPLICATION_KEY_ID,
-                        'Contrato de aplicación que interpreta esta configuración.',
+                        'Se deriva del tipo y cambia junto con él; no es un campo independiente.',
                     ),
-                    _reference_field(
+                    _field(
                         'Tipo',
-                        TOOL_KIND_ID,
-                        'Determina las reglas estructurales que ADA genera automáticamente.',
+                        dcc.Dropdown(
+                            id=TOOL_KIND_ID,
+                            clearable=False,
+                            searchable=False,
+                            options=[
+                                {
+                                    'label': 'Operaciones Integradas',
+                                    'value': 'integrated_operations',
+                                },
+                                {'label': 'Process', 'value': 'process'},
+                            ],
+                        ),
+                        'Determina la aplicación y las reglas estructurales que ADA aplica.',
                     ),
                     _field(
                         'Área de la herramienta',
@@ -298,7 +339,7 @@ def _general_section() -> object:
                             clearable=False,
                             searchable=False,
                             options=[
-                                {'label': 'Mina y Planta', 'value': 'global'},
+                                {'label': 'Mina y Planta', 'value': 'global', 'disabled': True},
                                 {'label': 'Mina', 'value': 'mine'},
                                 {'label': 'Planta', 'value': 'plant'},
                             ],
