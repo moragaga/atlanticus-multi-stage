@@ -4,15 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ada-application-configuration-manager"
-version = "0.2.25"
+version = "0.2.26"
 requires-python = "==3.14.2"
 classifiers = [
     "Private :: Do Not Upload",
 ]
 dependencies = [
-    "ada-composition-configuration-manager==0.1.25",
-    "ada-configuration-kpis[web]==0.2.7",
-    "ada-configuration-tools[web]==0.1.12",
+    "ada-composition-configuration-manager==0.1.26",
+    "ada-configuration-kpis[web]==0.2.8",
+    "ada-configuration-tools[web]==0.1.13",
     "ada-contracts-tool-manifest==0.1.0",
     "ada-ui-framework-core==0.1.0",
     "ada-ui-shell-navigation==0.1.0",

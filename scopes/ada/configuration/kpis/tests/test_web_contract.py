@@ -74,6 +74,18 @@ def test_missing_projected_destinations_are_visible_but_not_silently_reconciled(
     assert '.remove_binding(' not in callbacks[start:end]
 
 
+def test_kpi_source_draft_consumer_owns_initial_store_hydration() -> None:
+    callbacks = _web_source('callbacks.py')
+    start = callbacks.index('@app.callback(', callbacks.index('def register_kpi_admin_callbacks('))
+    end = callbacks.index('def load_browser_draft(')
+    decorator = callbacks[start:end]
+
+    assert "Output(CONFIGURATION_STORE_ID, 'data')" in decorator
+    assert "Output(SOURCE_REVISION_STORE_ID, 'data')" in decorator
+    assert 'allow_duplicate=True' not in decorator
+    assert 'prevent_initial_call' not in decorator
+
+
 def test_kpi_draft_uses_manager_local_workspace_and_not_source_publication() -> None:
     callbacks = _web_source('callbacks.py')
     function_start = callbacks.index('def save_kpi_draft(')

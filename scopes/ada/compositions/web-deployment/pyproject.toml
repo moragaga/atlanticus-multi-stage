@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ada-composition-web-deployment"
-version = "0.1.16"
+version = "0.1.17"
 description = "Contrato de deployment y lifecycle para aplicaciones web ADA"
 requires-python = "==3.14.2"
 classifiers = ["Private :: Do Not Upload"]
 dependencies = [
-    "ada-composition-web-bootstrap==0.1.14",
+    "ada-composition-web-bootstrap==0.1.15",
     "atlanticus-web==0.1.0",
     "atlanticus-web-composition-runtime-infrastructure==0.1.1",
 ]

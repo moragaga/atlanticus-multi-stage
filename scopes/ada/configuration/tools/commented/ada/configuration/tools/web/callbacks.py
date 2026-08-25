@@ -115,13 +115,12 @@ def _pattern_click_is_real(
 # Los callbacks conservan Source-first: el workspace se hidrata desde Manager y sólo una copia limpia de esa Source se usa como baseline de comparación.
 def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> None:
     @app.callback(
-        Output(CONFIGURATION_STORE_ID, 'data', allow_duplicate=True),
-        Output(DRAFT_LOAD_SIGNAL_ID, 'data', allow_duplicate=True),
-        Output(SOURCE_REVISION_STORE_ID, 'data', allow_duplicate=True),
-        Output(SOURCE_CONFIGURATION_STORE_ID, 'data', allow_duplicate=True),
+        Output(CONFIGURATION_STORE_ID, 'data'),
+        Output(DRAFT_LOAD_SIGNAL_ID, 'data'),
+        Output(SOURCE_REVISION_STORE_ID, 'data'),
+        Output(SOURCE_CONFIGURATION_STORE_ID, 'data'),
         Input(context.draft_store_id, 'data'),
         State(DRAFT_LOAD_SIGNAL_ID, 'data'),
-        prevent_initial_call='initial_duplicate',
     )
     def load_browser_draft(
         draft_data: dict[str, object] | None,

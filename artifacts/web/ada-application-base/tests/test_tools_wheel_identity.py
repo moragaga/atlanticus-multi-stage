@@ -4,7 +4,7 @@ from importlib.metadata import version
 from pathlib import Path
 from zipfile import ZipFile
 
-TOOLS_VERSION = '0.1.12'
+TOOLS_VERSION = '0.1.13'
 TOOLS_WHEEL_NAME = f'ada_configuration_tools-{TOOLS_VERSION}-py3-none-any.whl'
 
 
@@ -19,14 +19,21 @@ def test_tools_transport_has_unique_current_wheel() -> None:
     assert [wheel.name for wheel in wheels] == [TOOLS_WHEEL_NAME]
 
 
-def test_tools_wheel_contains_local_duplicate_callback_policy() -> None:
+def test_tools_wheel_consumes_initial_manager_draft_without_global_duplicate_policy() -> None:
     artifact = Path(__file__).resolve().parents[1]
     wheel = artifact / 'wheels' / TOOLS_WHEEL_NAME
 
     with ZipFile(wheel) as archive:
         callbacks = archive.read('ada/configuration/tools/web/callbacks.py').decode('utf-8')
 
-    assert "prevent_initial_call='initial_duplicate'" in callbacks
+    function_start = callbacks.index('def load_browser_draft(')
+    decorator_start = callbacks.rfind('@app.callback(', 0, function_start)
+    loader = callbacks[decorator_start:function_start]
+
+    assert "Output(CONFIGURATION_STORE_ID, 'data')" in loader
+    assert "Output(SOURCE_REVISION_STORE_ID, 'data')" in loader
+    assert 'allow_duplicate=True' not in loader
+    assert 'prevent_initial_call' not in loader
     assert "prevent_initial_callbacks='initial_duplicate'" not in callbacks
 
 

@@ -118,7 +118,21 @@ def test_tool_editor_tracks_the_revision_of_the_content_that_save_draft_would_pe
     assert 'def track_editor_revision(' in callbacks
     assert 'build_tool_configuration_digest(updated)' in callbacks
     assert '_raw_editor_revision(' in callbacks
-    assert "Output(SOURCE_REVISION_STORE_ID, 'data', allow_duplicate=True)" in callbacks
+    assert "Output(SOURCE_REVISION_STORE_ID, 'data')" in callbacks
+
+
+def test_tool_source_draft_consumer_owns_initial_store_hydration() -> None:
+    callbacks = _callbacks()
+    start = callbacks.index('@app.callback(', callbacks.index('def register_tool_admin_callbacks('))
+    end = callbacks.index('def load_browser_draft(')
+    decorator = callbacks[start:end]
+
+    assert "Output(CONFIGURATION_STORE_ID, 'data')" in decorator
+    assert "Output(DRAFT_LOAD_SIGNAL_ID, 'data')" in decorator
+    assert "Output(SOURCE_REVISION_STORE_ID, 'data')" in decorator
+    assert "Output(SOURCE_CONFIGURATION_STORE_ID, 'data')" in decorator
+    assert 'allow_duplicate=True' not in decorator
+    assert 'prevent_initial_call' not in decorator
 
 
 def test_tool_workspace_starts_empty_and_does_not_read_source_implicitly() -> None:
