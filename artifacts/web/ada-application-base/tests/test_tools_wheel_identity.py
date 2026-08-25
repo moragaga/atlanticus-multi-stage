@@ -4,7 +4,7 @@ from importlib.metadata import version
 from pathlib import Path
 from zipfile import ZipFile
 
-TOOLS_VERSION = '0.1.11'
+TOOLS_VERSION = '0.1.12'
 TOOLS_WHEEL_NAME = f'ada_configuration_tools-{TOOLS_VERSION}-py3-none-any.whl'
 
 
@@ -57,4 +57,8 @@ def test_tools_wheel_exposes_only_single_tool_configuration_ui() -> None:
     assert 'id=TOOL_KIND_ID' in layout
     assert 'Cambio de alto impacto' in callbacks
     assert "State(TOOL_KIND_ID, 'value')" in callbacks
+    assert 'id=ADD_COMPONENT_ID,\n                                disabled=True' in layout
+    assert 'id=ADD_SUBCOMPONENT_ID,\n                                disabled=True' in layout
+    assert 'def toggle_structure_actions(' in callbacks
+    assert "Input(TOOL_KIND_ID, 'value')" in callbacks
     assert 'Tool configuration is required' not in callbacks

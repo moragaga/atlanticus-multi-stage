@@ -18,6 +18,8 @@ def test_tool_editor_keeps_structural_identity_editable_with_explicit_risk_guida
     assert 'CREATE_MODAL_ID' not in layout
     assert 'COMPONENT_MODAL_ID' in layout
     assert 'SUBCOMPONENT_MODAL_ID' in layout
+    assert 'id=ADD_COMPONENT_ID,\n                                disabled=True' in layout
+    assert 'id=ADD_SUBCOMPONENT_ID,\n                                disabled=True' in layout
     assert 'Configuración sensible' in layout
     assert 'Define cuidadosamente el identificador, el tipo y el área' in layout
     assert 'id=TOOL_KEY_ID' in layout
@@ -272,3 +274,18 @@ def test_structure_editor_uses_inline_tool_kind_and_modal_close_does_not_require
     assert 'def _save_component_draft(\n    *,\n    kind: ToolConfigurationKind,' in callbacks
     assert 'def _save_subcomponent_draft(\n    *,\n    kind: ToolConfigurationKind,' in callbacks
     assert 'def _validate_linked_components(\n    kind: ToolConfigurationKind,' in callbacks
+
+
+def test_structure_actions_require_tool_kind_and_parent_component() -> None:
+    callbacks = _callbacks()
+    start = callbacks.rindex('@app.callback(', 0, callbacks.index('def toggle_structure_actions('))
+    end = callbacks.index('def toggle_source_fields(', start)
+    callback = callbacks[start:end]
+
+    assert "Output(ADD_COMPONENT_ID, 'disabled')" in callback
+    assert "Output(ADD_SUBCOMPONENT_ID, 'disabled')" in callback
+    assert "Input(TOOL_KIND_ID, 'value')" in callback
+    assert "Input(STRUCTURE_STORE_ID, 'data')" in callback
+    assert 'has_kind = _optional_tool_kind(kind_value) is not None' in callback
+    assert 'has_components = bool(_structure_components(structure_data))' in callback
+    assert 'return not has_kind, not (has_kind and has_components)' in callback

@@ -4,7 +4,7 @@ from importlib.metadata import version
 from pathlib import Path
 from zipfile import ZipFile
 
-MANAGER_VERSION = '0.3.11'
+MANAGER_VERSION = '0.3.12'
 MANAGER_WHEEL_NAME = f'atlanticus_web_manager-{MANAGER_VERSION}-py3-none-any.whl'
 
 
@@ -35,7 +35,14 @@ def test_manager_wheel_contains_current_workspace_lifecycle_contract() -> None:
     assert "f'Usar versión de {module.source_name}'" in layout
     assert "'Mantener mi borrador'" in layout
     assert "Input(workflow_revision_id(MATCH), 'data')" in callbacks
-    assert "prevent_initial_call='initial_duplicate'" in callbacks
+    hydrate_start = callbacks.rindex(
+        '@app.callback(', 0, callbacks.index('def hydrate_source_workspace(')
+    )
+    hydrate_end = callbacks.index('def update_from_source(', hydrate_start)
+    hydrate = callbacks[hydrate_start:hydrate_end]
+    assert "Output(workflow_draft_id(MATCH), 'data')" in hydrate
+    assert 'allow_duplicate=True' not in hydrate.split('def hydrate_source_workspace(', 1)[0]
+    assert 'prevent_initial_call' not in hydrate.split('def hydrate_source_workspace(', 1)[0]
     assert '_load_current_source_workspace_draft(' in callbacks
     assert '_local_workspace_state(' in callbacks
     assert '_has_local_work(draft_data, editor_revision, principal)' in callbacks

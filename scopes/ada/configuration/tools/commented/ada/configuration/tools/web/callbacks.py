@@ -318,13 +318,20 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         return [component.to_document() for component in tool.components]
 
     @app.callback(
+        Output(ADD_COMPONENT_ID, 'disabled'),
         Output(ADD_SUBCOMPONENT_ID, 'disabled'),
+        Input(TOOL_KIND_ID, 'value'),
         Input(STRUCTURE_STORE_ID, 'data'),
     )
-    def toggle_add_subcomponent(
+    # La estructura no puede editarse hasta que el tipo defina las reglas aplicables.
+    # Los subcomponentes requieren además un componente padre existente.
+    def toggle_structure_actions(
+        kind_value: str | None,
         structure_data: list[dict[str, object]] | None,
-    ) -> bool:
-        return not bool(_structure_components(structure_data))
+    ) -> tuple[bool, bool]:
+        has_kind = _optional_tool_kind(kind_value) is not None
+        has_components = bool(_structure_components(structure_data))
+        return not has_kind, not (has_kind and has_components)
 
     @app.callback(
         Output(PI_FRESHNESS_FIELD_ID, 'className'),

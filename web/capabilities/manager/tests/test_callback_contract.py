@@ -174,7 +174,12 @@ def test_workspace_auto_loads_current_source_without_consulting_saved_browser_dr
 
     assert "Input(workflow_revision_id(MATCH), 'data')" in callback
     assert "State(workflow_revision_id(MATCH), 'id')" in callback
-    assert "prevent_initial_call='initial_duplicate'" in callback
+    assert "Output(workflow_result_id(MATCH), 'children')" in callback
+    assert "Output(workflow_draft_id(MATCH), 'data')" in callback
+    assert "Output(workflow_validation_id(MATCH), 'data')" in callback
+    assert "Output(workflow_source_verification_id(MATCH), 'data')" in callback
+    assert 'allow_duplicate=True' not in callback.split('def hydrate_source_workspace(', 1)[0]
+    assert 'prevent_initial_call' not in callback.split('def hydrate_source_workspace(', 1)[0]
     assert "workflow_action_id(MATCH, 'load-source')" not in callback
     assert 'if _has_local_work(draft_data, editor_revision, principal):' in callback
     assert 'if _source_revision(revision_state) is None:' in callback
@@ -182,6 +187,16 @@ def test_workspace_auto_loads_current_source_without_consulting_saved_browser_dr
     assert 'principal = definition.principal_provider()' in callback
     assert '_local_workspace_state(' in source
     assert 'workflow_saved_draft_id' not in callback
+
+
+def test_validation_action_is_duplicate_safe_after_source_hydration_owns_initial_state() -> None:
+    source = _source()
+    start = source.rindex('@app.callback(', 0, source.index('def validate_configuration('))
+    end = source.index('def verify_source_configuration(', start)
+    callback = source[start:end]
+
+    assert "Output(workflow_validation_id(MATCH), 'data', allow_duplicate=True)" in callback
+    assert 'prevent_initial_call=True' in callback
 
 
 def test_saved_browser_draft_requires_explicit_recovery_or_discard() -> None:

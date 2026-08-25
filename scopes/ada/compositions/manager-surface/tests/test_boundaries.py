@@ -11,7 +11,7 @@ def test_manager_surface_composition_is_reusable_and_not_operationally_coupled()
 
     assert 'ada-ui-shell-header==0.1.0' in dependencies
     assert 'ada-ui-shell-navigation==0.1.0' in dependencies
-    assert 'atlanticus-web-manager==0.3.11' in dependencies
+    assert 'atlanticus-web-manager==0.3.12' in dependencies
     assert 'integrated_operations' not in source
     assert 'ada.compositions.surface' not in source
     assert 'ada.compositions.configuration_manager' not in source

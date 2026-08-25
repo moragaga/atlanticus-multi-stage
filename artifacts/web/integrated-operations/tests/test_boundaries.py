@@ -87,18 +87,18 @@ def test_compiled_integrated_operations_manifest_is_used_only_as_runtime_baselin
 def test_tool_projection_is_an_explicit_artifact_dependency() -> None:
     document = tomllib.loads((ROOT / 'pyproject.toml').read_text(encoding='utf-8'))
 
-    assert 'ada-configuration-tools==0.1.11' in document['project']['dependencies']
+    assert 'ada-configuration-tools==0.1.12' in document['project']['dependencies']
     assert document['tool']['uv']['sources']['ada-configuration-tools'] == {
-        'path': 'wheels/ada_configuration_tools-0.1.11-py3-none-any.whl'
+        'path': 'wheels/ada_configuration_tools-0.1.12-py3-none-any.whl'
     }
 
 
 def test_kpi_projection_manager_is_an_explicit_artifact_dependency() -> None:
     document = tomllib.loads((ROOT / 'pyproject.toml').read_text(encoding='utf-8'))
 
-    assert 'ada-configuration-kpis==0.2.6' in document['project']['dependencies']
+    assert 'ada-configuration-kpis==0.2.7' in document['project']['dependencies']
     assert document['tool']['uv']['sources']['ada-configuration-kpis'] == {
-        'path': 'wheels/ada_configuration_kpis-0.2.6-py3-none-any.whl'
+        'path': 'wheels/ada_configuration_kpis-0.2.7-py3-none-any.whl'
     }
 
 
@@ -109,20 +109,20 @@ def test_unified_composition_uses_existing_manager_runtime_and_application_contr
 
     expected = {
         'ada-composition-configuration-manager': (
-            '0.1.24',
-            'ada_composition_configuration_manager-0.1.24-py3-none-any.whl',
+            '0.1.25',
+            'ada_composition_configuration_manager-0.1.25-py3-none-any.whl',
         ),
         'ada-composition-manager-surface': (
-            '0.1.1',
-            'ada_composition_manager_surface-0.1.1-py3-none-any.whl',
+            '0.1.2',
+            'ada_composition_manager_surface-0.1.2-py3-none-any.whl',
         ),
         'ada-composition-web-application': (
             '0.1.0',
             'ada_composition_web_application-0.1.0-py3-none-any.whl',
         ),
         'atlanticus-web-manager': (
-            '0.3.11',
-            'atlanticus_web_manager-0.3.11-py3-none-any.whl',
+            '0.3.12',
+            'atlanticus_web_manager-0.3.12-py3-none-any.whl',
         ),
         'atlanticus-web-composition-runtime-infrastructure': (
             '0.1.1',

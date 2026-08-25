@@ -1,7 +1,7 @@
 from pathlib import Path
 from zipfile import ZipFile
 
-TOOLS_WHEEL = 'ada_configuration_tools-0.1.11-py3-none-any.whl'
+TOOLS_WHEEL = 'ada_configuration_tools-0.1.12-py3-none-any.whl'
 
 
 def test_integrated_operations_transports_single_tool_configuration_ui() -> None:
@@ -31,4 +31,8 @@ def test_integrated_operations_transports_single_tool_configuration_ui() -> None
     assert 'id=TOOL_KIND_ID' in layout
     assert 'Cambio de alto impacto' in callbacks
     assert "State(TOOL_KIND_ID, 'value')" in callbacks
+    assert 'id=ADD_COMPONENT_ID,\n                                disabled=True' in layout
+    assert 'id=ADD_SUBCOMPONENT_ID,\n                                disabled=True' in layout
+    assert 'def toggle_structure_actions(' in callbacks
+    assert "Input(TOOL_KIND_ID, 'value')" in callbacks
     assert 'Tool configuration is required' not in callbacks

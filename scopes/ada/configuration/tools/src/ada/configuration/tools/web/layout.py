@@ -310,6 +310,7 @@ def _structure_section() -> object:
                             html.Button(
                                 '+ Componente',
                                 id=ADD_COMPONENT_ID,
+                                disabled=True,
                                 className=(
                                     'atlanticus-manager__button '
                                     'atlanticus-manager__button--secondary'
@@ -336,6 +337,7 @@ def _structure_section() -> object:
                             html.Button(
                                 '+ Subcomponente',
                                 id=ADD_SUBCOMPONENT_ID,
+                                disabled=True,
                                 className=(
                                     'atlanticus-manager__button '
                                     'atlanticus-manager__button--secondary'

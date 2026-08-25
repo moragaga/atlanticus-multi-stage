@@ -457,7 +457,7 @@ def register_manager_callbacks(
 
     @app.callback(
         Output(workflow_result_id(MATCH), 'children', allow_duplicate=True),
-        Output(workflow_validation_id(MATCH), 'data'),
+        Output(workflow_validation_id(MATCH), 'data', allow_duplicate=True),
         Output(workflow_source_verification_id(MATCH), 'data', allow_duplicate=True),
         Input(workflow_action_id(MATCH, 'validate'), 'n_clicks'),
         State(workflow_draft_id(MATCH), 'data'),
@@ -628,16 +628,17 @@ def register_manager_callbacks(
         )
 
     @app.callback(
-        Output(workflow_result_id(MATCH), 'children', allow_duplicate=True),
-        Output(workflow_draft_id(MATCH), 'data', allow_duplicate=True),
-        Output(workflow_validation_id(MATCH), 'data', allow_duplicate=True),
-        Output(workflow_source_verification_id(MATCH), 'data', allow_duplicate=True),
+        Output(workflow_result_id(MATCH), 'children'),
+        Output(workflow_draft_id(MATCH), 'data'),
+        Output(workflow_validation_id(MATCH), 'data'),
+        Output(workflow_source_verification_id(MATCH), 'data'),
         Input(workflow_revision_id(MATCH), 'data'),
         State(workflow_revision_id(MATCH), 'id'),
         State(workflow_draft_id(MATCH), 'data'),
         State(workflow_editor_revision_id(MATCH), 'data'),
-        prevent_initial_call='initial_duplicate',
     )
+    # Este callback es el propietario canónico de los outputs que inicializan el workspace.
+    # Debe poder ejecutarse cuando la revisión de Source aparece por primera vez al montar la página.
     # La Source se hidrata automáticamente cuando existe y el principal actual no tiene trabajo local.
     # No hay acción manual para cargar Source: el workspace limpio siempre representa la Source vigente.
     # La hidratación consulta sólo el workspace en memoria: un checkpoint guardado nunca puede ocultar Source al recargar.
