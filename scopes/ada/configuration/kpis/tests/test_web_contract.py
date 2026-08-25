@@ -76,11 +76,13 @@ def test_missing_projected_destinations_are_visible_but_not_silently_reconciled(
 
 def test_kpi_draft_uses_manager_local_workspace_and_not_source_publication() -> None:
     callbacks = _web_source('callbacks.py')
-    start = callbacks.index('def save_kpi_draft(')
+    function_start = callbacks.index('def save_kpi_draft(')
+    start = callbacks.rfind('@app.callback(', 0, function_start)
     end = callbacks.index('def _configuration(')
     callback = callbacks[start:end]
 
     assert 'Output(context.draft_store_id' in callbacks
+    assert 'Output(context.saved_draft_store_id' in callback
     assert '_browser_draft_document(' in callback
     assert 'context.services.destinations.load()' in callback
     assert 'publish_configuration' not in callback

@@ -42,6 +42,7 @@ def test_lifecycle_actions_require_explicit_clicks_and_history_only_loads_draft(
     assert 'def update_from_source(' in source
     assert 'def force_publish_configuration(' in source
     assert 'def manage_local_workspace(' in source
+    assert 'def manage_saved_browser_draft(' in source
     assert 'def manage_history_preview(' in source
     assert 'def load_history_preview_as_draft(' in source
     assert 'restore_revision' not in source
@@ -71,6 +72,25 @@ def test_validation_does_not_refresh_source_but_source_actions_do() -> None:
     assert 'workflow_refresh_signal_id' in verify
     assert 'workflow_refresh_signal_id' in publish
     assert 'workflow_refresh_signal_id' in project
+
+
+def test_successful_publication_clears_the_persistent_browser_checkpoint() -> None:
+    source = _source()
+
+    publish_start = source.rindex('@app.callback(', 0, source.index('def publish_configuration('))
+    publish_end = source.index('def hydrate_source_workspace(', publish_start)
+    publish = source[publish_start:publish_end]
+    force_start = source.rindex(
+        '@app.callback(', 0, source.index('def force_publish_configuration(')
+    )
+    force_end = source.index('def manage_local_workspace(', force_start)
+    force_publish = source[force_start:force_end]
+
+    for callback in (publish, force_publish):
+        assert "Output(workflow_saved_draft_id(MATCH), 'data', allow_duplicate=True)" in callback
+        assert 'updated_draft.to_document(),\n            None,\n            None,' in callback or (
+            'updated_draft.to_document(), None, None' in callback
+        )
 
 
 def test_successful_workflow_actions_use_state_instead_of_persistent_success_banners() -> None:
@@ -146,7 +166,7 @@ def test_workspace_actions_restore_current_source_without_publishing_or_projecti
     assert 'coordinator.publish_draft(' not in callback
 
 
-def test_workspace_auto_loads_current_source_only_when_local_workspace_is_empty() -> None:
+def test_workspace_auto_loads_current_source_without_consulting_saved_browser_draft() -> None:
     source = _source()
     start = source.rindex('@app.callback(', 0, source.index('def hydrate_source_workspace('))
     end = source.index('def update_from_source(', start)
@@ -161,6 +181,23 @@ def test_workspace_auto_loads_current_source_only_when_local_workspace_is_empty(
     assert 'coordinator.load_current_source(' in callback
     assert 'principal = definition.principal_provider()' in callback
     assert '_local_workspace_state(' in source
+    assert 'workflow_saved_draft_id' not in callback
+
+
+def test_saved_browser_draft_requires_explicit_recovery_or_discard() -> None:
+    source = _source()
+    start = source.rindex('@app.callback(', 0, source.index('def manage_saved_browser_draft('))
+    end = source.index('def validate_configuration(', start)
+    callback = source[start:end]
+
+    assert "workflow_action_id(MATCH, 'recover-saved-draft')" in callback
+    assert "workflow_action_id(MATCH, 'discard-saved-draft')" in callback
+    assert "State(workflow_saved_draft_id(MATCH), 'data')" in callback
+    assert "Output(workflow_draft_id(MATCH), 'data', allow_duplicate=True)" in callback
+    assert 'draft.to_document()' in callback
+    assert 'draft.base_source_revision != source_revision' in callback
+    assert 'coordinator.publish_draft(' not in callback
+    assert 'coordinator.project(' not in callback
 
 
 def test_workspace_reset_rebuilds_only_the_editor_surface_without_loading_source() -> None:

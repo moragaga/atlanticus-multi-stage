@@ -28,6 +28,7 @@ def test_users_admin_browser_draft_does_not_publish_source() -> None:
     callbacks = (WEB / 'callbacks.py').read_text(encoding='utf-8')
 
     assert '_browser_draft_document' in callbacks
+    assert "Output(context.saved_draft_store_id, 'data', allow_duplicate=True)" in callbacks
     assert 'publish_catalog' not in callbacks
     assert 'project(' not in callbacks
 

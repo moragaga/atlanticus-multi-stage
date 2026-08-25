@@ -4,7 +4,7 @@ from importlib.metadata import version
 from pathlib import Path
 from zipfile import ZipFile
 
-TOOLS_VERSION = '0.1.7'
+TOOLS_VERSION = '0.1.8'
 TOOLS_WHEEL_NAME = f'ada_configuration_tools-{TOOLS_VERSION}-py3-none-any.whl'
 
 

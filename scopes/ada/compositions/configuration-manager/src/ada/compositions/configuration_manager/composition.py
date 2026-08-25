@@ -33,6 +33,7 @@ from atlanticus.web.manager.web.ids import (
     workflow_draft_id,
     workflow_editor_revision_id,
     workflow_refresh_signal_id,
+    workflow_saved_draft_id,
 )
 from atlanticus.web.modules import WebModule
 from atlanticus.web.navigation.configuration import NavigationProfileOption
@@ -64,6 +65,7 @@ def build_configuration_manager_surface(
     tool_context = ToolAdminWebContext(
         services=dependencies.tools,
         draft_store_id=workflow_draft_id('tools'),
+        saved_draft_store_id=workflow_saved_draft_id('tools'),
         draft_save_action_id=workflow_action_id('tools', 'save-draft'),
         workflow_refresh_signal_id=workflow_refresh_signal_id('tools'),
         editor_revision_store_id=workflow_editor_revision_id('tools'),
@@ -75,6 +77,7 @@ def build_configuration_manager_surface(
     kpi_context = KpiAdminWebContext(
         services=dependencies.kpis,
         draft_store_id=workflow_draft_id('kpis'),
+        saved_draft_store_id=workflow_saved_draft_id('kpis'),
         draft_save_action_id=workflow_action_id('kpis', 'save-draft'),
         workflow_refresh_signal_id=workflow_refresh_signal_id('kpis'),
         editor_revision_store_id=workflow_editor_revision_id('kpis'),
@@ -90,6 +93,7 @@ def build_configuration_manager_surface(
     users_context = UsersAdminWebContext(
         services=dependencies.users,
         draft_store_id=workflow_draft_id('users'),
+        saved_draft_store_id=workflow_saved_draft_id('users'),
         draft_save_action_id=workflow_action_id('users', 'save-draft'),
         workflow_refresh_signal_id=workflow_refresh_signal_id('users'),
         editor_revision_store_id=workflow_editor_revision_id('users'),
@@ -101,6 +105,7 @@ def build_configuration_manager_surface(
     navigation_context = NavigationAdminWebContext(
         services=dependencies.navigation,
         draft_store_id=workflow_draft_id('navigation'),
+        saved_draft_store_id=workflow_saved_draft_id('navigation'),
         draft_save_action_id=workflow_action_id('navigation', 'save-draft'),
         workflow_refresh_signal_id=workflow_refresh_signal_id('navigation'),
         editor_revision_store_id=workflow_editor_revision_id('navigation'),

@@ -54,6 +54,8 @@ from atlanticus.web.manager.web.ids import (
     workflow_refresh_signal_id,
     workflow_result_id,
     workflow_revision_id,
+    workflow_saved_draft_id,
+    workflow_saved_draft_status_id,
     workflow_source_verification_id,
     workflow_status_id,
     workflow_validation_id,
@@ -65,6 +67,7 @@ from atlanticus.web.manager.web.ids import (
 )
 from atlanticus.web.manager.web.layout import (
     build_module_content,
+    build_saved_draft_content,
     build_sidebar_modules,
     build_source_conflict_content,
     build_summary,
@@ -352,6 +355,98 @@ def register_manager_callbacks(
         )
 
     @app.callback(
+        Output(workflow_saved_draft_status_id(MATCH), 'children'),
+        Output(workflow_action_id(MATCH, 'recover-saved-draft'), 'disabled'),
+        Output(workflow_action_id(MATCH, 'discard-saved-draft'), 'disabled'),
+        Input(workflow_saved_draft_id(MATCH), 'data'),
+        Input(workflow_revision_id(MATCH), 'data'),
+    )
+    def refresh_saved_draft_status(
+        saved_draft_data: dict[str, object] | None,
+        revision_state: dict[str, object] | None,
+    ):
+        if saved_draft_data is None:
+            return build_saved_draft_content(draft=None, source_revision=None), True, True
+        principal = definition.principal_provider()
+        try:
+            draft = _require_draft(saved_draft_data, principal)
+        except ManagerError:
+            return (
+                build_saved_draft_content(
+                    draft=None,
+                    source_revision=_source_revision(revision_state),
+                    incompatible=True,
+                ),
+                True,
+                False,
+            )
+        return (
+            build_saved_draft_content(
+                draft=draft,
+                source_revision=_source_revision(revision_state),
+            ),
+            False,
+            False,
+        )
+
+    @app.callback(
+        Output(workflow_result_id(MATCH), 'children', allow_duplicate=True),
+        Output(workflow_draft_id(MATCH), 'data', allow_duplicate=True),
+        Output(workflow_saved_draft_id(MATCH), 'data', allow_duplicate=True),
+        Output(workflow_validation_id(MATCH), 'data', allow_duplicate=True),
+        Output(workflow_source_verification_id(MATCH), 'data', allow_duplicate=True),
+        Output(workflow_editor_revision_id(MATCH), 'data', allow_duplicate=True),
+        Input(workflow_action_id(MATCH, 'recover-saved-draft'), 'n_clicks'),
+        Input(workflow_action_id(MATCH, 'discard-saved-draft'), 'n_clicks'),
+        State(workflow_saved_draft_id(MATCH), 'data'),
+        State(workflow_revision_id(MATCH), 'data'),
+        prevent_initial_call=True,
+    )
+    def manage_saved_browser_draft(
+        recover_clicks: int | None,
+        discard_clicks: int | None,
+        saved_draft_data: dict[str, object] | None,
+        revision_state: dict[str, object] | None,
+    ):
+        trigger = ctx.triggered_id
+        action = trigger.get('action') if isinstance(trigger, dict) else None
+        clicks = recover_clicks if action == 'recover-saved-draft' else discard_clicks
+        if action not in {'recover-saved-draft', 'discard-saved-draft'} or not _click_is_real(
+            clicks
+        ):
+            return (no_update,) * 6
+        if action == 'discard-saved-draft':
+            return (
+                _notice_message('El borrador guardado fue descartado de este navegador.'),
+                no_update,
+                None,
+                no_update,
+                no_update,
+                no_update,
+            )
+        principal = definition.principal_provider()
+        try:
+            draft = _require_draft(saved_draft_data, principal)
+        except ManagerError as error:
+            return _error_message(str(error)), no_update, no_update, no_update, no_update, no_update
+        source_revision = _source_revision(revision_state)
+        source_changed = draft.base_source_revision != source_revision
+        message = (
+            'Borrador recuperado. La fuente cambió desde que se guardó; revisa el contenido '
+            'y verifica la fuente antes de publicar.'
+            if source_changed
+            else 'Borrador recuperado en el workspace local.'
+        )
+        return (
+            _notice_message(message),
+            draft.to_document(),
+            no_update,
+            None,
+            None,
+            draft.revision,
+        )
+
+    @app.callback(
         Output(workflow_result_id(MATCH), 'children', allow_duplicate=True),
         Output(workflow_validation_id(MATCH), 'data'),
         Output(workflow_source_verification_id(MATCH), 'data', allow_duplicate=True),
@@ -447,6 +542,7 @@ def register_manager_callbacks(
         Output(workflow_result_id(MATCH), 'children', allow_duplicate=True),
         Output(workflow_refresh_signal_id(MATCH), 'data', allow_duplicate=True),
         Output(workflow_draft_id(MATCH), 'data', allow_duplicate=True),
+        Output(workflow_saved_draft_id(MATCH), 'data', allow_duplicate=True),
         Output(workflow_source_verification_id(MATCH), 'data', allow_duplicate=True),
         Input(workflow_action_id(MATCH, 'publish'), 'n_clicks'),
         State(workflow_draft_id(MATCH), 'data'),
@@ -466,7 +562,7 @@ def register_manager_callbacks(
     ):
         trigger = ctx.triggered_id
         if not isinstance(trigger, dict) or not _click_is_real(clicks):
-            return no_update, no_update, no_update, no_update
+            return no_update, no_update, no_update, no_update, no_update
         principal = definition.principal_provider()
         module_key = str(trigger.get('module', ''))
         try:
@@ -501,13 +597,15 @@ def register_manager_callbacks(
                 ),
                 int(refresh_signal or 0) + 1,
                 no_update,
+                no_update,
                 refreshed_verification,
             )
         except ManagerError as error:
-            return _error_message(str(error)), no_update, no_update, no_update
+            return _error_message(str(error)), no_update, no_update, no_update, no_update
         except Exception:
             return (
                 _error_message('Configuration could not be published'),
+                no_update,
                 no_update,
                 no_update,
                 no_update,
@@ -516,6 +614,7 @@ def register_manager_callbacks(
             None,
             int(refresh_signal or 0) + 1,
             updated_draft.to_document(),
+            None,
             None,
         )
 
@@ -645,6 +744,7 @@ def register_manager_callbacks(
         Output(workflow_result_id(MATCH), 'children', allow_duplicate=True),
         Output(workflow_refresh_signal_id(MATCH), 'data', allow_duplicate=True),
         Output(workflow_draft_id(MATCH), 'data', allow_duplicate=True),
+        Output(workflow_saved_draft_id(MATCH), 'data', allow_duplicate=True),
         Output(workflow_source_verification_id(MATCH), 'data', allow_duplicate=True),
         Input(workflow_action_id(MATCH, 'force-publish'), 'n_clicks'),
         State(workflow_draft_id(MATCH), 'data'),
@@ -664,7 +764,7 @@ def register_manager_callbacks(
     ):
         trigger = ctx.triggered_id
         if not isinstance(trigger, dict) or not _click_is_real(clicks):
-            return no_update, no_update, no_update, no_update
+            return no_update, no_update, no_update, no_update, no_update
         principal = definition.principal_provider()
         module_key = str(trigger.get('module', ''))
         try:
@@ -700,18 +800,20 @@ def register_manager_callbacks(
                 ),
                 int(refresh_signal or 0) + 1,
                 no_update,
+                no_update,
                 refreshed_verification,
             )
         except ManagerError as error:
-            return _error_message(str(error)), no_update, no_update, no_update
+            return _error_message(str(error)), no_update, no_update, no_update, no_update
         except Exception:
             return (
                 _error_message('Configuration could not be force published'),
                 no_update,
                 no_update,
                 no_update,
+                no_update,
             )
-        return None, int(refresh_signal or 0) + 1, updated_draft.to_document(), None
+        return None, int(refresh_signal or 0) + 1, updated_draft.to_document(), None, None
 
     @app.callback(
         Output(workflow_workspace_confirmation_id(MATCH), 'hidden'),
@@ -1218,7 +1320,11 @@ def _has_local_work(
         editor_revision,
         principal,
     )
-    return draft is not None or local_editor_revision is not None
+    if draft is None:
+        return local_editor_revision is not None
+    if local_editor_revision is not None and local_editor_revision != draft.revision:
+        return True
+    return draft.revision != draft.base_source_revision
 
 
 def _safe_source_verification(

@@ -29,6 +29,7 @@ def _context() -> NavigationAdminWebContext:
     return NavigationAdminWebContext(
         services=services,
         draft_store_id='draft',
+        saved_draft_store_id='saved-draft',
         draft_save_action_id='save',
         workflow_refresh_signal_id='refresh',
         editor_revision_store_id='editor-revision',
@@ -60,6 +61,7 @@ def test_navigation_admin_rehydrates_manager_draft_and_tracks_editor_revision() 
     ).read_text(encoding='utf-8')
 
     assert "Input(context.draft_store_id, 'data')" in callbacks
+    assert "Output(context.saved_draft_store_id, 'data', allow_duplicate=True)" in callbacks
     assert "Output(SOURCE_REVISION_STORE_ID, 'data')" in callbacks
     assert "Output(context.editor_revision_store_id, 'data')" in callbacks
     assert 'build_navigation_configuration_digest(_catalog(catalog_data))' in callbacks

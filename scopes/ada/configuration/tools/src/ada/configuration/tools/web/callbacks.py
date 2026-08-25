@@ -815,6 +815,7 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         Output(CONFIGURATION_STORE_ID, 'data', allow_duplicate=True),
         Output(SAVE_RESULT_ID, 'children'),
         Output(context.draft_store_id, 'data', allow_duplicate=True),
+        Output(context.saved_draft_store_id, 'data', allow_duplicate=True),
         Input(SAVE_BUTTON_ID, 'n_clicks'),
         Input(context.draft_save_action_id, 'n_clicks'),
         State(TOOL_NAME_ID, 'value'),
@@ -848,9 +849,9 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
             workflow_clicks=workflow_clicks,
             workflow_id=context.draft_save_action_id,
         ):
-            return no_update, no_update, no_update
+            return no_update, no_update, no_update, no_update
         if not context.can_manage():
-            return no_update, _error('Management access is denied'), no_update
+            return no_update, _error('Management access is denied'), no_update, no_update
         try:
             current = _require_configuration(configuration_data)
             updated = _build_tool_from_editor(
@@ -873,8 +874,8 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
                 base_source_revision=base_revision,
             )
         except Exception as error:
-            return no_update, _error(str(error)), no_update
-        return updated.to_document(), None, draft
+            return no_update, _error(str(error)), no_update, no_update
+        return updated.to_document(), None, draft, draft
 
 
 def _raw_editor_revision(

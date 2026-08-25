@@ -8,6 +8,7 @@ from ada.configuration.kpis.services import KpiConfigurationServices
 class KpiAdminWebContext:
     services: KpiConfigurationServices
     draft_store_id: object
+    saved_draft_store_id: object
     draft_save_action_id: object
     workflow_refresh_signal_id: object
     editor_revision_store_id: object

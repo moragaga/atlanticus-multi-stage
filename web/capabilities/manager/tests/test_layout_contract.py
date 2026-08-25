@@ -20,7 +20,11 @@ def test_manager_lifecycle_exposes_draft_validate_publish_and_project() -> None:
     root = Path(__file__).parents[1]
     layout = (root / 'src/atlanticus/web/manager/web/layout.py').read_text(encoding='utf-8')
 
-    assert "storage_type='local'" in layout
+    assert "id=workflow_draft_id(module.key),\n                    storage_type='memory'" in layout
+    assert (
+        "id=workflow_saved_draft_id(module.key),\n                    storage_type='local'"
+        in layout
+    )
     assert "workflow_action_id(module.key, 'save-draft')" in layout
     assert "workflow_action_id(module.key, 'validate')" in layout
     assert "workflow_action_id(module.key, 'verify-source')" in layout
@@ -29,6 +33,8 @@ def test_manager_lifecycle_exposes_draft_validate_publish_and_project() -> None:
     assert "workflow_action_id(module.key, 'load-source')" not in layout
     assert "workflow_action_id(module.key, 'discard-local')" in layout
     assert "workflow_action_id(module.key, 'reload')" in layout
+    assert "workflow_action_id(module.key, 'recover-saved-draft')" in layout
+    assert "workflow_action_id(module.key, 'discard-saved-draft')" in layout
     assert "workflow_action_id(module.key, 'update-source')" in layout
     assert "workflow_action_id(module.key, 'force-publish')" in layout
     assert "f'Verificar {module.source_name}'" in layout
@@ -119,6 +125,9 @@ def test_workspace_actions_explain_refresh_and_post_publish_verification() -> No
     assert "'Workspace local'" in layout
     assert "'Descartar cambios locales'" in layout
     assert "'Recargar'" in layout
+    assert "'Recuperar borrador'" in layout
+    assert "'Descartar borrador guardado'" in layout
+    assert "'La configuración publicada se mantiene visible hasta que elijas recuperar '" in layout
     assert "f'Recargar restaura la versión actual de {module.source_name} y vuelve '" in layout
     assert "'a consultar fuente, historial y proyección.'" in layout
     assert "f'Cargar configuración desde {module.source_name}'" not in layout

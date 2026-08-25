@@ -96,6 +96,20 @@ def workflow_draft_id(module_key: str) -> dict[str, str]:
     }
 
 
+def workflow_saved_draft_id(module_key: str) -> dict[str, str]:
+    return {
+        'type': 'atlanticus-manager-workflow-saved-draft',
+        'module': module_key,
+    }
+
+
+def workflow_saved_draft_status_id(module_key: str) -> dict[str, str]:
+    return {
+        'type': 'atlanticus-manager-workflow-saved-draft-status',
+        'module': module_key,
+    }
+
+
 def workflow_validation_id(module_key: str) -> dict[str, str]:
     return {
         'type': 'atlanticus-manager-workflow-validation',

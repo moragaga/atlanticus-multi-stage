@@ -42,13 +42,15 @@ def test_import_loads_configuration_into_browser_draft_without_publishing_source
     assert "endswith('.json.gz')" not in callback
 
 
-def test_save_draft_targets_browser_local_store_not_source_store() -> None:
+def test_save_draft_updates_workspace_and_persistent_checkpoint_without_source_write() -> None:
     callbacks = _callbacks()
-    start = callbacks.index('def save_tool_draft(')
+    function_start = callbacks.index('def save_tool_draft(')
+    start = callbacks.rfind('@app.callback(', 0, function_start)
     end = callbacks.index('def _configuration_from_browser_draft(')
     callback = callbacks[start:end]
 
     assert 'Output(context.draft_store_id' in callbacks
+    assert 'Output(context.saved_draft_store_id' in callback
     assert '_browser_draft_document(' in callback
     assert 'publish_configuration' not in callback
     assert 'save_configuration' not in callback

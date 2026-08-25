@@ -641,6 +641,7 @@ def register_users_admin_callbacks(app: object, context: UsersAdminWebContext) -
 
     @app.callback(
         Output(context.draft_store_id, 'data', allow_duplicate=True),
+        Output(context.saved_draft_store_id, 'data', allow_duplicate=True),
         Output(SAVE_RESULT_ID, 'children'),
         Input(SAVE_BUTTON_ID, 'n_clicks'),
         Input(context.draft_save_action_id, 'n_clicks'),
@@ -663,9 +664,9 @@ def register_users_admin_callbacks(app: object, context: UsersAdminWebContext) -
             workflow_clicks=workflow_clicks,
             workflow_id=context.draft_save_action_id,
         ):
-            return no_update, no_update
+            return no_update, no_update, no_update
         if not context.can_manage():
-            return no_update, _error('Management access is denied')
+            return no_update, no_update, _error('Management access is denied')
         try:
             catalog = _catalog(catalog_data)
             base_revision = _draft_base_source_revision(
@@ -679,8 +680,8 @@ def register_users_admin_callbacks(app: object, context: UsersAdminWebContext) -
                 base_source_revision=base_revision,
             )
         except Exception as error:
-            return no_update, _error(str(error))
-        return draft, None
+            return no_update, no_update, _error(str(error))
+        return draft, draft, None
 
 
 def _empty_catalog() -> UsersConfigurationCatalog:

@@ -381,6 +381,7 @@ def register_kpi_admin_callbacks(app: object, context: KpiAdminWebContext) -> No
         Output(CONFIGURATION_STORE_ID, 'data', allow_duplicate=True),
         Output(SAVE_RESULT_ID, 'children'),
         Output(context.draft_store_id, 'data', allow_duplicate=True),
+        Output(context.saved_draft_store_id, 'data', allow_duplicate=True),
         Input(SAVE_BUTTON_ID, 'n_clicks'),
         Input(context.draft_save_action_id, 'n_clicks'),
         State(CONFIGURATION_STORE_ID, 'data'),
@@ -402,9 +403,9 @@ def register_kpi_admin_callbacks(app: object, context: KpiAdminWebContext) -> No
             workflow_clicks=workflow_clicks,
             workflow_id=context.draft_save_action_id,
         ):
-            return no_update, no_update, no_update
+            return no_update, no_update, no_update, no_update
         if not context.can_manage():
-            return no_update, _error('Management access is denied'), no_update
+            return no_update, _error('Management access is denied'), no_update, no_update
         try:
             if context.services.destinations.load() is None:
                 raise ValueError('Tool projection is not available')
@@ -420,8 +421,8 @@ def register_kpi_admin_callbacks(app: object, context: KpiAdminWebContext) -> No
                 base_source_revision=base_revision,
             )
         except Exception as error:
-            return no_update, _error(str(error)), no_update
-        return configuration.to_document(), None, draft
+            return no_update, _error(str(error)), no_update, no_update
+        return configuration.to_document(), None, draft, draft
 
 
 def _configuration(data: dict[str, object] | None) -> KpiConfiguration:

@@ -4,7 +4,7 @@ from importlib.metadata import version
 from pathlib import Path
 from zipfile import ZipFile
 
-MANAGER_VERSION = '0.3.10'
+MANAGER_VERSION = '0.3.11'
 MANAGER_WHEEL_NAME = f'atlanticus_web_manager-{MANAGER_VERSION}-py3-none-any.whl'
 
 

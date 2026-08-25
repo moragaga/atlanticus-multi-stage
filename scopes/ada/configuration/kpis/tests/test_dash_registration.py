@@ -27,6 +27,7 @@ def _context() -> KpiAdminWebContext:
     return KpiAdminWebContext(
         services=services,
         draft_store_id='test-kpi-draft-store',
+        saved_draft_store_id='test-saved-draft-store',
         draft_save_action_id='test-kpi-draft-save',
         workflow_refresh_signal_id='test-kpi-workflow-refresh',
         editor_revision_store_id='test-kpi-editor-revision',

@@ -68,6 +68,8 @@ from atlanticus.web.manager.web.ids import (
     workflow_refresh_signal_id,
     workflow_result_id,
     workflow_revision_id,
+    workflow_saved_draft_id,
+    workflow_saved_draft_status_id,
     workflow_source_verification_id,
     workflow_status_id,
     workflow_validation_id,
@@ -152,9 +154,18 @@ def build_manager_surface(
                 )
                 for module in visible_modules
             ],
+            # El workspace activo vive sólo en memoria: al recargar, Manager vuelve a hidratar desde Source.
             *[
                 dcc.Store(
                     id=workflow_draft_id(module.key),
+                    storage_type='memory',
+                )
+                for module in visible_modules
+            ],
+            # El checkpoint explícitamente guardado sí persiste en el navegador, pero queda separado del editor.
+            *[
+                dcc.Store(
+                    id=workflow_saved_draft_id(module.key),
                     storage_type='local',
                 )
                 for module in visible_modules
@@ -610,6 +621,66 @@ def build_workflow_draft_content(
     )
 
 
+# Describe el checkpoint persistente sin convertirlo en workspace; también avisa si cambió la revisión de Source.
+def build_saved_draft_content(
+    *,
+    draft: ManagerDraft | None,
+    source_revision: str | None,
+    incompatible: bool = False,
+) -> object:
+    if incompatible:
+        return html.Div(
+            'Hay un borrador guardado antiguo o incompatible. No se aplicará automáticamente; '
+            'puedes descartarlo desde este navegador.',
+            className='atlanticus-manager__message atlanticus-manager__message--notice',
+        )
+    if draft is None:
+        return html.Div('No hay un borrador guardado para recuperar.')
+    source_changed = draft.base_source_revision != source_revision
+    details = [
+        html.Span(
+            [
+                html.Small('Borrador guardado'),
+                html.Code(_short_revision(draft.revision)),
+            ]
+        ),
+        html.Span(
+            [
+                html.Small('Base fuente'),
+                html.Code(_short_revision(draft.base_source_revision)),
+            ]
+        ),
+    ]
+    if source_changed:
+        details.append(
+            html.Span(
+                [
+                    html.Small('Fuente actual'),
+                    html.Code(_short_revision(source_revision)),
+                ]
+            )
+        )
+    return html.Div(
+        [
+            html.Strong(
+                'La fuente cambió desde que se guardó este borrador.'
+                if source_changed
+                else 'Hay un borrador guardado disponible.'
+            ),
+            html.P(
+                'La configuración publicada se mantiene visible hasta que elijas recuperar '
+                'este borrador.'
+            ),
+            html.Div(details, className='atlanticus-manager__conflict-revisions'),
+        ],
+        className=(
+            'atlanticus-manager__message atlanticus-manager__message--notice'
+            if source_changed
+            else 'atlanticus-manager__workflow-empty'
+        ),
+    )
+
+
 def build_source_conflict_content(
     *,
     draft: ManagerDraft,
@@ -793,6 +864,36 @@ def _build_workflow_actions(
                                     'atlanticus-manager__button '
                                     'atlanticus-manager__button--secondary'
                                 ),
+                            ),
+                        ],
+                        className='atlanticus-manager__workspace-actions',
+                    ),
+                    # Recuperar y descartar son acciones explícitas; la presencia del checkpoint no modifica el editor.
+                    html.Div(
+                        id=workflow_saved_draft_status_id(module.key),
+                        className='atlanticus-manager__workflow-empty',
+                    ),
+                    html.Div(
+                        [
+                            html.Button(
+                                'Recuperar borrador',
+                                id=workflow_action_id(module.key, 'recover-saved-draft'),
+                                n_clicks=0,
+                                className=(
+                                    'atlanticus-manager__button '
+                                    'atlanticus-manager__button--secondary'
+                                ),
+                                disabled=True,
+                            ),
+                            html.Button(
+                                'Descartar borrador guardado',
+                                id=workflow_action_id(module.key, 'discard-saved-draft'),
+                                n_clicks=0,
+                                className=(
+                                    'atlanticus-manager__button '
+                                    'atlanticus-manager__button--secondary'
+                                ),
+                                disabled=True,
                             ),
                         ],
                         className='atlanticus-manager__workspace-actions',

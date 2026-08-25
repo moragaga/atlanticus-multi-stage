@@ -99,6 +99,22 @@ def workflow_draft_id(module_key: str) -> dict[str, str]:
     }
 
 
+# Separa el checkpoint persistente del workspace activo para que localStorage nunca hidrate el editor por sí solo.
+def workflow_saved_draft_id(module_key: str) -> dict[str, str]:
+    return {
+        'type': 'atlanticus-manager-workflow-saved-draft',
+        'module': module_key,
+    }
+
+
+# Expone una superficie independiente para informar si existe un checkpoint recuperable y si su Source base cambió.
+def workflow_saved_draft_status_id(module_key: str) -> dict[str, str]:
+    return {
+        'type': 'atlanticus-manager-workflow-saved-draft-status',
+        'module': module_key,
+    }
+
+
 def workflow_validation_id(module_key: str) -> dict[str, str]:
     return {
         'type': 'atlanticus-manager-workflow-validation',

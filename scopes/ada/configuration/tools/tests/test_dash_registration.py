@@ -9,6 +9,7 @@ def test_tool_admin_callbacks_register_with_real_dash_application() -> None:
     context = ToolAdminWebContext(
         services=object(),
         draft_store_id='test-tool-draft-store',
+        saved_draft_store_id='test-saved-draft-store',
         draft_save_action_id='test-tool-draft-save',
         workflow_refresh_signal_id='test-tool-workflow-refresh',
         editor_revision_store_id='test-tool-editor-revision',

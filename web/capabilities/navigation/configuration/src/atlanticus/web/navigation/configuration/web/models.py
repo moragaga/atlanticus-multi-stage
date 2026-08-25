@@ -13,6 +13,7 @@ NavigationProfileOptionsProvider = Callable[[], tuple[NavigationProfileOption, .
 class NavigationAdminWebContext:
     services: NavigationConfigurationServices
     draft_store_id: object
+    saved_draft_store_id: object
     draft_save_action_id: object
     workflow_refresh_signal_id: object
     editor_revision_store_id: object

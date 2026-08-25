@@ -14,9 +14,10 @@ def _draft(owner_subject_id: str) -> ManagerDraft:
     )
 
 
-def test_owned_browser_workspace_remains_local_work() -> None:
+def test_clean_source_workspace_is_not_local_work() -> None:
     principal = _principal('principal-current')
-    draft = _draft(principal.subject_id)
+    source_draft = _draft(principal.subject_id)
+    draft = source_draft.with_base_source_revision(source_draft.revision)
 
     resolved_draft, editor_revision = _local_workspace_state(
         draft.to_document(),
@@ -26,6 +27,13 @@ def test_owned_browser_workspace_remains_local_work() -> None:
 
     assert resolved_draft == draft
     assert editor_revision == draft.revision
+    assert _has_local_work(draft.to_document(), draft.revision, principal) is False
+
+
+def test_modified_workspace_remains_local_work() -> None:
+    principal = _principal('principal-current')
+    draft = _draft(principal.subject_id)
+
     assert _has_local_work(draft.to_document(), draft.revision, principal) is True
 
 
