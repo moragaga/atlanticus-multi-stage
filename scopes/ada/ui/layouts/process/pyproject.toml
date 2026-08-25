@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ada-ui-layout-process"
-version = "0.1.0"
+version = "0.1.1"
 description = "Layout semántico Process para ADA"
 requires-python = "==3.14.2"
 classifiers = [
@@ -12,7 +12,7 @@ classifiers = [
 ]
 dependencies = [
     "ada-contracts-tool-manifest==0.1.0",
-    "ada-ui-component-component-container==0.1.0",
+    "ada-ui-component-component-container==0.1.1",
     "atlanticus-web==0.1.0",
     "dash==4.4.1",
 ]

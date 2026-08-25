@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from dash import html
 from dash.development.base_component import Component
 
+from ada.configuration.tools import ToolConfigurationProjection
 from ada.contracts.tool_manifest import ToolManifest, ToolScope, ToolSectionKind
 from ada.features.alarms import (
     AlarmPresentationInteraction,
@@ -13,8 +14,6 @@ from ada.features.alarms import (
     build_alarm_dashboard_route_layer,
     build_integrated_operations_alarm_baseline,
 )
-from ada.features.alarms.management_summary import build_alarm_management_summary
-from ada.features.alarms.notifications import build_alarm_status
 from ada.features.dashboard import (
     ComponentRendererRegistry,
     DashboardDefinition,
@@ -23,12 +22,17 @@ from ada.features.dashboard import (
     DashboardToolConfiguration,
     build_dashboard_mount,
 )
+from ada.runtime.component_stores import (
+    RuntimeComponentStoreMount,
+    build_runtime_component_store_mount,
+    build_runtime_component_store_registry,
+)
 from ada.ui.components.component_card import build_component_card
-from ada.ui.components.state_wrapper import ComponentCover, build_state_overlay, build_state_wrapper
-from ada.ui.framework.core import build_ready_scope
+from ada.ui.components.state_wrapper import ComponentCover, build_state_overlay
 from ada.ui.layouts.integrated_operations import build_integrated_operations_layout
-from ada.ui.shell.header import HeaderState, build_ada_header
-from ada.ui.shell.time_status import TimeStatusState, build_ada_time_status
+from ada.ui.shell.header import HeaderState
+from ada.ui.shell.operational import build_ada_operational_shell
+from ada.ui.shell.time_status import TimeStatusState
 
 from .errors import IntegratedOperationsCompositionError
 
@@ -54,6 +58,8 @@ _SHARED_SUBCOMPONENT = 'gestion_carguio_turno'
 class IntegratedOperationsToolComposition:
     dashboard: DashboardDefinition
     mount: DashboardMount
+    projection: ToolConfigurationProjection | None = None
+    runtime_store_mount: RuntimeComponentStoreMount | None = None
 
     @property
     def manifest(self) -> ToolManifest:
@@ -65,13 +71,18 @@ class IntegratedOperationsToolComposition:
                 self.manifest,
                 component_key=component_key,
                 mount=self.mount,
+                projection=self.projection,
             )
             for component_key in _COMPONENT_KEYS
         }
         return build_integrated_operations_layout(
             self.manifest,
             component_content=content,
-            shared_card_content=_build_shared_card(self.manifest),
+            shared_card_content=_build_shared_card(
+                self.manifest,
+                projection=self.projection,
+            ),
+            component_wrapper_ids=_component_wrapper_ids(self.projection),
             layout_id=layout_id,
             class_name='ada-integrated-operations-tool__layout',
         )
@@ -92,82 +103,69 @@ class IntegratedOperationsToolComposition:
         alarm_interaction: AlarmPresentationInteraction = AlarmPresentationInteraction.INTERACTIVE,
     ) -> html.Div:
         _validate_header_state(self.manifest, header_state)
-        children: list[Component] = [
-            build_ada_header(
-                header_state,
-                alarm_management_slot=(
-                    alarm_management_slot
-                    if alarm_management_slot is not None
-                    else build_alarm_management_summary(None, cover=ComponentCover.construction())
+        _validate_time_status_state(self.manifest, time_status_state)
+        return build_ada_operational_shell(
+            self.manifest,
+            header_state=header_state,
+            body_content=[
+                self.build_body(layout_id=layout_id),
+                _build_zoom_controls(),
+            ],
+            alarm_children=_build_alarm_children(self.manifest, alarm_content),
+            alarm_management_slot=alarm_management_slot,
+            alarm_status_slot=alarm_status_slot,
+            time_status_state=time_status_state,
+            desktop_navigation_trigger=desktop_navigation_trigger,
+            mobile_navigation_trigger=mobile_navigation_trigger,
+            runtime_hosts=_runtime_hosts(self.mount, self.runtime_store_mount),
+            runtime_component_wrapper_ids=_component_wrapper_ids(self.projection),
+            shell_class_name=_join_classes('ada-integrated-operations-tool', class_name),
+            time_status_class_name='ada-integrated-operations-tool__time-status',
+            alarm_surface_class_name='ada-integrated-operations-tool__alarm-surface',
+            body_class_name='ada-integrated-operations-tool__body',
+            shell_style={
+                '--ada-io-overview-indicator-count': str(
+                    max(1, len(header_state.global_indicators))
                 ),
-                alarm_status_slot=(
-                    alarm_status_slot
-                    if alarm_status_slot is not None
-                    else build_alarm_status(None, cover=ComponentCover.construction())
+            },
+            shell_attributes={
+                'data-ada-integrated-operations-tool': self.manifest.tool_key,
+                'data-ada-io-presentation': 'overview',
+                **alarm_geometry_scope_attributes(),
+                **alarm_presentation_scope_attributes(
+                    trace_dwell_ms=alarm_trace_dwell_ms,
+                    interaction=alarm_interaction,
                 ),
-                desktop_navigation_trigger=desktop_navigation_trigger,
-                mobile_navigation_trigger=mobile_navigation_trigger,
-            ),
-            html.Div(
-                _build_time_status(self.manifest, time_status_state),
-                className='ada-integrated-operations-tool__time-status',
-            ),
-            _build_alarm_surface(self.manifest, alarm_content),
-            html.Main(
-                [
-                    self.build_body(layout_id=layout_id),
-                    _build_zoom_controls(),
-                ],
-                className='ada-integrated-operations-tool__body',
-            ),
-            self.mount.runtime_host(),
-        ]
-        return build_ready_scope(
-            content=html.Div(
-                children,
-                className=_join_classes('ada-integrated-operations-tool', class_name),
-                style={
-                    '--ada-io-overview-indicator-count': str(
-                        max(1, len(header_state.global_indicators))
-                    ),
-                },
-                **{
-                    'data-ada-integrated-operations-tool': self.manifest.tool_key,
-                    'data-ada-io-presentation': 'overview',
-                    **alarm_geometry_scope_attributes(),
-                    **alarm_presentation_scope_attributes(
-                        trace_dwell_ms=alarm_trace_dwell_ms,
-                        interaction=alarm_interaction,
-                    ),
-                },
-            ),
-            required=(
-                'global-indicators',
-                'alarm-management',
-                'alarm-status',
-                'time-status',
-            ),
+            },
+            alarm_surface_attributes={
+                'data-ada-integrated-operations-alarm-surface': 'true',
+            },
         )
 
 
 def create_integrated_operations_tool_composition(
     manifest: ToolManifest,
     *,
+    projection: ToolConfigurationProjection | None = None,
     dashboard_configuration: DashboardToolConfiguration | None = None,
     renderers: ComponentRendererRegistry | None = None,
     polling: DashboardPollingSettings | None = None,
     dashboard_key: str | None = None,
 ) -> IntegratedOperationsToolComposition:
     _validate_integrated_operations_manifest(manifest)
+    _validate_projection(manifest, projection)
     dashboard = DashboardDefinition.build(
         manifest=manifest,
         configuration=dashboard_configuration or DashboardToolConfiguration(),
         renderers=renderers or ComponentRendererRegistry(),
         polling=polling,
     )
+    runtime_store_mount = _build_runtime_store_mount(projection)
     return IntegratedOperationsToolComposition(
         dashboard=dashboard,
         mount=build_dashboard_mount(dashboard, dashboard_key=dashboard_key),
+        projection=projection,
+        runtime_store_mount=runtime_store_mount,
     )
 
 
@@ -176,6 +174,7 @@ def _build_component_cards(
     *,
     component_key: str,
     mount: DashboardMount,
+    projection: ToolConfigurationProjection | None,
 ) -> html.Div:
     cards = []
     for section in manifest.children(component_key):
@@ -191,12 +190,21 @@ def _build_component_cards(
                 label=section.display_name,
                 overlay=slot.overlay,
                 class_name='ada-integrated-operations-tool__card',
+                wrapper_id=_subcomponent_wrapper_id(
+                    projection,
+                    component_key=component_key,
+                    subcomponent_key=section.subcomponent,
+                ),
             )
         )
     return html.Div(cards, className='ada-integrated-operations-tool__component-cards')
 
 
-def _build_shared_card(manifest: ToolManifest) -> Component:
+def _build_shared_card(
+    manifest: ToolManifest,
+    *,
+    projection: ToolConfigurationProjection | None,
+) -> Component:
     section = manifest.subcomponent(
         component=_SHARED_COMPONENT,
         subcomponent=_SHARED_SUBCOMPONENT,
@@ -210,46 +218,94 @@ def _build_shared_card(manifest: ToolManifest) -> Component:
         class_name=(
             'ada-integrated-operations-tool__card ada-integrated-operations-tool__shared-card'
         ),
+        wrapper_id=_subcomponent_wrapper_id(
+            projection,
+            component_key=_SHARED_COMPONENT,
+            subcomponent_key=_SHARED_SUBCOMPONENT,
+        ),
     )
 
 
-def _build_time_status(
+def _build_alarm_children(
     manifest: ToolManifest,
-    state: TimeStatusState | None,
-) -> Component:
-    if state is None:
-        return build_state_wrapper(
-            cover=ComponentCover.construction(),
-            ready_name='time-status',
-        )
-    _validate_time_status_state(manifest, state)
-    return build_state_wrapper(
-        content=build_ada_time_status(state),
-        ready_name='time-status',
-    )
-
-
-def _build_alarm_surface(manifest: ToolManifest, content: Component | None) -> html.Section:
+    content: Component | None,
+) -> tuple[Component, ...]:
     component_scopes = {
         component_key: manifest.section(component_key).scope.value
         for component_key in _COMPONENT_KEYS
     }
-    return html.Section(
-        [
-            html.Div(
-                [] if content is None else [content],
-                className='ada-integrated-operations-tool__alarm-content',
-            ),
-            build_alarm_dashboard_route_layer(),
-            build_integrated_operations_alarm_baseline(
-                _COMPONENT_KEYS,
-                component_scopes=component_scopes,
-            ),
-            _build_overview_controls(),
-        ],
-        className='ada-integrated-operations-tool__alarm-surface',
-        **{'data-ada-integrated-operations-alarm-surface': 'true'},
+    return (
+        html.Div(
+            [] if content is None else [content],
+            className='ada-integrated-operations-tool__alarm-content',
+        ),
+        build_alarm_dashboard_route_layer(),
+        build_integrated_operations_alarm_baseline(
+            _COMPONENT_KEYS,
+            component_scopes=component_scopes,
+        ),
+        _build_overview_controls(),
     )
+
+
+def _build_runtime_store_mount(
+    projection: ToolConfigurationProjection | None,
+) -> RuntimeComponentStoreMount | None:
+    if projection is None:
+        return None
+    return build_runtime_component_store_mount(build_runtime_component_store_registry(projection))
+
+
+def _runtime_hosts(
+    dashboard_mount: DashboardMount,
+    runtime_store_mount: RuntimeComponentStoreMount | None,
+) -> tuple[Component, ...]:
+    hosts: list[Component] = [dashboard_mount.runtime_host()]
+    if runtime_store_mount is not None:
+        hosts.append(runtime_store_mount.runtime_host())
+    return tuple(hosts)
+
+
+def _component_wrapper_ids(
+    projection: ToolConfigurationProjection | None,
+) -> dict[str, str]:
+    if projection is None:
+        return {}
+    return {binding.component_key: binding.wrapper_id for binding in projection.runtime.components}
+
+
+def _subcomponent_wrapper_id(
+    projection: ToolConfigurationProjection | None,
+    *,
+    component_key: str,
+    subcomponent_key: str,
+) -> str | None:
+    if projection is None:
+        return None
+    return projection.runtime.subcomponent(
+        component_key=component_key,
+        subcomponent_key=subcomponent_key,
+    ).wrapper_id
+
+
+def _validate_projection(
+    manifest: ToolManifest,
+    projection: ToolConfigurationProjection | None,
+) -> None:
+    if projection is None:
+        return
+    if not isinstance(projection, ToolConfigurationProjection):
+        raise IntegratedOperationsCompositionError(
+            f'Invalid integrated operations tool projection: {projection!r}'
+        )
+    if projection.manifest.tool_key != manifest.tool_key:
+        raise IntegratedOperationsCompositionError(
+            'Tool projection tool key does not match integrated operations manifest'
+        )
+    if projection.manifest != manifest:
+        raise IntegratedOperationsCompositionError(
+            'Tool projection manifest does not match integrated operations manifest'
+        )
 
 
 def _build_overview_controls() -> html.Div:
@@ -357,8 +413,11 @@ def _validate_header_state(manifest: ToolManifest, state: HeaderState) -> None:
         )
 
 
-def _validate_time_status_state(manifest: ToolManifest, state: TimeStatusState) -> None:
-    if state.tool_key != manifest.tool_key:
+def _validate_time_status_state(
+    manifest: ToolManifest,
+    state: TimeStatusState | None,
+) -> None:
+    if state is not None and state.tool_key != manifest.tool_key:
         raise IntegratedOperationsCompositionError(
             'Time status tool key does not match integrated operations manifest'
         )

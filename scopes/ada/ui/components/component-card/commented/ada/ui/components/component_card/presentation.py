@@ -1,6 +1,6 @@
 from __future__ import annotations
-# Espejo comentado: conserva la misma lógica productiva y documenta su responsabilidad.
 
+# Espejo comentado: conserva la misma lógica productiva y documenta su responsabilidad.
 import logging
 from typing import Any
 
@@ -26,7 +26,9 @@ def build_component_card(
     corner_value: Any = _MISSING,
     overlay: Any = None,
     class_name: str | None = None,
+    wrapper_id: str | None = None,
 ) -> html.Div:
+    # El manifest resuelve la identidad contractual del componente y subcomponente.
     component_section = manifest.section(component)
     if component_section.kind is not ToolSectionKind.COMPONENT:
         raise ComponentCardDefinitionError(f'Section {component!r} is not a component')
@@ -57,16 +59,31 @@ def build_component_card(
     if overlay is not None:
         children.append(overlay)
 
+    # El wrapper_id sólo se materializa cuando existe una autoridad runtime que lo entrega.
+    attributes: dict[str, Any] = {
+        'aria-label': section.display_name,
+        'data-ada-component-card': 'true',
+        'data-ada-component-card-component-key': component,
+        **subcomponent_identity_attributes(section.key),
+    }
+    resolved_wrapper_id = _resolve_wrapper_id(wrapper_id)
+    if resolved_wrapper_id is not None:
+        attributes['id'] = resolved_wrapper_id
+
     return html.Div(
         children,
         className=_join_classes('ada-component-card', class_name),
-        **{
-            'aria-label': section.display_name,
-            'data-ada-component-card': 'true',
-            'data-ada-component-card-component-key': component,
-            **subcomponent_identity_attributes(section.key),
-        },
+        **attributes,
     )
+
+
+def _resolve_wrapper_id(wrapper_id: str | None) -> str | None:
+    # Dash no acepta id=None: ausencia de binding significa ausencia del atributo id.
+    if wrapper_id is None:
+        return None
+    if not isinstance(wrapper_id, str) or not wrapper_id.strip():
+        raise ComponentCardDefinitionError(f'Invalid component card wrapper id: {wrapper_id!r}')
+    return wrapper_id.strip()
 
 
 def _resolve_corner_value(

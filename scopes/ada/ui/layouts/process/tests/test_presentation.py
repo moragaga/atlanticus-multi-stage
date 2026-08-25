@@ -181,3 +181,19 @@ def test_process_layout_rejects_unexpected_component_content() -> None:
                 'other': html.Div('other'),
             },
         )
+
+
+def test_process_layout_applies_component_runtime_wrapper_to_visual_container() -> None:
+    manifest = _manifest(ProcessBodySection.CENTER)
+    layout = build_process_layout(
+        manifest,
+        component_content=_content(ProcessBodySection.CENTER),
+        component_wrapper_ids={
+            'proceso_principal': 'ada-runtime-component-proceso_principal',
+        },
+    )
+    center_slot = _props(_props(layout)['children'][0])['children'][0]
+    container = _props(center_slot)['children']
+
+    assert _props(container)['id'] == 'ada-runtime-component-proceso_principal'
+    assert 'id' not in _props(center_slot)

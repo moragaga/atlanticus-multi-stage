@@ -1,4 +1,3 @@
-# Espejo comentado: composición del body de Operaciones Integradas. La lógica es idéntica al código productivo.
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -34,13 +33,16 @@ def build_integrated_operations_layout(
     *,
     component_content: Mapping[str, object],
     shared_card_content: object,
+    component_wrapper_ids: Mapping[str, str] | None = None,
     layout_id: str | None = None,
     class_name: str | None = None,
 ) -> html.Div:
+    # La geometría 4+5 permanece fija; los ids runtime sólo se proyectan en sus contenedores reales.
     _validate_layout_id(layout_id)
     _validate_manifest(manifest)
     content = dict(component_content)
     _validate_content(content)
+    wrapper_ids = {} if component_wrapper_ids is None else dict(component_wrapper_ids)
 
     classes = ' '.join(
         item
@@ -63,12 +65,14 @@ def build_integrated_operations_layout(
                 manifest,
                 component_content=content,
                 shared_card_content=shared_card_content,
+                component_wrapper_ids=wrapper_ids,
             ),
             _build_scope(
                 manifest,
                 scope=ToolScope.PLANT,
                 component_keys=_PLANT_COMPONENT_KEYS,
                 component_content=content,
+                component_wrapper_ids=wrapper_ids,
             ),
         ],
         **root_attributes,
@@ -80,6 +84,7 @@ def _build_mine_scope(
     *,
     component_content: dict[str, object],
     shared_card_content: object,
+    component_wrapper_ids: dict[str, str],
 ) -> html.Section:
     scope_section = manifest.section(ToolScope.MINE.value)
     component_nodes = {
@@ -87,6 +92,7 @@ def _build_mine_scope(
             manifest,
             component_key=component_key,
             content=component_content[component_key],
+            wrapper_id=component_wrapper_ids.get(component_key),
         )
         for component_key in _MINE_COMPONENT_KEYS
     }
@@ -99,11 +105,11 @@ def _build_mine_scope(
             component_nodes['general_mina'],
             component_nodes['carguio'],
             component_nodes['transporte'],
+            # El wrapper spanning sigue siendo geométrico; el id runtime pertenece a la card canónica.
             html.Div(
                 shared_card_content,
                 className=(
-                    'ada-io-layout__shared-card '
-                    'ada-io-layout__shared-card--carguio-transporte'
+                    'ada-io-layout__shared-card ada-io-layout__shared-card--carguio-transporte'
                 ),
                 **{
                     'data-ada-io-shared-subcomponent-key': shared.key,
@@ -125,6 +131,7 @@ def _build_scope(
     scope: ToolScope,
     component_keys: tuple[str, ...],
     component_content: dict[str, object],
+    component_wrapper_ids: dict[str, str],
 ) -> html.Section:
     scope_section = manifest.section(scope.value)
     return html.Section(
@@ -133,6 +140,7 @@ def _build_scope(
                 manifest,
                 component_key=component_key,
                 content=component_content[component_key],
+                wrapper_id=component_wrapper_ids.get(component_key),
             )
             for component_key in component_keys
         ],
@@ -149,12 +157,15 @@ def _build_component(
     *,
     component_key: str,
     content: object,
-) -> html.Div:
+    wrapper_id: str | None,
+) -> html.Section:
+    # ComponentContainer es el nodo visual común entre layout, KPI Runtime y Alarm Runtime.
     return build_component_container(
         manifest,
         component=component_key,
         content=content,
         class_name=f'ada-io-layout__component ada-io-layout__component--{component_key}',
+        wrapper_id=wrapper_id,
     )
 
 

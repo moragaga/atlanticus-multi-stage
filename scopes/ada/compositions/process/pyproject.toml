@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ada-composition-process"
-version = "0.1.0"
+version = "0.1.2"
 description = "Composición ejecutable base para herramientas Process de ADA"
 requires-python = "==3.14.2"
 classifiers = [
@@ -12,16 +12,19 @@ classifiers = [
 ]
 dependencies = [
     "ada-contracts-tool-manifest==0.1.0",
+    "ada-configuration-tools==0.1.14",
     "ada-feature-alarms==0.1.0",
     "ada-feature-dashboard==0.1.0",
     "ada-runtime-web==0.1.0",
-    "ada-ui-component-component-card==0.1.0",
-    "ada-ui-component-component-container==0.1.0",
+    "ada-runtime-component-stores==0.1.0",
+    "ada-ui-component-component-card==0.1.1",
+    "ada-ui-component-component-container==0.1.1",
     "ada-ui-component-global-indicator==0.1.0",
     "ada-ui-component-state-wrapper==0.1.0",
     "ada-ui-framework-core==0.1.0",
-    "ada-ui-layout-process==0.1.0",
-    "ada-ui-shell-header==0.1.0",
+    "ada-ui-layout-process==0.1.1",
+    "ada-ui-shell-header==0.1.1",
+    "ada-ui-shell-operational==0.1.1",
     "ada-ui-shell-time-status==0.1.0",
     "atlanticus-web==0.1.0",
     "dash==4.4.1",
@@ -29,9 +32,11 @@ dependencies = [
 
 [tool.uv.sources]
 ada-contracts-tool-manifest = { workspace = true }
+ada-configuration-tools = { workspace = true }
 ada-feature-alarms = { workspace = true }
 ada-feature-dashboard = { workspace = true }
 ada-runtime-web = { workspace = true }
+ada-runtime-component-stores = { workspace = true }
 ada-ui-component-component-card = { workspace = true }
 ada-ui-component-component-container = { workspace = true }
 ada-ui-component-global-indicator = { workspace = true }
@@ -39,6 +44,7 @@ ada-ui-component-state-wrapper = { workspace = true }
 ada-ui-framework-core = { workspace = true }
 ada-ui-layout-process = { workspace = true }
 ada-ui-shell-header = { workspace = true }
+ada-ui-shell-operational = { workspace = true }
 ada-ui-shell-time-status = { workspace = true }
 
 [tool.setuptools]

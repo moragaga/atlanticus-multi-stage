@@ -1,9 +1,10 @@
-from datetime import date
+from datetime import UTC, date, datetime
 
 import pytest
 from dash import html
 
 from ada.compositions.process import ProcessCompositionError, create_process_tool_composition
+from ada.configuration.tools import ToolConfigurationProjection
 from ada.contracts.tool_manifest import (
     INTEGRATED_OPERATIONS_MANIFEST,
     ProcessBodySection,
@@ -166,6 +167,9 @@ def test_process_composition_builds_complete_tool_boundary_with_construction_car
     nodes = tuple(_walk(tool))
 
     assert any(_props(node).get('data-ada-process-tool') == manifest.tool_key for node in nodes)
+    assert any(
+        _props(node).get('data-ada-operational-shell') == manifest.tool_key for node in nodes
+    )
     assert any(_props(node).get('data-section-key') == 'alarm_status' for node in nodes)
     assert any(_props(node).get('data-ada-process-alarm-surface') == 'true' for node in nodes)
     assert any(_props(node).get('data-ada-alarm-baseline') == 'process' for node in nodes)
@@ -205,3 +209,73 @@ def test_process_composition_is_runnable_with_default_construction_shell_slots()
     assert readiness['alarm-management'] == 'construction'
     assert readiness['alarm-status'] == 'construction'
     assert readiness['time-status'] == 'construction'
+
+
+def _projection(manifest):
+    return ToolConfigurationProjection.create(
+        source_revision='source-revision',
+        projected_by='r5.2-test',
+        projected_at_utc=datetime(2026, 8, 25, 12, 0, tzinfo=UTC),
+        manifest=manifest,
+    )
+
+
+def test_process_composition_mounts_projection_wrappers_and_r3_stores() -> None:
+    manifest = _manifest()
+    projection = _projection(manifest)
+    composition = create_process_tool_composition(
+        manifest,
+        projection=projection,
+    )
+
+    tool = composition.build_tool(header_state=_header_state(manifest))
+    nodes = tuple(_walk(tool))
+    ids = {_props(node).get('id') for node in nodes if _props(node).get('id') is not None}
+
+    assert projection.runtime.component('global_indicators').wrapper_id in ids
+    assert projection.runtime.component('time_status').wrapper_id in ids
+    assert projection.runtime.component('process').wrapper_id in ids
+    assert (
+        projection.runtime.subcomponent(
+            component_key='process',
+            subcomponent_key='main',
+        ).wrapper_id
+        in ids
+    )
+    assert projection.runtime.component('process').kpi_latest_store_id in ids
+    assert projection.runtime.component('process').kpi_timeseries_store_id in ids
+
+
+def test_process_rejects_projection_for_another_tool() -> None:
+    manifest = _manifest()
+    other = build_process_manifest(
+        tool_key='other_process',
+        display_name='Other Process',
+        sources=(ToolSource(ToolSourceKey.PI, stale_after_seconds=60),),
+        operational_scope=ToolScope.PLANT,
+        body_sections=(
+            ToolSection(
+                key='process',
+                display_name='Process',
+                kind=ToolSectionKind.COMPONENT,
+                scope=ToolScope.PLANT,
+                parent_key='body',
+                targets=(ToolTarget.KPI, ToolTarget.ALARM),
+                layout_role=ProcessBodySection.CENTER,
+            ),
+            ToolSection(
+                component='process',
+                subcomponent='main',
+                display_name='Main',
+                kind=ToolSectionKind.SUBCOMPONENT,
+                scope=ToolScope.PLANT,
+                targets=(ToolTarget.ALARM,),
+            ),
+        ),
+    )
+
+    with pytest.raises(ProcessCompositionError, match='projection tool key'):
+        create_process_tool_composition(
+            manifest,
+            projection=_projection(other),
+        )

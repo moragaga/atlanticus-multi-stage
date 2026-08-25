@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ada-ui-shell-header"
-version = "0.1.0"
+version = "0.1.1"
 description = "Header operacional reutilizable para herramientas ADA"
 requires-python = "==3.14.2"
 classifiers = [

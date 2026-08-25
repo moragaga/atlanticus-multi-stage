@@ -174,3 +174,22 @@ def test_shared_carguio_transporte_card_spans_without_component_container() -> N
     assert 'data-ada-component-key' not in _props(shared_wrapper)
     assert _props(shared_wrapper)['children'] is shared
     assert 'ada-io-layout__shared-card--carguio-transporte' in _props(shared_wrapper)['className']
+
+
+def test_layout_applies_component_runtime_wrapper_to_visual_container() -> None:
+    layout = build_integrated_operations_layout(
+        INTEGRATED_OPERATIONS_MANIFEST,
+        component_content=_content(),
+        shared_card_content=_shared_card(),
+        component_wrapper_ids={
+            'flotacion': 'ada-runtime-component-flotacion',
+        },
+    )
+    flotation = next(
+        component
+        for scope in _props(layout)['children']
+        for component in _props(scope)['children']
+        if _props(component).get('data-ada-component-key') == 'flotacion'
+    )
+
+    assert _props(flotation)['id'] == 'ada-runtime-component-flotacion'

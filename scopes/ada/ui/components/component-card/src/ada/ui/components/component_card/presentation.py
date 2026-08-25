@@ -25,6 +25,7 @@ def build_component_card(
     corner_value: Any = _MISSING,
     overlay: Any = None,
     class_name: str | None = None,
+    wrapper_id: str | None = None,
 ) -> html.Div:
     component_section = manifest.section(component)
     if component_section.kind is not ToolSectionKind.COMPONENT:
@@ -56,16 +57,29 @@ def build_component_card(
     if overlay is not None:
         children.append(overlay)
 
+    attributes: dict[str, Any] = {
+        'aria-label': section.display_name,
+        'data-ada-component-card': 'true',
+        'data-ada-component-card-component-key': component,
+        **subcomponent_identity_attributes(section.key),
+    }
+    resolved_wrapper_id = _resolve_wrapper_id(wrapper_id)
+    if resolved_wrapper_id is not None:
+        attributes['id'] = resolved_wrapper_id
+
     return html.Div(
         children,
         className=_join_classes('ada-component-card', class_name),
-        **{
-            'aria-label': section.display_name,
-            'data-ada-component-card': 'true',
-            'data-ada-component-card-component-key': component,
-            **subcomponent_identity_attributes(section.key),
-        },
+        **attributes,
     )
+
+
+def _resolve_wrapper_id(wrapper_id: str | None) -> str | None:
+    if wrapper_id is None:
+        return None
+    if not isinstance(wrapper_id, str) or not wrapper_id.strip():
+        raise ComponentCardDefinitionError(f'Invalid component card wrapper id: {wrapper_id!r}')
+    return wrapper_id.strip()
 
 
 def _resolve_corner_value(

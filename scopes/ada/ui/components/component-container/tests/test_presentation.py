@@ -42,3 +42,22 @@ def test_component_container_rejects_non_component_section() -> None:
             component='plant',
             content=html.Div('Invalid'),
         )
+
+
+def test_component_container_applies_runtime_wrapper_id_when_provided() -> None:
+    container = build_component_container(
+        INTEGRATED_OPERATIONS_MANIFEST,
+        component='flotacion',
+        wrapper_id='ada-runtime-component-flotacion',
+    )
+
+    assert _props(container)['id'] == 'ada-runtime-component-flotacion'
+
+
+def test_component_container_omits_runtime_id_without_binding() -> None:
+    container = build_component_container(
+        INTEGRATED_OPERATIONS_MANIFEST,
+        component='flotacion',
+    )
+
+    assert 'id' not in _props(container)

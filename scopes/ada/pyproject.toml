@@ -12,8 +12,9 @@ dependencies = [
     "ada-composition-web-deployment==0.1.18",
     "ada-application-configuration-manager==0.2.27",
     "ada-composition-configuration-manager==0.1.27",
-    "ada-composition-process==0.1.0",
-    "ada-composition-integrated-operations==0.1.0",
+    "ada-composition-process==0.1.2",
+    "ada-composition-integrated-operations==0.1.2",
+    "ada-ui-shell-operational==0.1.1",
     "ada-configuration-kpis==0.2.9",
     "ada-runtime-delivery-cache==0.1.0",
     "ada-runtime-component-stores==0.1.0",
@@ -54,6 +55,7 @@ ada-ui-component-component-container = { workspace = true }
 ada-ui-component-global-indicator = { workspace = true }
 ada-ui-component-state-wrapper = { workspace = true }
 ada-ui-shell-header = { workspace = true }
+ada-ui-shell-operational = { workspace = true }
 ada-ui-shell-navigation = { workspace = true }
 ada-ui-shell-time-status = { workspace = true }
 atlanticus-web = { path = "../../web/framework/core", editable = true }
@@ -109,6 +111,7 @@ members = [
     "ui/components/global-indicator",
     "ui/components/state-wrapper",
     "ui/shell/header",
+    "ui/shell/operational",
     "ui/shell/navigation",
     "ui/shell/time-status",
     "applications/reference",
@@ -163,6 +166,7 @@ testpaths = [
     "ui/components/global-indicator/tests",
     "ui/components/state-wrapper/tests",
     "ui/shell/header/tests",
+    "ui/shell/operational/tests",
     "ui/shell/navigation/tests",
     "ui/shell/time-status/tests",
     "applications/reference/tests",

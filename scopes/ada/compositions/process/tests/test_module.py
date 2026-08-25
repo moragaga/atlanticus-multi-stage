@@ -58,6 +58,7 @@ def test_process_modules_assemble_capabilities_without_application_code() -> Non
         'ada-alarms',
         'ada-header',
         'ada-time-status',
+        'ada-operational-shell',
         'ada-dashboard',
         'ada-process-composition',
     )

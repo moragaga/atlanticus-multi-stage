@@ -1,4 +1,3 @@
-# Espejo comentado: declara el ensamblaje modular necesario para ejecutar una herramienta Process.
 from __future__ import annotations
 
 from ada.features.alarms import create_ada_alarms_module
@@ -11,13 +10,13 @@ from ada.ui.components.state_wrapper import create_ada_state_wrapper_module
 from ada.ui.framework.core import create_ada_ui_module
 from ada.ui.layouts.process import create_ada_process_layout_module
 from ada.ui.shell.header import create_ada_header_module
+from ada.ui.shell.operational import create_ada_operational_shell_module
 from ada.ui.shell.time_status import create_ada_time_status_module
 from atlanticus.web.assets import AssetLayer
 from atlanticus.web.modules import WebModule
 
 from .composition import ProcessToolComposition
 
-# CSS exclusivo de la frontera compuesta; se carga después de las capabilities base.
 ADA_PROCESS_COMPOSITION_ASSET_LAYER = AssetLayer(
     name='ada_composition_process',
     load_order=280,
@@ -32,7 +31,7 @@ def create_process_composition_module() -> WebModule:
     )
 
 
-# Orden explícito de módulos: primitives/capabilities primero, composition al final.
+# Registra también los assets del cascarón operacional antes de la composición específica.
 def create_process_tool_modules(
     composition: ProcessToolComposition,
     *,
@@ -48,6 +47,7 @@ def create_process_tool_modules(
         create_ada_alarms_module(),
         create_ada_header_module(),
         create_ada_time_status_module(),
+        create_ada_operational_shell_module(),
         create_ada_dashboard_module(
             composition.dashboard,
             dashboard_key=composition.mount.dashboard_key,

@@ -1,7 +1,23 @@
-from datetime import date
+from datetime import UTC, date, datetime
 
-from ada.compositions.integrated_operations import create_integrated_operations_tool_composition
-from ada.contracts.tool_manifest import INTEGRATED_OPERATIONS_MANIFEST, ToolScope
+import pytest
+
+from ada.compositions.integrated_operations import (
+    IntegratedOperationsCompositionError,
+    create_integrated_operations_tool_composition,
+)
+from ada.configuration.tools import ToolConfigurationProjection
+from ada.contracts.tool_manifest import (
+    INTEGRATED_OPERATIONS_MANIFEST,
+    ProcessBodySection,
+    ToolScope,
+    ToolSection,
+    ToolSectionKind,
+    ToolSource,
+    ToolSourceKey,
+    ToolTarget,
+    build_process_manifest,
+)
 from ada.features.alarms.management_summary import (
     AlarmManagementSummarySegmentState,
     build_alarm_management_summary,
@@ -102,6 +118,9 @@ def test_integrated_operations_composition_builds_full_tool_boundary() -> None:
         _props(node).get('data-ada-integrated-operations-tool') == 'integrated_operations'
         for node in nodes
     )
+    assert any(
+        _props(node).get('data-ada-operational-shell') == 'integrated_operations' for node in nodes
+    )
     assert any(_props(node).get('data-section-key') == 'alarm_status' for node in nodes)
     assert any(
         _props(node).get('data-ada-integrated-operations-alarm-surface') == 'true' for node in nodes
@@ -189,3 +208,70 @@ def test_integrated_operations_exposes_overview_indicator_count_for_stable_zoom_
     )
 
     assert _props(root)['style']['--ada-io-overview-indicator-count'] == '1'
+
+
+def _projection(manifest=INTEGRATED_OPERATIONS_MANIFEST):
+    return ToolConfigurationProjection.create(
+        source_revision='source-revision',
+        projected_by='r5.2-test',
+        projected_at_utc=datetime(2026, 8, 25, 12, 0, tzinfo=UTC),
+        manifest=manifest,
+    )
+
+
+def test_integrated_operations_mounts_projection_wrappers_and_r3_stores() -> None:
+    projection = _projection()
+    composition = create_integrated_operations_tool_composition(
+        INTEGRATED_OPERATIONS_MANIFEST,
+        projection=projection,
+    )
+
+    tool = composition.build_tool(header_state=_header_state())
+    nodes = tuple(_walk(tool))
+    ids = [_props(node).get('id') for node in nodes if _props(node).get('id') is not None]
+    shared_wrapper_id = projection.runtime.subcomponent(
+        component_key='carguio',
+        subcomponent_key='gestion_carguio_turno',
+    ).wrapper_id
+
+    assert projection.runtime.component('global_indicators').wrapper_id in ids
+    assert projection.runtime.component('time_status').wrapper_id in ids
+    assert projection.runtime.component('molienda').wrapper_id in ids
+    assert projection.runtime.component('molienda').kpi_latest_store_id in ids
+    assert projection.runtime.component('molienda').kpi_timeseries_store_id in ids
+    assert ids.count(shared_wrapper_id) == 1
+
+
+def test_integrated_operations_rejects_projection_for_another_tool() -> None:
+    scope = ToolScope.PLANT
+    other = build_process_manifest(
+        tool_key='other_process',
+        display_name='Other Process',
+        sources=(ToolSource(ToolSourceKey.PI, stale_after_seconds=60),),
+        operational_scope=scope,
+        body_sections=(
+            ToolSection(
+                key='process',
+                display_name='Process',
+                kind=ToolSectionKind.COMPONENT,
+                scope=scope,
+                parent_key='body',
+                targets=(ToolTarget.KPI, ToolTarget.ALARM),
+                layout_role=ProcessBodySection.CENTER,
+            ),
+            ToolSection(
+                component='process',
+                subcomponent='main',
+                display_name='Main',
+                kind=ToolSectionKind.SUBCOMPONENT,
+                scope=scope,
+                targets=(ToolTarget.ALARM,),
+            ),
+        ),
+    )
+
+    with pytest.raises(IntegratedOperationsCompositionError, match='projection tool key'):
+        create_integrated_operations_tool_composition(
+            INTEGRATED_OPERATIONS_MANIFEST,
+            projection=_projection(other),
+        )

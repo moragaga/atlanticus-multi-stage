@@ -123,3 +123,15 @@ def test_component_card_accepts_overlay_without_wrapping_or_replacing_card_struc
     assert children[0].to_plotly_json()['props']['className'] == 'ada-component-card__content'
     assert children[1].to_plotly_json()['props']['className'] == 'ada-component-card__footer'
     assert children[2] is overlay
+
+
+def test_component_card_applies_runtime_wrapper_id_when_provided() -> None:
+    card = _flotation_card(wrapper_id='ada-runtime-subcomponent-flotacion-colectiva')
+
+    assert _props(card)['id'] == 'ada-runtime-subcomponent-flotacion-colectiva'
+
+
+def test_component_card_omits_runtime_id_without_binding() -> None:
+    card = _flotation_card()
+
+    assert 'id' not in _props(card)

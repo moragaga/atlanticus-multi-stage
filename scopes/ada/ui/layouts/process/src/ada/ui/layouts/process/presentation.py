@@ -21,6 +21,7 @@ def build_process_layout(
     manifest: ToolManifest,
     *,
     component_content: Mapping[str, object],
+    component_wrapper_ids: Mapping[str, str] | None = None,
     layout_id: str | None = None,
     class_name: str | None = None,
 ) -> html.Div:
@@ -28,6 +29,7 @@ def build_process_layout(
     components = _resolve_components(manifest)
     content = dict(component_content)
     _validate_content(components, content)
+    wrapper_ids = {} if component_wrapper_ids is None else dict(component_wrapper_ids)
 
     root_attributes = {
         'className': _join_classes('ada-process-layout', class_name),
@@ -52,6 +54,7 @@ def build_process_layout(
                     manifest,
                     component=component,
                     content=content[component.key],
+                    wrapper_id=wrapper_ids.get(component.key),
                     width=_main_width(role=component.layout_role, components=components),
                 )
                 for component in main_components
@@ -68,6 +71,7 @@ def build_process_layout(
                         manifest,
                         component=bottom,
                         content=content[bottom.key],
+                        wrapper_id=wrapper_ids.get(bottom.key),
                         width=12,
                     )
                 ],
@@ -83,6 +87,7 @@ def _build_slot(
     *,
     component: ToolSection,
     content: object,
+    wrapper_id: str | None,
     width: int,
 ) -> html.Section:
     role = component.layout_role
@@ -94,6 +99,7 @@ def _build_slot(
             component=component.key,
             content=content,
             class_name='ada-process-layout__component',
+            wrapper_id=wrapper_id,
         ),
         className=f'col-{width} ada-process-layout__slot ada-process-layout__slot--{role.value}',
         **{

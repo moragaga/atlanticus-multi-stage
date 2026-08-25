@@ -230,3 +230,52 @@ def _children(component: Component) -> list[Component]:
 
 def _prop(component: Component, name: str):
     return component.to_plotly_json()['props'][name]
+
+
+def test_header_applies_runtime_wrapper_ids_without_requiring_all_bindings() -> None:
+    manifest = build_process_manifest(
+        tool_key='header_runtime_reference',
+        display_name='Header Runtime Reference',
+        sources=(ToolSource(ToolSourceKey.PI, stale_after_seconds=60),),
+        operational_scope=ToolScope.PLANT,
+        body_sections=(
+            _process_center_component(
+                key='process',
+                display_name='Process',
+                scope=ToolScope.PLANT,
+            ),
+            _process_center_card(
+                component='process',
+                subcomponent='main',
+                scope=ToolScope.PLANT,
+            ),
+        ),
+    )
+    state = create_header_state(
+        manifest=manifest,
+        brand=resolve_brand(
+            ATLANTICUS_BRAND_MANIFEST,
+            BrandContext(current_date=date(2026, 8, 25)),
+        ),
+        application_name='ADA',
+        global_indicators=(),
+    )
+
+    component = build_ada_header(
+        state,
+        runtime_component_wrapper_ids={
+            'global_indicators': 'ada-runtime-component-global_indicators',
+            'alarm_status': 'ada-runtime-component-alarm_status',
+        },
+    )
+
+    assert _prop(_require_by_class(component, 'ada-header__indicators-slot'), 'id') == (
+        'ada-runtime-component-global_indicators'
+    )
+    assert (
+        'id'
+        not in _require_by_class(component, 'ada-header__management-slot').to_plotly_json()['props']
+    )
+    assert _prop(_require_by_class(component, 'ada-header__alarm-status-slot'), 'id') == (
+        'ada-runtime-component-alarm_status'
+    )

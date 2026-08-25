@@ -21,14 +21,16 @@ def build_process_layout(
     manifest: ToolManifest,
     *,
     component_content: Mapping[str, object],
+    component_wrapper_ids: Mapping[str, str] | None = None,
     layout_id: str | None = None,
     class_name: str | None = None,
 ) -> html.Div:
-    # El layout solo posiciona componentes; el contenido visual interno lo inyecta la herramienta.
+    # El layout conserva su geometría; los wrapper ids sólo agregan identidad runtime al contenedor.
     _validate_layout_id(layout_id)
     components = _resolve_components(manifest)
     content = dict(component_content)
     _validate_content(components, content)
+    wrapper_ids = {} if component_wrapper_ids is None else dict(component_wrapper_ids)
 
     root_attributes = {
         'className': _join_classes('ada-process-layout', class_name),
@@ -37,7 +39,6 @@ def build_process_layout(
     if layout_id is not None:
         root_attributes['id'] = layout_id
 
-    # Los roles presentes determinan únicamente el ancho Bootstrap de la fila principal.
     main_components = tuple(
         component
         for role in (
@@ -54,6 +55,7 @@ def build_process_layout(
                     manifest,
                     component=component,
                     content=content[component.key],
+                    wrapper_id=wrapper_ids.get(component.key),
                     width=_main_width(role=component.layout_role, components=components),
                 )
                 for component in main_components
@@ -70,6 +72,7 @@ def build_process_layout(
                         manifest,
                         component=bottom,
                         content=content[bottom.key],
+                        wrapper_id=wrapper_ids.get(bottom.key),
                         width=12,
                     )
                 ],
@@ -85,26 +88,26 @@ def _build_slot(
     *,
     component: ToolSection,
     content: object,
+    wrapper_id: str | None,
     width: int,
 ) -> html.Section:
     role = component.layout_role
     if role is None:
         raise ProcessLayoutError(f'Process component {component.key!r} requires a layout role')
-
-    # ComponentContainer dibuja una sola vez el nombre macro y deja debajo el árbol inyectado.
+    # El wrapper contractual vive en ComponentContainer, no en la columna Bootstrap del layout.
     return html.Section(
         build_component_container(
             manifest,
             component=component.key,
             content=content,
             class_name='ada-process-layout__component',
+            wrapper_id=wrapper_id,
         ),
         className=f'col-{width} ada-process-layout__slot ada-process-layout__slot--{role.value}',
         **{
             'aria-label': component.display_name,
             'data-ada-process-layout-role': role.value,
             'data-ada-process-component-key': component.key,
-            # Alarmas Process enruta contra el rol geométrico real, no contra un alias de la app.
             **slot_identity_attributes(role.value),
         },
     )
@@ -120,7 +123,6 @@ def _resolve_components(manifest: ToolManifest) -> dict[ProcessBodySection, Tool
     if body.kind is not ToolSectionKind.REGION:
         raise ProcessLayoutError('Process layout body must be a region')
 
-    # Cada hijo directo de body es un componente funcional con un rol geométrico único.
     components: dict[ProcessBodySection, ToolSection] = {}
     for section in manifest.children('body'):
         if section.kind is not ToolSectionKind.COMPONENT or section.layout_role is None:
@@ -155,7 +157,6 @@ def _validate_content(
     components: dict[ProcessBodySection, ToolSection],
     content: dict[str, object],
 ) -> None:
-    # El integrador debe entregar exactamente un árbol visual por componente declarado.
     expected = {section.key for section in components.values()}
     keys = set(content)
     missing = sorted(expected - keys)

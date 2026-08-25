@@ -1,4 +1,3 @@
-# Espejo comentado: registra wheels/capabilities necesarias para ejecutar la composition IO.
 from __future__ import annotations
 
 from ada.features.alarms import create_ada_alarms_module
@@ -11,6 +10,7 @@ from ada.ui.components.state_wrapper import create_ada_state_wrapper_module
 from ada.ui.framework.core import create_ada_ui_module
 from ada.ui.layouts.integrated_operations import create_ada_integrated_operations_layout_module
 from ada.ui.shell.header import create_ada_header_module
+from ada.ui.shell.operational import create_ada_operational_shell_module
 from ada.ui.shell.time_status import create_ada_time_status_module
 from atlanticus.web.assets import AssetLayer
 from atlanticus.web.modules import WebModule
@@ -31,6 +31,7 @@ def create_integrated_operations_composition_module() -> WebModule:
     )
 
 
+# Registra el cascarón genérico y luego los assets específicos de Operaciones Integradas.
 def create_integrated_operations_tool_modules(
     composition: IntegratedOperationsToolComposition,
     *,
@@ -46,6 +47,7 @@ def create_integrated_operations_tool_modules(
         create_ada_alarms_module(),
         create_ada_header_module(),
         create_ada_time_status_module(),
+        create_ada_operational_shell_module(),
         create_ada_dashboard_module(
             composition.dashboard,
             dashboard_key=composition.mount.dashboard_key,

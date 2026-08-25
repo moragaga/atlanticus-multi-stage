@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+from collections.abc import Mapping
 from functools import lru_cache
 from pathlib import Path
 
@@ -28,12 +29,31 @@ def build_ada_header(
     alarm_status_slot: Component | None = None,
     desktop_navigation_trigger: Component | None = None,
     mobile_navigation_trigger: Component | None = None,
+    runtime_component_wrapper_ids: Mapping[str, str] | None = None,
 ) -> html.Header:
     inner_children: list[Component] = [
         _build_brand(state),
-        _build_indicators_slot(state),
-        _build_management_slot(alarm_management_slot),
-        _build_alarm_status_slot(alarm_status_slot),
+        _build_indicators_slot(
+            state,
+            wrapper_id=_runtime_wrapper_id(
+                runtime_component_wrapper_ids,
+                'global_indicators',
+            ),
+        ),
+        _build_management_slot(
+            alarm_management_slot,
+            wrapper_id=_runtime_wrapper_id(
+                runtime_component_wrapper_ids,
+                'alarm_management',
+            ),
+        ),
+        _build_alarm_status_slot(
+            alarm_status_slot,
+            wrapper_id=_runtime_wrapper_id(
+                runtime_component_wrapper_ids,
+                'alarm_status',
+            ),
+        ),
     ]
     if mobile_navigation_trigger is not None:
         inner_children.append(
@@ -64,16 +84,24 @@ def build_ada_header(
     )
 
 
-def _build_indicators_slot(state: HeaderState) -> html.Div:
+def _build_indicators_slot(
+    state: HeaderState,
+    *,
+    wrapper_id: str | None = None,
+) -> html.Div:
     content = html.Div(
         className='ada-header__indicators',
         children=[
             _build_global_indicator_placement(placement) for placement in state.global_indicators
         ],
     )
+    attributes = _slot_attributes(
+        section_key='global_indicators',
+        wrapper_id=wrapper_id,
+    )
     return html.Div(
         className='ada-header__indicators-slot',
-        **{'data-section-key': 'global_indicators'},
+        **attributes,
         children=[
             build_safe_state_wrapper(
                 build_content=lambda: content,
@@ -84,20 +112,57 @@ def _build_indicators_slot(state: HeaderState) -> html.Div:
     )
 
 
-def _build_management_slot(content: Component | None) -> html.Div:
+def _build_management_slot(
+    content: Component | None,
+    *,
+    wrapper_id: str | None = None,
+) -> html.Div:
     return html.Div(
         className='ada-header__management-slot',
-        **{'data-section-key': 'alarm_management'},
+        **_slot_attributes(
+            section_key='alarm_management',
+            wrapper_id=wrapper_id,
+        ),
         children=[] if content is None else [content],
     )
 
 
-def _build_alarm_status_slot(content: Component | None) -> html.Div:
+def _build_alarm_status_slot(
+    content: Component | None,
+    *,
+    wrapper_id: str | None = None,
+) -> html.Div:
     return html.Div(
         className='ada-header__alarm-status-slot',
-        **{'data-section-key': 'alarm_status'},
+        **_slot_attributes(
+            section_key='alarm_status',
+            wrapper_id=wrapper_id,
+        ),
         children=[] if content is None else [content],
     )
+
+
+def _slot_attributes(*, section_key: str, wrapper_id: str | None) -> dict[str, str]:
+    attributes = {'data-section-key': section_key}
+    if wrapper_id is not None:
+        attributes['id'] = wrapper_id
+    return attributes
+
+
+def _runtime_wrapper_id(
+    wrapper_ids: Mapping[str, str] | None,
+    component_key: str,
+) -> str | None:
+    if wrapper_ids is None:
+        return None
+    value = wrapper_ids.get(component_key)
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise HeaderPresentationError(
+            f'Invalid runtime wrapper id for header component {component_key!r}'
+        )
+    return value.strip()
 
 
 def _build_global_indicator_placement(placement: HeaderIndicatorPlacement) -> html.Div:

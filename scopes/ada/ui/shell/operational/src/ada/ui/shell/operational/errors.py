@@ -1,0 +1,2 @@
+class OperationalShellError(ValueError):
+    pass
