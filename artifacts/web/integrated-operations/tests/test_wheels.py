@@ -56,8 +56,8 @@ EXPECTED_BASE_PACKAGES = {
 
 CRITICAL_PATH_PINNED_WHEELS = {
     'ada-composition-configuration-manager': (
-        '0.1.18',
-        'ada_composition_configuration_manager-0.1.18-py3-none-any.whl',
+        '0.1.20',
+        'ada_composition_configuration_manager-0.1.20-py3-none-any.whl',
     ),
     'ada-composition-manager-surface': (
         '0.1.0',
@@ -72,20 +72,20 @@ CRITICAL_PATH_PINNED_WHEELS = {
         'ada_composition_web_application-0.1.0-py3-none-any.whl',
     ),
     'ada-composition-web-bootstrap': (
-        '0.1.7',
-        'ada_composition_web_bootstrap-0.1.7-py3-none-any.whl',
+        '0.1.9',
+        'ada_composition_web_bootstrap-0.1.9-py3-none-any.whl',
     ),
     'ada-composition-web-deployment': (
-        '0.1.9',
-        'ada_composition_web_deployment-0.1.9-py3-none-any.whl',
+        '0.1.11',
+        'ada_composition_web_deployment-0.1.11-py3-none-any.whl',
     ),
     'ada-configuration-kpis': (
-        '0.2.0',
-        'ada_configuration_kpis-0.2.0-py3-none-any.whl',
+        '0.2.2',
+        'ada_configuration_kpis-0.2.2-py3-none-any.whl',
     ),
     'ada-configuration-tools': (
-        '0.1.5',
-        'ada_configuration_tools-0.1.5-py3-none-any.whl',
+        '0.1.7',
+        'ada_configuration_tools-0.1.7-py3-none-any.whl',
     ),
     'atlanticus-web-composition-runtime-infrastructure': (
         '0.1.1',

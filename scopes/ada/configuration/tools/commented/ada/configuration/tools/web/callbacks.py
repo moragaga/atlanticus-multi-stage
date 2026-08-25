@@ -909,7 +909,7 @@ def _configuration_from_browser_draft(
 ) -> ToolConfiguration:
     if not isinstance(data, dict):
         raise ValueError('Browser draft does not exist')
-    if data.get('schema_version') != 2:
+    if data.get('schema_version') not in {1, 2}:
         raise ValueError('Browser draft schema is invalid')
     if str(data.get('owner_subject_id', '')).strip() != owner_subject_id.strip():
         raise ValueError('Browser draft belongs to another user')
@@ -934,7 +934,7 @@ def _browser_draft_document(
         raise ValueError('Browser draft owner is required')
     revision = build_tool_configuration_digest(configuration)
     return {
-        'schema_version': 2,
+        'schema_version': 1,
         'owner_subject_id': owner,
         'revision': revision,
         'saved_at': datetime.now(UTC).isoformat(),

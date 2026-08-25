@@ -19,7 +19,7 @@ def build_metadata() -> ApplicationMetadata:
     return ApplicationMetadata(
         application_id='ada-integrated-operations',
         display_name='ADA Integrated Operations',
-        version='0.1.3',
+        version='0.1.5',
     )
 
 

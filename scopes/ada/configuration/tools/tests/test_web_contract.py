@@ -136,6 +136,19 @@ def test_tool_workspace_starts_empty_and_does_not_read_source_implicitly() -> No
     assert 'prevent_initial_call=True' in tracker
 
 
+def test_tool_browser_draft_wrapper_matches_manager_draft_schema() -> None:
+    callbacks = _callbacks()
+
+    assert "data.get('schema_version') not in {1, 2}" in callbacks
+    browser_writer = callbacks[
+        callbacks.index('def _browser_draft_document(') : callbacks.index(
+            'def _draft_base_source_revision('
+        )
+    ]
+    assert "'schema_version': 1" in browser_writer
+    assert "'schema_version': 2" not in browser_writer
+
+
 def test_tool_editor_exposes_one_configuration_without_tool_selector_or_catalog() -> None:
     root = Path(__file__).parents[1] / 'src/ada/configuration/tools/web'
     layout = (root / 'layout.py').read_text(encoding='utf-8')
