@@ -15,6 +15,7 @@ dependencies = [
     "ada-composition-process==0.1.0",
     "ada-composition-integrated-operations==0.1.0",
     "ada-configuration-kpis==0.2.8",
+    "ada-runtime-delivery-cache==0.1.0",
 ]
 
 [dependency-groups]
@@ -74,12 +75,14 @@ atlanticus-observability = { path = "../../backend/observability", editable = tr
 atlanticus-cosmos = { path = "../../connectivity/cosmos", editable = true }
 atlanticus-http = { path = "../../connectivity/http-client", editable = true }
 
+ada-runtime-delivery-cache = { workspace = true }
 [tool.uv.workspace]
 members = [
     "contracts/tool-manifest",
     "configuration/tools",
     "configuration/kpis",
     "runtime/web",
+    "runtime/delivery-cache",
     "compositions/web-application",
     "compositions/web-bootstrap",
     "compositions/web-deployment",
