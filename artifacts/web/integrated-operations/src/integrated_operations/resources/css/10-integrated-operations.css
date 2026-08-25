@@ -2,6 +2,38 @@
     height: 100dvh;
 }
 
+.integrated-operations .global-indicator__content {
+    flex-direction: column;
+    gap: 0;
+}
+
+.integrated-operations
+    .global-indicator[data-has-last-measurement='true']
+    .global-indicator__row--empty {
+    display: none;
+}
+
+.integrated-operations .global-indicator__last-measurement {
+    width: auto;
+    min-width: 0;
+    height: 1.3rem;
+    min-height: 1.3rem;
+    flex: 0 0 1.3rem;
+    flex-direction: row;
+    gap: .25rem;
+    padding-left: 0;
+    border-left: 0;
+}
+
+.integrated-operations .global-indicator__last-measurement--empty {
+    display: none;
+}
+
+.integrated-operations .global-indicator__last-measurement-label,
+.integrated-operations .global-indicator__last-measurement-value {
+    line-height: 1;
+}
+
 .integrated-operations__card-content {
     display: flex;
     width: 100%;

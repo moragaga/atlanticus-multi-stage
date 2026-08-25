@@ -33,6 +33,10 @@ def test_integrated_operations_zoom_keeps_alarm_and_body_geometry_stable() -> No
     assert 'width: 180%;' in css
     assert 'translateX(-44.444444%)' in css
     assert 'visibility: hidden;' not in css
+    assert ".ada-header__global-indicator:not([data-scopes~='plant'])" in css
+    assert ".ada-header__global-indicator:not([data-scopes~='mine'])" in css
+    assert ".ada-header__global-indicator[data-scopes~='mine']" in css
+    assert ".ada-header__global-indicator[data-scopes~='plant']" in css
     assert ".ada-alarm-management-summary__segment[data-scope='plant']" in css
     assert ".ada-alarm-management-summary__segment[data-scope='mine']" in css
     assert 'flex: 0 0 calc(100% / var(--ada-io-overview-indicator-count));' in css

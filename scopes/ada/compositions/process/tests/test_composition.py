@@ -95,9 +95,16 @@ def _header_state(manifest):
         label='Throughput',
         unit='t/h',
         measurements=(
-            GlobalIndicatorMeasurementState.temporal(
-                '100',
-                temporality='Turno',
+            GlobalIndicatorMeasurementState(
+                key='turno',
+                label='Turno',
+                actual_value='100',
+                plan_value='110',
+            ),
+            GlobalIndicatorMeasurementState(
+                key='dia',
+                label='Día',
+                actual_value='101',
                 plan_value='110',
             ),
         ),
@@ -112,7 +119,7 @@ def _header_state(manifest):
         global_indicators=(
             HeaderIndicatorPlacement(
                 section_key='global_indicators',
-                scope=ToolScope.PLANT,
+                scopes=frozenset({ToolScope.PLANT}),
                 indicator=indicator,
             ),
         ),

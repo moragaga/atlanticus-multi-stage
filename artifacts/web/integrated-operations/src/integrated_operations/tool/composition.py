@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import UTC, date, datetime
 
 from ada.compositions.integrated_operations import (
@@ -16,7 +17,11 @@ from ada.features.alarms.management_summary import (
 from ada.features.alarms.notifications import AlarmStatusState, build_alarm_status
 from ada.runtime.web import RuntimeSnapshot, SourceState
 from ada.ui.components.branding import ATLANTICUS_BRAND_MANIFEST, BrandContext, resolve_brand
-from ada.ui.components.global_indicator import GlobalIndicatorMeasurementState, GlobalIndicatorState
+from ada.ui.components.global_indicator import (
+    GlobalIndicatorLastMeasurementState,
+    GlobalIndicatorMeasurementState,
+    GlobalIndicatorState,
+)
 from ada.ui.shell.header import HeaderIndicatorPlacement, create_header_state
 from ada.ui.shell.navigation import (
     build_ada_navigation_desktop_trigger,
@@ -28,6 +33,18 @@ from integrated_operations.tool.configuration import (
     build_polling_settings,
     build_renderer_registry,
 )
+
+
+@dataclass(frozen=True, slots=True)
+class _IndicatorDefinition:
+    key: str
+    label: str
+    unit: str
+    scope: ToolScope
+    actual_value: str
+    plan_value: str
+    measurements: tuple[tuple[str, str], ...]
+    last_value: str | None = None
 
 
 def build_integrated_operations_composition(
@@ -68,11 +85,15 @@ def _build_header_state(manifest: ToolManifest):
         application_name='ADA',
         global_indicators=tuple(
             HeaderIndicatorPlacement(
-                section_key=_scoped_section_key(manifest, 'global_indicators', scope),
-                scope=scope,
-                indicator=indicator,
+                section_key=_scoped_section_key(
+                    manifest,
+                    'global_indicators',
+                    definition.scope,
+                ),
+                scopes=frozenset({definition.scope}),
+                indicator=_indicator(definition),
             )
-            for scope, indicator in _global_indicators()
+            for definition in _global_indicator_definitions()
         ),
     )
 
@@ -88,34 +109,106 @@ def _scoped_section_key(
     ).key
 
 
-def _global_indicators() -> tuple[tuple[ToolScope, GlobalIndicatorState], ...]:
+def _global_indicator_definitions() -> tuple[_IndicatorDefinition, ...]:
     return (
-        (ToolScope.MINE, _indicator('transported', 'Transportado', 'kt', '220', '220')),
-        (ToolScope.MINE, _indicator('expit', 'ExPit', 'kt', '426', '426')),
-        (ToolScope.PLANT, _indicator('grinding', 'Molienda', 'kt', '210', '210')),
-        (ToolScope.PLANT, _indicator('copper_grade', 'Ley de Cobre', '%', '0,55', '0,55')),
-        (ToolScope.PLANT, _indicator('copper_recovery', 'Recuperación Cu', '%', '90,5', '90,5')),
-        (ToolScope.PLANT, _indicator('fine_copper', 'Cu Fino Producido', 't', '1.050', '1.050')),
+        _IndicatorDefinition(
+            key='transported',
+            label='Transportado',
+            unit='kt',
+            scope=ToolScope.MINE,
+            actual_value='198',
+            plan_value='220',
+            measurements=(('turno', 'Turno'), ('dia', 'Día')),
+            last_value='198',
+        ),
+        _IndicatorDefinition(
+            key='grinding',
+            label='Molienda',
+            unit='kt',
+            scope=ToolScope.PLANT,
+            actual_value='205',
+            plan_value='210',
+            measurements=(('turno', 'Turno'), ('dia', 'Día'), ('semana', 'Semana')),
+        ),
+        _IndicatorDefinition(
+            key='copper_grade',
+            label='Ley de Cobre',
+            unit='%',
+            scope=ToolScope.PLANT,
+            actual_value='0,53',
+            plan_value='0,55',
+            measurements=(('turno', 'Turno'), ('dia', 'Día')),
+            last_value='0,53',
+        ),
+        _IndicatorDefinition(
+            key='copper_recovery',
+            label='Recuperación Cu',
+            unit='%',
+            scope=ToolScope.PLANT,
+            actual_value='89,8',
+            plan_value='90,5',
+            measurements=(('turno', 'Turno'), ('dia', 'Día')),
+            last_value='89,8',
+        ),
+        _IndicatorDefinition(
+            key='fine_copper',
+            label='Cu Fino Producido',
+            unit='t',
+            scope=ToolScope.PLANT,
+            actual_value='1.012',
+            plan_value='1.050',
+            measurements=(('turno', 'Turno'), ('dia', 'Día'), ('semana', 'Semana')),
+        ),
+        _IndicatorDefinition(
+            key='fine_moly',
+            label='Mo Fino Producido',
+            unit='t',
+            scope=ToolScope.PLANT,
+            actual_value='28',
+            plan_value='33',
+            measurements=(('turno', 'Turno'), ('dia', 'Día'), ('semana', 'Semana')),
+        ),
+        _IndicatorDefinition(
+            key='expit',
+            label='ExPit',
+            unit='t',
+            scope=ToolScope.MINE,
+            actual_value='376',
+            plan_value='426',
+            measurements=(('turno', 'Turno'), ('dia', 'Día')),
+            last_value='376',
+        ),
+        _IndicatorDefinition(
+            key='filtered_copper_paid',
+            label='Cu Fino Filtr. Pag.',
+            unit='t',
+            scope=ToolScope.PLANT,
+            actual_value='1.886',
+            plan_value='1.784',
+            measurements=(('turno', 'Turno'), ('dia', 'Día')),
+            last_value='1.886',
+        ),
     )
 
 
-def _indicator(
-    key: str,
-    label: str,
-    unit: str,
-    real_value: str,
-    plan_value: str,
-) -> GlobalIndicatorState:
+def _indicator(definition: _IndicatorDefinition) -> GlobalIndicatorState:
     return GlobalIndicatorState(
-        key=key,
-        label=label,
-        unit=unit,
-        measurements=(
-            GlobalIndicatorMeasurementState.temporal(
-                real_value,
-                temporality='Día',
-                plan_value=plan_value,
-            ),
+        key=definition.key,
+        label=definition.label,
+        unit=definition.unit,
+        measurements=tuple(
+            GlobalIndicatorMeasurementState(
+                key=measurement_key,
+                label=measurement_label,
+                actual_value=definition.actual_value,
+                plan_value=definition.plan_value,
+            )
+            for measurement_key, measurement_label in definition.measurements
+        ),
+        last_measurement=(
+            GlobalIndicatorLastMeasurementState(actual_value=definition.last_value)
+            if definition.last_value is not None
+            else None
         ),
     )
 

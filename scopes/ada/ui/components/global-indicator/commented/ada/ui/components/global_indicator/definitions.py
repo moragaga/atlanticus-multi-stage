@@ -1,79 +1,72 @@
-# Espejo comentado: define el contrato estático que transforma claves KPI
-# en mediciones del indicador global.
-# La lógica ejecutable es idéntica al archivo productivo.
+# Este espejo documenta cómo la configuración declara mediciones genéricas.
+# Las keys de KPI se derivan desde indicator.key + measurement.key una sola vez.
+# El label puede cambiar sin romper identidad ni bindings.
 from __future__ import annotations
 
 import re
-import unicodedata
 from dataclasses import dataclass, field
 
 from .errors import GlobalIndicatorDefinitionError
-from .models import GlobalIndicatorMeasurementKind, GlobalIndicatorStyle
+from .models import GlobalIndicatorStyle, global_indicator_measurement_capacity
 
 _KEY_PATTERN = re.compile(r'^[a-z][a-z0-9_]*$')
 
 
-def _remove_accent(*, text: str) -> str:
-    return ''.join(
-        letter
-        for letter in unicodedata.normalize('NFD', text)
-        if unicodedata.category(letter) != 'Mn'
-    )
-
-
 @dataclass(frozen=True, slots=True)
 class GlobalIndicatorMeasurementDefinition:
-    temporality: str
+    key: str
+    label: str
     source_key: str | None = None
-    kind: GlobalIndicatorMeasurementKind = GlobalIndicatorMeasurementKind.TEMPORAL
 
     def __post_init__(self) -> None:
-        _require_text(self.temporality, field_name='temporality')
+        _require_key(self.key, field_name='measurement key')
+        _require_text(self.label, field_name='measurement label')
         if self.source_key is not None:
             _require_key(self.source_key, field_name='source_key')
 
-    @classmethod
-    def temporal(
-        cls,
-        temporality: str,
-        *,
-        source_key: str | None = None,
-    ) -> GlobalIndicatorMeasurementDefinition:
-        return cls(temporality=temporality, source_key=source_key)
-
-    @classmethod
-    def last_measurement(
-        cls,
-        temporality: str = 'actual',
-        *,
-        source_key: str | None = None,
-    ) -> GlobalIndicatorMeasurementDefinition:
-        return cls(
-            temporality=temporality,
-            source_key=source_key,
-            kind=GlobalIndicatorMeasurementKind.LAST_MEASUREMENT,
-        )
-
-    @property
-    def temporality_key(self) -> str:
-        return _remove_accent(text=self.temporality).casefold()
-
-    @property
-    def temporality_label(self) -> str:
-        return self.temporality.capitalize()
-
-    @property
-    def is_last_measurement(self) -> bool:
-        return self.kind is GlobalIndicatorMeasurementKind.LAST_MEASUREMENT
-
-    def real_kpi_key(self, *, default_key: str) -> str:
-        return f'{self._resolved_source_key(default_key)}_{self.temporality_key}_real_inst'
+    def actual_kpi_key(self, *, default_key: str) -> str:
+        return f'{self._resolved_source_key(default_key)}_{self.key}_real_inst'
 
     def plan_kpi_key(self, *, default_key: str) -> str:
-        return f'{self._resolved_source_key(default_key)}_{self.temporality_key}_plan_inst'
+        return f'{self._resolved_source_key(default_key)}_{self.key}_plan_inst'
 
     def color_kpi_key(self, *, default_key: str) -> str:
-        return f'{self._resolved_source_key(default_key)}_{self.temporality_key}_color_inst'
+        return f'{self._resolved_source_key(default_key)}_{self.key}_color_inst'
+
+    def runtime_kpi_keys(self, *, default_key: str) -> tuple[str, str, str]:
+        return (
+            self.actual_kpi_key(default_key=default_key),
+            self.plan_kpi_key(default_key=default_key),
+            self.color_kpi_key(default_key=default_key),
+        )
+
+    def _resolved_source_key(self, default_key: str) -> str:
+        return self.source_key or default_key
+
+
+@dataclass(frozen=True, slots=True)
+class GlobalIndicatorLastMeasurementDefinition:
+    key: str = 'latest'
+    label: str = 'Última medición'
+    source_key: str | None = None
+
+    def __post_init__(self) -> None:
+        _require_key(self.key, field_name='last measurement key')
+        _require_text(self.label, field_name='last measurement label')
+        if self.source_key is not None:
+            _require_key(self.source_key, field_name='source_key')
+
+    def actual_kpi_key(self, *, default_key: str) -> str:
+        return f'{self._resolved_source_key(default_key)}_{self.key}_real_inst'
+
+    def color_kpi_key(self, *, default_key: str) -> str:
+        return f'{self._resolved_source_key(default_key)}_{self.key}_color_inst'
+
+    def runtime_kpi_keys(self, *, default_key: str) -> tuple[str, str]:
+        return (
+            self.actual_kpi_key(default_key=default_key),
+            self.color_kpi_key(default_key=default_key),
+        )
 
     def _resolved_source_key(self, default_key: str) -> str:
         return self.source_key or default_key
@@ -85,6 +78,7 @@ class GlobalIndicatorDefinition:
     label: str
     unit: str
     measurements: tuple[GlobalIndicatorMeasurementDefinition, ...]
+    last_measurement: GlobalIndicatorLastMeasurementDefinition | None = None
     definition_key: str | None = None
     style: GlobalIndicatorStyle = field(default_factory=GlobalIndicatorStyle)
 
@@ -95,22 +89,39 @@ class GlobalIndicatorDefinition:
         _require_text(self.unit, field_name='unit')
         if self.definition_key is not None:
             _require_key(self.definition_key, field_name='definition_key')
-        if not self.measurements:
+        if not 2 <= len(self.measurements) <= global_indicator_measurement_capacity():
             raise GlobalIndicatorDefinitionError(
-                'Global indicator requires at least one measurement'
+                'Global indicator requires two or three measurement definitions'
             )
-        if sum(item.is_last_measurement for item in self.measurements) > 1:
-            raise GlobalIndicatorDefinitionError(
-                'Global indicator supports at most one last measurement'
-            )
-        keys = [
-            (item.source_key, item.temporality_key, item.kind)
-            for item in self.measurements
-        ]
+        keys = [item.key for item in self.measurements]
         if len(keys) != len(set(keys)):
             raise GlobalIndicatorDefinitionError(
-                'Global indicator contains duplicate measurement definitions'
+                'Global indicator contains duplicate measurement definition keys'
             )
+        if self.last_measurement is not None and self.last_measurement.key in set(keys):
+            raise GlobalIndicatorDefinitionError(
+                'Global indicator last measurement definition key must be unique'
+            )
+
+    @property
+    def measurement_keys(self) -> tuple[str, ...]:
+        return tuple(item.key for item in self.measurements)
+
+    @property
+    def all_measurement_keys(self) -> tuple[str, ...]:
+        if self.last_measurement is None:
+            return self.measurement_keys
+        return (*self.measurement_keys, self.last_measurement.key)
+
+    def runtime_kpi_keys(self) -> tuple[str, ...]:
+        keys = tuple(
+            key
+            for measurement in self.measurements
+            for key in measurement.runtime_kpi_keys(default_key=self.key)
+        )
+        if self.last_measurement is None:
+            return keys
+        return (*keys, *self.last_measurement.runtime_kpi_keys(default_key=self.key))
 
 
 def _require_text(value: str, *, field_name: str) -> None:
@@ -120,6 +131,4 @@ def _require_text(value: str, *, field_name: str) -> None:
 
 def _require_key(value: str, *, field_name: str) -> None:
     if not _KEY_PATTERN.fullmatch(value):
-        raise GlobalIndicatorDefinitionError(
-            f'Invalid global indicator {field_name}: {value!r}'
-        )
+        raise GlobalIndicatorDefinitionError(f'Invalid global indicator {field_name}: {value!r}')

@@ -59,7 +59,18 @@ def _header_state():
         label='Throughput',
         unit='t/h',
         measurements=(
-            GlobalIndicatorMeasurementState.temporal('100', temporality='Turno', plan_value='110'),
+            GlobalIndicatorMeasurementState(
+                key='turno',
+                label='Turno',
+                actual_value='100',
+                plan_value='110',
+            ),
+            GlobalIndicatorMeasurementState(
+                key='dia',
+                label='Día',
+                actual_value='101',
+                plan_value='110',
+            ),
         ),
     )
     return create_header_state(
@@ -72,7 +83,7 @@ def _header_state():
         global_indicators=(
             HeaderIndicatorPlacement(
                 section_key=_scoped_section_key('global_indicators', ToolScope.MINE),
-                scope=ToolScope.MINE,
+                scopes=frozenset({ToolScope.MINE}),
                 indicator=indicator,
             ),
         ),

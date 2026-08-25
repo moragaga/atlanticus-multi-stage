@@ -27,6 +27,37 @@ def _tool():
     )
 
 
+def _placements(nodes):
+    return {
+        _props(node).get('data-indicator-key'): node
+        for node in nodes
+        if _props(node).get('data-indicator-key')
+        and 'ada-header__global-indicator' in str(_props(node).get('className', ''))
+    }
+
+
+def _indicator_component(placement):
+    return next(
+        node for node in _walk(placement) if _props(node).get('className') == 'global-indicator'
+    )
+
+
+def _normal_measurement_keys(placement):
+    return tuple(
+        _props(node)['data-measurement-key']
+        for node in _walk(placement)
+        if _props(node).get('className') == 'global-indicator__row'
+    )
+
+
+def _last_measurement_keys(placement):
+    return tuple(
+        _props(node)['data-measurement-key']
+        for node in _walk(placement)
+        if _props(node).get('className') == 'global-indicator__last-measurement'
+    )
+
+
 def test_integrated_operations_artifact_mounts_real_tool_surfaces() -> None:
     nodes = tuple(_walk(_tool()))
 
@@ -80,3 +111,62 @@ def test_integrated_operations_header_exposes_common_navigation_triggers() -> No
 
     assert 'app-header-desktop-toggle' in ids
     assert 'app-header-mobile-toggle' in ids
+
+
+def test_real_header_mounts_eight_global_indicators_with_scope_metadata() -> None:
+    nodes = tuple(_walk(_tool()))
+    placements = _placements(nodes)
+
+    assert tuple(placements) == (
+        'transported',
+        'grinding',
+        'copper_grade',
+        'copper_recovery',
+        'fine_copper',
+        'fine_moly',
+        'expit',
+        'filtered_copper_paid',
+    )
+    assert _props(placements['transported'])['data-scopes'] == 'mine'
+    assert _props(placements['expit'])['data-scopes'] == 'mine'
+    assert all(
+        _props(placements[key])['data-scopes'] == 'plant'
+        for key in (
+            'grinding',
+            'copper_grade',
+            'copper_recovery',
+            'fine_copper',
+            'fine_moly',
+            'filtered_copper_paid',
+        )
+    )
+
+
+def test_real_header_uses_three_total_visual_slots_per_indicator() -> None:
+    nodes = tuple(_walk(_tool()))
+    placements = _placements(nodes)
+
+    with_latest = (
+        'transported',
+        'copper_grade',
+        'copper_recovery',
+        'expit',
+        'filtered_copper_paid',
+    )
+    without_latest = ('grinding', 'fine_copper', 'fine_moly')
+
+    for key in with_latest:
+        component = _indicator_component(placements[key])
+        assert _props(component)['data-measurement-count'] == '2'
+        assert _props(component)['data-measurement-capacity'] == '3'
+        assert _props(component)['data-has-last-measurement'] == 'true'
+        assert len(_normal_measurement_keys(placements[key])) == 2
+        assert _last_measurement_keys(placements[key]) == ('latest',)
+
+    for key in without_latest:
+        component = _indicator_component(placements[key])
+        assert _props(component)['data-measurement-count'] == '3'
+        assert _props(component)['data-measurement-capacity'] == '3'
+        assert _props(component)['data-has-last-measurement'] == 'false'
+        assert len(_normal_measurement_keys(placements[key])) == 3
+        assert _last_measurement_keys(placements[key]) == ()

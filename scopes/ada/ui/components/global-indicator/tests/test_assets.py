@@ -10,3 +10,7 @@ def test_global_indicator_css_is_packaged_and_preserves_equal_size_contract() ->
     assert 'flex: 1 1 0;' in css
     assert 'min-width: 0;' in css
     assert 'min-height: 5.5rem;' in css
+    assert '.global-indicator__row--empty' in css
+    assert 'height: 1.3rem;' in css
+    assert '.global-indicator__last-measurement--empty' in css
+    assert 'visibility: hidden;' in css

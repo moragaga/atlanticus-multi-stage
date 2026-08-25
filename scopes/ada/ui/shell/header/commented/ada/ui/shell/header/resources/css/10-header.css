@@ -1,4 +1,4 @@
-/* Espejo pedagógico del asset productivo; conserva el mismo comportamiento visual. */
+/* El zoom filtra por tokens data-scopes; un indicador Mina/Planta permanece visible en ambos zooms. */
 .ada-header-shell {
     --ada-header-surface: var(--tertiary-background, #E1E1E1);
     --ada-header-border: var(--primary-border-color, #BDBDBD);
@@ -167,13 +167,15 @@
     justify-content: center;
 }
 
-.ada-header-shell.ada-header--expanded-mine [data-scope='plant'],
-.ada-header-shell.ada-header--expanded-plant [data-scope='mine'] {
+.ada-header-shell.ada-header--expanded-mine
+    .ada-header__global-indicator:not([data-scopes~='mine']),
+.ada-header-shell.ada-header--expanded-plant
+    .ada-header__global-indicator:not([data-scopes~='plant']) {
     display: none;
 }
 
-.ada-header-shell.ada-header--expanded-mine .ada-header__global-indicator[data-scope='mine'],
-.ada-header-shell.ada-header--expanded-plant .ada-header__global-indicator[data-scope='plant'] {
+.ada-header-shell.ada-header--expanded-mine .ada-header__global-indicator[data-scopes~='mine'],
+.ada-header-shell.ada-header--expanded-plant .ada-header__global-indicator[data-scopes~='plant'] {
     flex: 1 1 0;
 }
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import dataclass
 from datetime import date
 
 from ada.applications.reference.runtime import ADA_RUNTIME_SERVICE
@@ -8,6 +9,7 @@ from ada.contracts.tool_manifest import ToolManifest, ToolScope
 from ada.runtime.web import AdaRuntime, GuardState, resolve_guard
 from ada.ui.components.branding import ATLANTICUS_BRAND_MANIFEST, BrandContext, resolve_brand
 from ada.ui.components.global_indicator import (
+    GlobalIndicatorLastMeasurementState,
     GlobalIndicatorMeasurementState,
     GlobalIndicatorState,
 )
@@ -16,20 +18,86 @@ from ada.ui.framework.core import coerce_display_value
 from ada.ui.shell.header import HeaderIndicatorPlacement, HeaderSectionStates, create_header_state
 from atlanticus.web.services import ServiceRegistry
 
+
+@dataclass(frozen=True, slots=True)
+class _ReferenceIndicatorDefinition:
+    key: str
+    label: str
+    unit: str
+    scope: ToolScope
+    plan: str
+    measurements: tuple[tuple[str, str], ...]
+    include_last_measurement: bool = False
+
+
 _INDICATOR_DEFINITIONS = (
-    ('transportado', 'Transportado', 'kt', ToolScope.MINE, '220'),
-    ('molienda', 'Molienda', 'kt', ToolScope.PLANT, '210'),
-    ('ley_cobre', 'Ley de Cobre', '%', ToolScope.PLANT, '0,55'),
-    ('recuperacion_cu', 'Recuperación Cu', '%', ToolScope.PLANT, '90,5'),
-    ('cu_fino_producido', 'Cu Fino Producido', 't', ToolScope.PLANT, '1.050'),
-    ('mo_fino_producido', 'Mo Fino Producido', 't', ToolScope.PLANT, '33'),
-    ('expit', 'ExPit', 't', ToolScope.MINE, '426'),
-    (
-        'cu_fino_filtrado_pagable',
-        'Cu Fino Filtr. Pag.',
-        't',
-        ToolScope.PLANT,
-        '1.784',
+    _ReferenceIndicatorDefinition(
+        key='transportado',
+        label='Transportado',
+        unit='kt',
+        scope=ToolScope.MINE,
+        plan='220',
+        measurements=(('turno', 'Turno'), ('dia', 'Día'), ('semana', 'Semana')),
+        include_last_measurement=True,
+    ),
+    _ReferenceIndicatorDefinition(
+        key='molienda',
+        label='Molienda',
+        unit='kt',
+        scope=ToolScope.PLANT,
+        plan='210',
+        measurements=(('dia', 'Día'), ('semana', 'Semana')),
+    ),
+    _ReferenceIndicatorDefinition(
+        key='ley_cobre',
+        label='Ley de Cobre',
+        unit='%',
+        scope=ToolScope.PLANT,
+        plan='0,55',
+        measurements=(('turno', 'Turno'), ('dia', 'Día'), ('semana', 'Semana')),
+    ),
+    _ReferenceIndicatorDefinition(
+        key='recuperacion_cu',
+        label='Recuperación Cu',
+        unit='%',
+        scope=ToolScope.PLANT,
+        plan='90,5',
+        measurements=(('dia', 'Día'), ('semana', 'Semana')),
+        include_last_measurement=True,
+    ),
+    _ReferenceIndicatorDefinition(
+        key='cu_fino_producido',
+        label='Cu Fino Producido',
+        unit='t',
+        scope=ToolScope.PLANT,
+        plan='1.050',
+        measurements=(('turno', 'Turno'), ('dia', 'Día'), ('mes', 'Mes')),
+        include_last_measurement=True,
+    ),
+    _ReferenceIndicatorDefinition(
+        key='mo_fino_producido',
+        label='Mo Fino Producido',
+        unit='t',
+        scope=ToolScope.PLANT,
+        plan='33',
+        measurements=(('dia', 'Día'), ('semana', 'Semana')),
+    ),
+    _ReferenceIndicatorDefinition(
+        key='expit',
+        label='ExPit',
+        unit='t',
+        scope=ToolScope.MINE,
+        plan='426',
+        measurements=(('turno', 'Turno'), ('dia', 'Día'), ('semana', 'Semana')),
+    ),
+    _ReferenceIndicatorDefinition(
+        key='cu_fino_filtrado_pagable',
+        label='Cu Fino Filtr. Pag.',
+        unit='t',
+        scope=ToolScope.PLANT,
+        plan='1.784',
+        measurements=(('dia', 'Día'), ('mes', 'Mes')),
+        include_last_measurement=True,
     ),
 )
 
@@ -40,7 +108,9 @@ def build_reference_header_state(services: ServiceRegistry, manifest: ToolManife
     indicators_guard = resolve_guard(snapshot, required_sources=('pi',))
     return build_reference_header_state_from_values(
         manifest,
-        values={key: snapshot.value(key) for key, *_ in _INDICATOR_DEFINITIONS},
+        values={
+            definition.key: snapshot.value(definition.key) for definition in _INDICATOR_DEFINITIONS
+        },
         cover=_cover_from_guard(indicators_guard.state),
     )
 
@@ -61,14 +131,10 @@ def build_reference_header_state_from_values(
         global_indicators=tuple(
             _indicator(
                 manifest,
-                key=key,
-                label=label,
-                unit=unit,
-                scope=scope,
-                plan=plan,
-                value=values.get(key),
+                definition=definition,
+                value=values.get(definition.key),
             )
-            for key, label, unit, scope, plan in _INDICATOR_DEFINITIONS
+            for definition in _INDICATOR_DEFINITIONS
         ),
         section_states=HeaderSectionStates(
             global_indicators=cover or ComponentCover.none(),
@@ -89,41 +155,35 @@ def _cover_from_guard(state: GuardState) -> ComponentCover:
 def _indicator(
     manifest: ToolManifest,
     *,
-    key: str,
-    label: str,
-    unit: str,
-    scope: ToolScope,
-    plan: str,
+    definition: _ReferenceIndicatorDefinition,
     value: object,
 ) -> HeaderIndicatorPlacement:
-    subcomponent = {
-        ToolScope.MINE: 'mine',
-        ToolScope.PLANT: 'plant',
-    }[scope]
     section_key = manifest.subcomponent(
         component='global_indicators',
-        subcomponent=subcomponent,
+        subcomponent=definition.scope.value,
     ).key
     display_value = coerce_display_value(value)
     return HeaderIndicatorPlacement(
         section_key=section_key,
-        scope=scope,
+        scopes=frozenset({definition.scope}),
         indicator=GlobalIndicatorState(
-            key=key,
-            label=label,
-            unit=unit,
-            definition_key=key,
-            measurements=(
-                GlobalIndicatorMeasurementState.temporal(
-                    display_value,
-                    temporality='Día',
-                    plan_value=plan,
-                ),
-                GlobalIndicatorMeasurementState.temporal(
-                    display_value,
-                    temporality='Semana',
-                    plan_value=plan,
-                ),
+            key=definition.key,
+            label=definition.label,
+            unit=definition.unit,
+            definition_key=definition.key,
+            measurements=tuple(
+                GlobalIndicatorMeasurementState(
+                    key=measurement_key,
+                    label=measurement_label,
+                    actual_value=display_value,
+                    plan_value=definition.plan,
+                )
+                for measurement_key, measurement_label in definition.measurements
+            ),
+            last_measurement=(
+                GlobalIndicatorLastMeasurementState(actual_value=display_value)
+                if definition.include_last_measurement
+                else None
             ),
         ),
     )

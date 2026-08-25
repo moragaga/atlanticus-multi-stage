@@ -1,12 +1,12 @@
-# Espejo comentado del estado visual de Global Indicator.
-# Cada medición conserva su estado individual sin alterar la geometría del indicador.
+# Este espejo explica el contrato de estado del indicador global sin alterar su AST.
+# Las mediciones normales se identifican por key y label; el texto visible no gobierna el mapping.
+# La capacidad de tres filas es una regla visual común para todos los Headers ADA.
+# Last measurement se mantiene separado y opcional porque su presentación es distinta.
 from __future__ import annotations
 
 import re
-import unicodedata
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
-from enum import StrEnum
 from typing import TypeAlias
 
 from dash.development.base_component import Component
@@ -17,22 +17,18 @@ from .errors import GlobalIndicatorDefinitionError
 
 _KEY_PATTERN = re.compile(r'^[a-z][a-z0-9_]*$')
 _CLASS_TOKEN = re.compile(r'^[A-Za-z_][A-Za-z0-9_-]*$')
+_GLOBAL_INDICATOR_MEASUREMENT_CAPACITY = 3
 
 IndicatorPrimitive: TypeAlias = str | int | float | Component
 IndicatorInput: TypeAlias = IndicatorPrimitive | DisplayValue | None
 IndicatorColorClass: TypeAlias = str | Component | None
 
 
-class GlobalIndicatorMeasurementKind(StrEnum):
-    TEMPORAL = 'temporal'
-    LAST_MEASUREMENT = 'last_measurement'
-
-
 @dataclass(frozen=True, slots=True)
 class GlobalIndicatorStyle:
     heading_class: str = 'font-size-gi-300'
-    temporality_class: str = 'font-size-gi-200'
-    real_value_class: str = 'font-size-gi-100'
+    measurement_label_class: str = 'font-size-gi-200'
+    actual_value_class: str = 'font-size-gi-100'
     plan_value_class: str = 'font-size-gi-200'
     last_measurement_label_class: str = 'font-size-gi-400'
     last_measurement_value_class: str = 'font-size-gi-300'
@@ -40,8 +36,8 @@ class GlobalIndicatorStyle:
     def __post_init__(self) -> None:
         for field_name in (
             'heading_class',
-            'temporality_class',
-            'real_value_class',
+            'measurement_label_class',
+            'actual_value_class',
             'plan_value_class',
             'last_measurement_label_class',
             'last_measurement_value_class',
@@ -51,58 +47,30 @@ class GlobalIndicatorStyle:
 
 @dataclass(frozen=True, slots=True)
 class GlobalIndicatorMeasurementState:
-    real_value: IndicatorInput
-    temporality: str | None = None
-    plan_value: IndicatorInput = None
+    key: str
+    label: str
+    actual_value: IndicatorInput
+    plan_value: IndicatorInput
     color_class: IndicatorColorClass = None
-    kind: GlobalIndicatorMeasurementKind = GlobalIndicatorMeasurementKind.TEMPORAL
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, 'real_value', coerce_display_value(self.real_value))
-        if self.kind is GlobalIndicatorMeasurementKind.TEMPORAL:
-            _require_text(self.temporality, field_name='temporality')
-            if self.plan_value is not None:
-                object.__setattr__(self, 'plan_value', coerce_display_value(self.plan_value))
-            return
-        if self.temporality is not None:
-            raise GlobalIndicatorDefinitionError(
-                'Last measurement cannot declare a temporality label'
-            )
-        if self.plan_value is not None:
-            raise GlobalIndicatorDefinitionError('Last measurement cannot declare a plan value')
+        _require_key(self.key, field_name='measurement key')
+        _require_text(self.label, field_name='measurement label')
+        object.__setattr__(self, 'actual_value', coerce_display_value(self.actual_value))
+        object.__setattr__(self, 'plan_value', coerce_display_value(self.plan_value))
 
-    @classmethod
-    def temporal(
-        cls,
-        real_value: IndicatorInput,
-        *,
-        temporality: str,
-        plan_value: IndicatorInput = None,
-        color_class: IndicatorColorClass = None,
-    ) -> 'GlobalIndicatorMeasurementState':
-        return cls(
-            real_value=real_value,
-            temporality=temporality,
-            plan_value=plan_value,
-            color_class=color_class,
-        )
 
-    @classmethod
-    def last_measurement(
-        cls,
-        real_value: IndicatorInput,
-        *,
-        color_class: IndicatorColorClass = None,
-    ) -> 'GlobalIndicatorMeasurementState':
-        return cls(
-            real_value=real_value,
-            color_class=color_class,
-            kind=GlobalIndicatorMeasurementKind.LAST_MEASUREMENT,
-        )
+@dataclass(frozen=True, slots=True)
+class GlobalIndicatorLastMeasurementState:
+    actual_value: IndicatorInput
+    key: str = 'latest'
+    label: str = 'Última medición'
+    color_class: IndicatorColorClass = None
 
-    @property
-    def is_last_measurement(self) -> bool:
-        return self.kind is GlobalIndicatorMeasurementKind.LAST_MEASUREMENT
+    def __post_init__(self) -> None:
+        _require_key(self.key, field_name='last measurement key')
+        _require_text(self.label, field_name='last measurement label')
+        object.__setattr__(self, 'actual_value', coerce_display_value(self.actual_value))
 
 
 @dataclass(frozen=True, slots=True)
@@ -111,6 +79,7 @@ class GlobalIndicatorState:
     label: str
     unit: str
     measurements: tuple[GlobalIndicatorMeasurementState, ...]
+    last_measurement: GlobalIndicatorLastMeasurementState | None = None
     definition_key: str | None = None
     style: GlobalIndicatorStyle = field(default_factory=GlobalIndicatorStyle)
 
@@ -121,22 +90,18 @@ class GlobalIndicatorState:
         _require_text(self.unit, field_name='unit')
         if self.definition_key is not None:
             _require_key(self.definition_key, field_name='definition_key')
-        if not self.measurements:
+        if not 2 <= len(self.measurements) <= _GLOBAL_INDICATOR_MEASUREMENT_CAPACITY:
             raise GlobalIndicatorDefinitionError(
-                'Global indicator requires at least one measurement'
+                'Global indicator requires two or three measurements'
             )
-        if sum(item.is_last_measurement for item in self.measurements) > 1:
+        keys = [item.key for item in self.measurements]
+        if len(keys) != len(set(keys)):
             raise GlobalIndicatorDefinitionError(
-                'Global indicator supports at most one last measurement'
+                'Global indicator contains duplicate measurement keys'
             )
-        temporalities = [
-            _normalize_label(item.temporality)
-            for item in self.measurements
-            if item.kind is GlobalIndicatorMeasurementKind.TEMPORAL and item.temporality is not None
-        ]
-        if len(temporalities) != len(set(temporalities)):
+        if self.last_measurement is not None and self.last_measurement.key in set(keys):
             raise GlobalIndicatorDefinitionError(
-                'Global indicator contains duplicate temporal measurements'
+                'Global indicator last measurement key must be unique'
             )
 
     @classmethod
@@ -147,6 +112,7 @@ class GlobalIndicatorState:
         label: str,
         unit: str,
         measurements: Iterable[GlobalIndicatorMeasurementState],
+        last_measurement: GlobalIndicatorLastMeasurementState | None = None,
         definition_key: str | None = None,
         style: GlobalIndicatorStyle | None = None,
     ) -> 'GlobalIndicatorState':
@@ -155,9 +121,20 @@ class GlobalIndicatorState:
             label=label,
             unit=unit,
             measurements=tuple(measurements),
+            last_measurement=last_measurement,
             definition_key=definition_key,
             style=style or GlobalIndicatorStyle(),
         )
+
+    @property
+    def measurement_keys(self) -> tuple[str, ...]:
+        return tuple(item.key for item in self.measurements)
+
+    @property
+    def all_measurement_keys(self) -> tuple[str, ...]:
+        if self.last_measurement is None:
+            return self.measurement_keys
+        return (*self.measurement_keys, self.last_measurement.key)
 
     def to_component(self) -> Component:
         from .build import build_global_indicator
@@ -196,6 +173,10 @@ class GlobalIndicatorCollection:
         return len(self.indicators)
 
 
+def global_indicator_measurement_capacity() -> int:
+    return _GLOBAL_INDICATOR_MEASUREMENT_CAPACITY
+
+
 def _require_key(value: str, *, field_name: str) -> None:
     if not _KEY_PATTERN.fullmatch(value):
         raise GlobalIndicatorDefinitionError(f'Invalid global indicator {field_name}: {value!r}')
@@ -212,11 +193,3 @@ def _require_class_tokens(value: str, *, field_name: str) -> None:
         raise GlobalIndicatorDefinitionError(
             f'Invalid global indicator CSS classes for {field_name}: {value!r}'
         )
-
-
-def _normalize_label(value: str) -> str:
-    return ''.join(
-        letter
-        for letter in unicodedata.normalize('NFD', value)
-        if unicodedata.category(letter) != 'Mn'
-    ).casefold()

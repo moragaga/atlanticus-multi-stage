@@ -11,16 +11,24 @@ from ada.ui.components.state_wrapper import ComponentCover
 from .errors import HeaderDefinitionError
 
 _KEY_PATTERN = re.compile(r'^[a-z][a-z0-9_]*$')
+_INDICATOR_SCOPES = frozenset({ToolScope.MINE, ToolScope.PLANT})
 
 
 @dataclass(frozen=True, slots=True)
 class HeaderIndicatorPlacement:
     section_key: str
-    scope: ToolScope
+    scopes: frozenset[ToolScope]
     indicator: GlobalIndicatorState
 
     def __post_init__(self) -> None:
+        object.__setattr__(self, 'scopes', frozenset(self.scopes))
         _require_key(self.section_key, field_name='indicator section_key')
+        if not self.scopes:
+            raise HeaderDefinitionError('Global indicator placement requires at least one scope')
+        if not self.scopes <= _INDICATOR_SCOPES:
+            raise HeaderDefinitionError(
+                'Global indicator placement supports only mine and plant scopes'
+            )
 
 
 @dataclass(frozen=True, slots=True)

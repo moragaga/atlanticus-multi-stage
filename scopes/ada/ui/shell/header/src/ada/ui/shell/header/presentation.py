@@ -8,6 +8,7 @@ from pathlib import Path
 from dash import html
 from dash.development.base_component import Component
 
+from ada.contracts.tool_manifest import ToolScope
 from ada.ui.components.branding import brand_asset_resource
 from ada.ui.components.global_indicator import build_global_indicator
 from ada.ui.components.state_wrapper import build_safe_state_wrapper
@@ -169,7 +170,9 @@ def _build_global_indicator_placement(placement: HeaderIndicatorPlacement) -> ht
     attributes = {
         'data-indicator-key': placement.indicator.key,
         'data-section-key': placement.section_key,
-        'data-scope': placement.scope.value,
+        'data-scopes': ' '.join(
+            scope.value for scope in (ToolScope.MINE, ToolScope.PLANT) if scope in placement.scopes
+        ),
     }
     if placement.indicator.definition_key is not None:
         attributes['data-definition-key'] = placement.indicator.definition_key

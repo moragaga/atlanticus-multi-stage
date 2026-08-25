@@ -1,5 +1,5 @@
-# Espejo pedagógico de la implementación productiva.
-# Conserva la misma estructura y comportamiento; los comentarios documentan su responsabilidad.
+# Este espejo documenta cómo el Header proyecta los scopes al DOM para el zoom.
+# data-scopes usa tokens CSS: mine, plant o ambos, sin duplicar el indicador.
 from __future__ import annotations
 
 import base64
@@ -10,6 +10,7 @@ from pathlib import Path
 from dash import html
 from dash.development.base_component import Component
 
+from ada.contracts.tool_manifest import ToolScope
 from ada.ui.components.branding import brand_asset_resource
 from ada.ui.components.global_indicator import build_global_indicator
 from ada.ui.components.state_wrapper import build_safe_state_wrapper
@@ -24,7 +25,6 @@ _MIME_TYPES = {
 }
 
 
-# Header define la geometría de sus slots, pero no conoce modelos ni renderers de Alarmas.
 def build_ada_header(
     state: HeaderState,
     *,
@@ -34,7 +34,6 @@ def build_ada_header(
     mobile_navigation_trigger: Component | None = None,
     runtime_component_wrapper_ids: Mapping[str, str] | None = None,
 ) -> html.Header:
-    # La proyección runtime puede asignar ids a los tres componentes visuales del Header.
     inner_children: list[Component] = [
         _build_brand(state),
         _build_indicators_slot(
@@ -99,7 +98,6 @@ def _build_indicators_slot(
             _build_global_indicator_placement(placement) for placement in state.global_indicators
         ],
     )
-    # El id se agrega sólo si existe; Dash rechaza explícitamente id=None.
     attributes = _slot_attributes(
         section_key='global_indicators',
         wrapper_id=wrapper_id,
@@ -148,7 +146,6 @@ def _build_alarm_status_slot(
 
 
 def _slot_attributes(*, section_key: str, wrapper_id: str | None) -> dict[str, str]:
-    # Un slot sin proyección conserva su identidad semántica, pero no inventa identidad runtime.
     attributes = {'data-section-key': section_key}
     if wrapper_id is not None:
         attributes['id'] = wrapper_id
@@ -159,7 +156,6 @@ def _runtime_wrapper_id(
     wrapper_ids: Mapping[str, str] | None,
     component_key: str,
 ) -> str | None:
-    # La ausencia completa o parcial de bindings es válida mientras el artifact aún no los inyecta.
     if wrapper_ids is None:
         return None
     value = wrapper_ids.get(component_key)
@@ -176,7 +172,9 @@ def _build_global_indicator_placement(placement: HeaderIndicatorPlacement) -> ht
     attributes = {
         'data-indicator-key': placement.indicator.key,
         'data-section-key': placement.section_key,
-        'data-scope': placement.scope.value,
+        'data-scopes': ' '.join(
+            scope.value for scope in (ToolScope.MINE, ToolScope.PLANT) if scope in placement.scopes
+        ),
     }
     if placement.indicator.definition_key is not None:
         attributes['data-definition-key'] = placement.indicator.definition_key

@@ -15,6 +15,7 @@ from ada.contracts.tool_manifest import (
 )
 from ada.ui.components.branding import ATLANTICUS_BRAND_MANIFEST, BrandContext, resolve_brand
 from ada.ui.components.global_indicator import (
+    GlobalIndicatorLastMeasurementState,
     GlobalIndicatorMeasurementState,
     GlobalIndicatorState,
 )
@@ -56,25 +57,38 @@ def _process_center_card(*, component: str, subcomponent: str, scope: ToolScope)
     )
 
 
-def _placement(section_key: str, scope: ToolScope, *, last: bool = False):
-    measurements = [
-        GlobalIndicatorMeasurementState.temporal('100', temporality='Día', plan_value='105')
-    ]
-    if last:
-        measurements.append(GlobalIndicatorMeasurementState.last_measurement('99'))
-    return HeaderIndicatorPlacement(
-        section_key=section_key,
-        scope=scope,
-        indicator=GlobalIndicatorState(
-            key='recuperacion_cu',
-            label='Recuperación Cu',
-            unit='%',
-            measurements=tuple(measurements),
+def _indicator(key: str = 'recuperacion_cu', *, last: bool = False) -> GlobalIndicatorState:
+    return GlobalIndicatorState(
+        key=key,
+        label=key.replace('_', ' ').title(),
+        unit='%',
+        measurements=(
+            GlobalIndicatorMeasurementState(
+                key='turno',
+                label='Turno',
+                actual_value='100',
+                plan_value='105',
+            ),
+            GlobalIndicatorMeasurementState(
+                key='dia',
+                label='Día',
+                actual_value='101',
+                plan_value='105',
+            ),
         ),
+        last_measurement=(GlobalIndicatorLastMeasurementState('99') if last else None),
     )
 
 
-def test_integrated_operations_header_accepts_mine_and_plant_indicators() -> None:
+def _placement(section_key: str, scope: ToolScope, *, last: bool = False):
+    return HeaderIndicatorPlacement(
+        section_key=section_key,
+        scopes=frozenset({scope}),
+        indicator=_indicator(last=last),
+    )
+
+
+def test_integrated_operations_header_accepts_mine_plant_and_shared_indicators() -> None:
     state = create_header_state(
         manifest=INTEGRATED_OPERATIONS_MANIFEST,
         brand=_brand(),
@@ -92,30 +106,25 @@ def test_integrated_operations_header_accepts_mine_and_plant_indicators() -> Non
                     component='global_indicators',
                     subcomponent='plant',
                 ).key,
-                scope=ToolScope.PLANT,
-                indicator=GlobalIndicatorState(
-                    key='molienda',
-                    label='Molienda',
-                    unit='kt',
-                    measurements=(
-                        GlobalIndicatorMeasurementState.temporal(
-                            '195',
-                            temporality='Día',
-                            plan_value='210',
-                        ),
-                    ),
-                ),
+                scopes=frozenset({ToolScope.PLANT}),
+                indicator=_indicator('molienda'),
+            ),
+            HeaderIndicatorPlacement(
+                section_key='global_indicators',
+                scopes=frozenset({ToolScope.MINE, ToolScope.PLANT}),
+                indicator=_indicator('cumplimiento_global'),
             ),
         ),
     )
 
-    assert {placement.scope for placement in state.global_indicators} == {
-        ToolScope.MINE,
-        ToolScope.PLANT,
-    }
+    assert tuple(placement.scopes for placement in state.global_indicators) == (
+        frozenset({ToolScope.MINE}),
+        frozenset({ToolScope.PLANT}),
+        frozenset({ToolScope.MINE, ToolScope.PLANT}),
+    )
 
 
-def test_process_header_accepts_last_measurement_and_operational_scope() -> None:
+def test_process_header_accepts_optional_last_measurement_and_operational_scope() -> None:
     manifest = build_process_manifest(
         tool_key='flotacion_selectiva',
         display_name='Flotación Selectiva',
@@ -142,7 +151,8 @@ def test_process_header_accepts_last_measurement_and_operational_scope() -> None
     )
 
     indicator = state.global_indicators[0].indicator
-    assert indicator.measurements[-1].is_last_measurement is True
+    assert indicator.last_measurement is not None
+    assert indicator.last_measurement.key == 'latest'
 
 
 def test_header_rejects_scope_that_disagrees_with_manifest() -> None:
@@ -171,4 +181,39 @@ def test_header_rejects_scope_that_disagrees_with_manifest() -> None:
             brand=_brand(),
             application_name='ADA',
             global_indicators=(_placement('global_indicators', ToolScope.MINE),),
+        )
+
+
+def test_process_header_rejects_shared_mine_plant_indicator() -> None:
+    manifest = build_process_manifest(
+        tool_key='flotacion_selectiva',
+        display_name='Flotación Selectiva',
+        sources=(ToolSource(ToolSourceKey.PI, stale_after_seconds=300),),
+        operational_scope=ToolScope.PLANT,
+        body_sections=(
+            _process_center_component(
+                key='planta_molibdeno',
+                display_name='Planta Molibdeno',
+                scope=ToolScope.PLANT,
+            ),
+            _process_center_card(
+                component='planta_molibdeno',
+                subcomponent='proceso_molibdeno',
+                scope=ToolScope.PLANT,
+            ),
+        ),
+    )
+
+    with pytest.raises(HeaderDefinitionError, match='must use global scope'):
+        create_header_state(
+            manifest=manifest,
+            brand=_brand(),
+            application_name='ADA',
+            global_indicators=(
+                HeaderIndicatorPlacement(
+                    section_key='global_indicators',
+                    scopes=frozenset({ToolScope.MINE, ToolScope.PLANT}),
+                    indicator=_indicator(),
+                ),
+            ),
         )

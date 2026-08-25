@@ -1,3 +1,4 @@
+/* La geometría reserva tres filas normales y un área opcional de última medición para mantener el Header uniforme. */
 .global-indicators {
     --global-indicator-border: var(--primary-border-color, #BDBDBD);
     --global-indicator-ink: var(--custom-text-color, #4D4D4D);
@@ -80,12 +81,12 @@
     line-height: 1;
 }
 
-.global-indicator__value--temporality {
+.global-indicator__value--measurement-label {
     padding: .3rem .4rem .3rem 0;
     font-weight: 600;
 }
 
-.global-indicator__value--real {
+.global-indicator__value--actual {
     padding: .3rem .1rem .3rem 0;
     text-align: end;
     font-weight: 800;
@@ -103,12 +104,22 @@
 
 .global-indicator__last-measurement {
     display: flex;
-    min-width: 0;
+    width: 3.25rem;
+    min-width: 3.25rem;
+    flex: 0 0 3.25rem;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     padding-left: .35rem;
     border-left: 1px solid var(--global-indicator-border);
+}
+
+.global-indicator__last-measurement--empty {
+    visibility: hidden;
+}
+
+.global-indicator__row--empty {
+    height: 1.3rem;
 }
 
 .global-indicator__last-measurement-label {

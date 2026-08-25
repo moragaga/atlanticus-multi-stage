@@ -113,8 +113,8 @@ def test_unified_composition_uses_existing_manager_runtime_and_application_contr
             'ada_composition_configuration_manager-0.1.27-py3-none-any.whl',
         ),
         'ada-composition-manager-surface': (
-            '0.1.2',
-            'ada_composition_manager_surface-0.1.2-py3-none-any.whl',
+            '0.1.3',
+            'ada_composition_manager_surface-0.1.3-py3-none-any.whl',
         ),
         'ada-composition-web-application': (
             '0.1.0',

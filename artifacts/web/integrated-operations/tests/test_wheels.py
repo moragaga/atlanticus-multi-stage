@@ -11,6 +11,7 @@ EXPECTED_ADDITIONAL_PACKAGES = {
     'ada-composition-surface',
     'ada-feature-alarms',
     'ada-feature-dashboard',
+    'ada-runtime-component-stores',
     'ada-runtime-web',
     'ada-ui-component-branding',
     'ada-ui-component-component-card',
@@ -20,6 +21,7 @@ EXPECTED_ADDITIONAL_PACKAGES = {
     'ada-ui-framework-core',
     'ada-ui-layout-integrated-operations',
     'ada-ui-shell-header',
+    'ada-ui-shell-operational',
     'ada-ui-shell-navigation',
     'ada-ui-shell-time-status',
 }
@@ -59,9 +61,17 @@ CRITICAL_PATH_PINNED_WHEELS = {
         '0.1.27',
         'ada_composition_configuration_manager-0.1.27-py3-none-any.whl',
     ),
+    'ada-ui-component-global-indicator': (
+        '0.2.0',
+        'ada_ui_component_global_indicator-0.2.0-py3-none-any.whl',
+    ),
+    'ada-ui-shell-header': (
+        '0.2.0',
+        'ada_ui_shell_header-0.2.0-py3-none-any.whl',
+    ),
     'ada-composition-manager-surface': (
-        '0.1.2',
-        'ada_composition_manager_surface-0.1.2-py3-none-any.whl',
+        '0.1.3',
+        'ada_composition_manager_surface-0.1.3-py3-none-any.whl',
     ),
     'ada-composition-surface': (
         '0.1.0',
@@ -132,6 +142,29 @@ CRITICAL_TRANSITIVE_WHEELS = {
     ),
 }
 
+CURRENT_RUNTIME_UI_WHEELS = {
+    'ada-runtime-component-stores': (
+        '0.1.0',
+        'ada_runtime_component_stores-0.1.0-py3-none-any.whl',
+    ),
+    'ada-ui-component-component-card': (
+        '0.1.1',
+        'ada_ui_component_component_card-0.1.1-py3-none-any.whl',
+    ),
+    'ada-ui-component-component-container': (
+        '0.1.1',
+        'ada_ui_component_component_container-0.1.1-py3-none-any.whl',
+    ),
+    'ada-ui-layout-integrated-operations': (
+        '0.1.1',
+        'ada_ui_layout_integrated_operations-0.1.1-py3-none-any.whl',
+    ),
+    'ada-ui-shell-operational': (
+        '0.1.2',
+        'ada_ui_shell_operational-0.1.2-py3-none-any.whl',
+    ),
+}
+
 
 def test_internal_wheel_closure_is_present() -> None:
     metadata = [_wheel_metadata(path) for path in WHEELS.glob('*.whl')]
@@ -163,6 +196,15 @@ def test_critical_internal_wheels_are_path_pinned() -> None:
 
 def test_critical_transitive_wheels_have_current_immutable_versions() -> None:
     for package, (version, filename) in CRITICAL_TRANSITIVE_WHEELS.items():
+        matches = list(WHEELS.glob(filename))
+        assert len(matches) == 1
+        metadata = _wheel_metadata(matches[0])
+        assert metadata['Name'].lower().replace('_', '-') == package
+        assert metadata['Version'] == version
+
+
+def test_runtime_ui_transitive_wheels_match_r5_3a_versions() -> None:
+    for package, (version, filename) in CURRENT_RUNTIME_UI_WHEELS.items():
         matches = list(WHEELS.glob(filename))
         assert len(matches) == 1
         metadata = _wheel_metadata(matches[0])

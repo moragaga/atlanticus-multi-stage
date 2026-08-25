@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ada-integrated-operations-artifact"
-version = "0.1.12"
+version = "0.1.14"
 description = "Aplicación deployable de Operaciones Integradas de ADA sobre Atlanticus Web"
 requires-python = "==3.14.2"
 classifiers = ["Private :: Do Not Upload"]
 dependencies = [
     "ada-composition-configuration-manager==0.1.27",
-    "ada-composition-integrated-operations==0.1.0",
-    "ada-composition-manager-surface==0.1.2",
+    "ada-composition-integrated-operations==0.1.3",
+    "ada-composition-manager-surface==0.1.3",
     "ada-composition-surface==0.1.0",
     "ada-composition-web-application==0.1.0",
     "ada-composition-web-bootstrap==0.1.16",
@@ -23,10 +23,10 @@ dependencies = [
     "ada-feature-dashboard==0.1.0",
     "ada-runtime-web==0.1.0",
     "ada-ui-component-branding==0.1.0",
-    "ada-ui-component-global-indicator==0.1.0",
+    "ada-ui-component-global-indicator==0.2.0",
     "ada-ui-component-state-wrapper==0.1.0",
     "ada-ui-framework-core==0.1.0",
-    "ada-ui-shell-header==0.1.0",
+    "ada-ui-shell-header==0.2.0",
     "ada-ui-shell-navigation==0.1.0",
     "ada-ui-shell-time-status==0.1.0",
     "atlanticus-web==0.1.0",
@@ -69,8 +69,8 @@ find-links = ["wheels"]
 
 [tool.uv.sources]
 ada-composition-configuration-manager = { path = "wheels/ada_composition_configuration_manager-0.1.27-py3-none-any.whl" }
-ada-composition-integrated-operations = { path = "wheels/ada_composition_integrated_operations-0.1.0-py3-none-any.whl" }
-ada-composition-manager-surface = { path = "wheels/ada_composition_manager_surface-0.1.2-py3-none-any.whl" }
+ada-composition-integrated-operations = { path = "wheels/ada_composition_integrated_operations-0.1.3-py3-none-any.whl" }
+ada-composition-manager-surface = { path = "wheels/ada_composition_manager_surface-0.1.3-py3-none-any.whl" }
 ada-composition-surface = { path = "wheels/ada_composition_surface-0.1.0-py3-none-any.whl" }
 ada-composition-web-application = { path = "wheels/ada_composition_web_application-0.1.0-py3-none-any.whl" }
 ada-composition-web-bootstrap = { path = "wheels/ada_composition_web_bootstrap-0.1.16-py3-none-any.whl" }
@@ -82,10 +82,10 @@ ada-feature-alarms = { path = "wheels/ada_feature_alarms-0.1.0-py3-none-any.whl"
 ada-feature-dashboard = { path = "wheels/ada_feature_dashboard-0.1.0-py3-none-any.whl" }
 ada-runtime-web = { path = "wheels/ada_runtime_web-0.1.0-py3-none-any.whl" }
 ada-ui-component-branding = { path = "wheels/ada_ui_component_branding-0.1.0-py3-none-any.whl" }
-ada-ui-component-global-indicator = { path = "wheels/ada_ui_component_global_indicator-0.1.0-py3-none-any.whl" }
+ada-ui-component-global-indicator = { path = "wheels/ada_ui_component_global_indicator-0.2.0-py3-none-any.whl" }
 ada-ui-component-state-wrapper = { path = "wheels/ada_ui_component_state_wrapper-0.1.0-py3-none-any.whl" }
 ada-ui-framework-core = { path = "wheels/ada_ui_framework_core-0.1.0-py3-none-any.whl" }
-ada-ui-shell-header = { path = "wheels/ada_ui_shell_header-0.1.0-py3-none-any.whl" }
+ada-ui-shell-header = { path = "wheels/ada_ui_shell_header-0.2.0-py3-none-any.whl" }
 ada-ui-shell-navigation = { path = "wheels/ada_ui_shell_navigation-0.1.0-py3-none-any.whl" }
 ada-ui-shell-time-status = { path = "wheels/ada_ui_shell_time_status-0.1.0-py3-none-any.whl" }
 atlanticus-web = { path = "wheels/atlanticus_web-0.1.0-py3-none-any.whl" }

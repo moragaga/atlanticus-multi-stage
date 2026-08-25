@@ -205,9 +205,9 @@
 }
 
 .ada-integrated-operations-tool[data-ada-io-presentation='mine']
-    .ada-header__global-indicator[data-scope='plant'],
+    .ada-header__global-indicator:not([data-scopes~='mine']),
 .ada-integrated-operations-tool[data-ada-io-presentation='plant']
-    .ada-header__global-indicator[data-scope='mine'],
+    .ada-header__global-indicator:not([data-scopes~='plant']),
 .ada-integrated-operations-tool[data-ada-io-presentation='mine']
     .ada-alarm-management-summary__segment[data-scope='plant'],
 .ada-integrated-operations-tool[data-ada-io-presentation='plant']
@@ -216,9 +216,9 @@
 }
 
 .ada-integrated-operations-tool[data-ada-io-presentation='mine']
-    .ada-header__global-indicator[data-scope='mine'],
+    .ada-header__global-indicator[data-scopes~='mine'],
 .ada-integrated-operations-tool[data-ada-io-presentation='plant']
-    .ada-header__global-indicator[data-scope='plant'] {
+    .ada-header__global-indicator[data-scopes~='plant'] {
     flex: 0 0 calc(100% / var(--ada-io-overview-indicator-count));
 }
 

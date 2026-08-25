@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ada-composition-integrated-operations"
-version = "0.1.2"
+version = "0.1.3"
 description = "Composición ejecutable de Operaciones Integradas para ADA"
 requires-python = "==3.14.2"
 classifiers = [
@@ -19,12 +19,12 @@ dependencies = [
     "ada-runtime-component-stores==0.1.0",
     "ada-ui-component-component-card==0.1.1",
     "ada-ui-component-component-container==0.1.1",
-    "ada-ui-component-global-indicator==0.1.0",
+    "ada-ui-component-global-indicator==0.2.0",
     "ada-ui-component-state-wrapper==0.1.0",
     "ada-ui-framework-core==0.1.0",
     "ada-ui-layout-integrated-operations==0.1.1",
-    "ada-ui-shell-header==0.1.1",
-    "ada-ui-shell-operational==0.1.1",
+    "ada-ui-shell-header==0.2.0",
+    "ada-ui-shell-operational==0.1.2",
     "ada-ui-shell-time-status==0.1.0",
     "atlanticus-web==0.1.0",
     "dash==4.4.1",

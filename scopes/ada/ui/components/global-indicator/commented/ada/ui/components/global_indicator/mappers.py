@@ -1,5 +1,5 @@
-# Espejo comentado del mapper defensivo de Global Indicator.
-# Se itera desde la definición configurada: la ausencia de datos nunca elimina KPIs.
+# Este espejo muestra la frontera entre definición/configuración y estado listo para UI.
+# El mapper hace lookups directos por keys derivadas y conserva estados NOT_MAPPED.
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -7,10 +7,14 @@ from typing import Any
 
 from ada.ui.framework.core import DisplayValue, coerce_display_value
 
-from .definitions import GlobalIndicatorDefinition, GlobalIndicatorMeasurementDefinition
+from .definitions import (
+    GlobalIndicatorDefinition,
+    GlobalIndicatorLastMeasurementDefinition,
+    GlobalIndicatorMeasurementDefinition,
+)
 from .models import (
     GlobalIndicatorCollection,
-    GlobalIndicatorMeasurementKind,
+    GlobalIndicatorLastMeasurementState,
     GlobalIndicatorMeasurementState,
     GlobalIndicatorState,
 )
@@ -22,16 +26,26 @@ def map_global_indicator_measurement(
     default_key: str,
     kpis: Mapping[str, Any],
 ) -> GlobalIndicatorMeasurementState:
-    is_last_measurement = definition.kind is GlobalIndicatorMeasurementKind.LAST_MEASUREMENT
-    real_key = definition.real_kpi_key(default_key=default_key)
-    plan_key = definition.plan_kpi_key(default_key=default_key)
-    color_key = definition.color_kpi_key(default_key=default_key)
     return GlobalIndicatorMeasurementState(
-        real_value=_mapped_value(kpis, real_key),
-        color_class=_mapped_color(kpis, color_key),
-        temporality=None if is_last_measurement else definition.temporality_label,
-        plan_value=None if is_last_measurement else _mapped_value(kpis, plan_key),
-        kind=definition.kind,
+        key=definition.key,
+        label=definition.label,
+        actual_value=_mapped_value(kpis, definition.actual_kpi_key(default_key=default_key)),
+        plan_value=_mapped_value(kpis, definition.plan_kpi_key(default_key=default_key)),
+        color_class=_mapped_color(kpis, definition.color_kpi_key(default_key=default_key)),
+    )
+
+
+def map_global_indicator_last_measurement(
+    *,
+    definition: GlobalIndicatorLastMeasurementDefinition,
+    default_key: str,
+    kpis: Mapping[str, Any],
+) -> GlobalIndicatorLastMeasurementState:
+    return GlobalIndicatorLastMeasurementState(
+        key=definition.key,
+        label=definition.label,
+        actual_value=_mapped_value(kpis, definition.actual_kpi_key(default_key=default_key)),
+        color_class=_mapped_color(kpis, definition.color_kpi_key(default_key=default_key)),
     )
 
 
@@ -40,6 +54,7 @@ def map_global_indicator_state(
     definition: GlobalIndicatorDefinition,
     kpis: Mapping[str, Any],
 ) -> GlobalIndicatorState:
+    last_measurement = definition.last_measurement
     return GlobalIndicatorState.from_iterable(
         key=definition.key,
         label=definition.label,
@@ -53,6 +68,15 @@ def map_global_indicator_state(
                 kpis=kpis,
             )
             for measurement in definition.measurements
+        ),
+        last_measurement=(
+            None
+            if last_measurement is None
+            else map_global_indicator_last_measurement(
+                definition=last_measurement,
+                default_key=definition.key,
+                kpis=kpis,
+            )
         ),
     )
 

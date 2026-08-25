@@ -1,4 +1,4 @@
-/* La superficie de alarmas reserva una altura fija; la presencia de pills no mueve el body. */
+/* Operaciones Integradas usa data-scopes para conservar indicadores compartidos durante los zooms Mina y Planta. */
 .ada-integrated-operations-tool {
     --ada-integrated-operations-tool-surface: var(--background, #858585);
     --ada-integrated-operations-tool-surface-ink: var(--primary-background, #EBEBEB);
@@ -72,7 +72,6 @@
     color: var(--ada-integrated-operations-tool-surface-ink);
 }
 
-/* El layout completo permanece en el DOM: zoom = ventana sobre un mundo canónico. */
 .ada-integrated-operations-tool__layout {
     --ada-io-layout-gap: var(--ada-integrated-operations-tool-gap);
     height: 100%;
@@ -207,9 +206,9 @@
 }
 
 .ada-integrated-operations-tool[data-ada-io-presentation='mine']
-    .ada-header__global-indicator[data-scope='plant'],
+    .ada-header__global-indicator:not([data-scopes~='mine']),
 .ada-integrated-operations-tool[data-ada-io-presentation='plant']
-    .ada-header__global-indicator[data-scope='mine'],
+    .ada-header__global-indicator:not([data-scopes~='plant']),
 .ada-integrated-operations-tool[data-ada-io-presentation='mine']
     .ada-alarm-management-summary__segment[data-scope='plant'],
 .ada-integrated-operations-tool[data-ada-io-presentation='plant']
@@ -218,19 +217,16 @@
 }
 
 .ada-integrated-operations-tool[data-ada-io-presentation='mine']
-    .ada-header__global-indicator[data-scope='mine'],
+    .ada-header__global-indicator[data-scopes~='mine'],
 .ada-integrated-operations-tool[data-ada-io-presentation='plant']
-    .ada-header__global-indicator[data-scope='plant'] {
+    .ada-header__global-indicator[data-scopes~='plant'] {
     flex: 0 0 calc(100% / var(--ada-io-overview-indicator-count));
 }
 
-/* IO cierra explícitamente Management por la izquierda: el slot de indicadores puede conservar
-   espacio reservado al filtrar Mina/Planta, por lo que no dependemos del último KPI visible para dibujar la frontera. */
 .ada-integrated-operations-tool .ada-header__management-slot {
     border-left: 1px solid var(--ada-header-border, var(--primary-border-color, #BDBDBD));
 }
 
-/* En overview evitamos duplicar esa frontera con el borde derecho del último indicador real. */
 .ada-integrated-operations-tool
     .ada-header__indicators
     > .ada-header__global-indicator:last-child {
@@ -241,7 +237,6 @@
     display: none;
 }
 
-/* En escritorio, 4/9 y 5/9 se proyectan a 100% sin ocultar el scope fuera de cámara. */
 @media (max-width: 95.999rem) {
     .ada-integrated-operations-tool__presentation-button {
         display: none !important;

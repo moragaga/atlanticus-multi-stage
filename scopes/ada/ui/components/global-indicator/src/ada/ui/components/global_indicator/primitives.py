@@ -8,9 +8,11 @@ from dash.development.base_component import Component
 from ada.ui.framework.core import DisplayStatus, DisplayValue, resolve_status_visual
 
 from .models import (
+    GlobalIndicatorLastMeasurementState,
     GlobalIndicatorMeasurementState,
     GlobalIndicatorStyle,
     IndicatorColorClass,
+    global_indicator_measurement_capacity,
 )
 
 _CLASS_TOKEN = re.compile(r'^[A-Za-z_][A-Za-z0-9_-]*$')
@@ -34,28 +36,18 @@ def build_label(*, label: str, unit: str, class_name: str) -> Component:
 def build_indicator_content(
     *,
     measurements: tuple[GlobalIndicatorMeasurementState, ...],
+    last_measurement: GlobalIndicatorLastMeasurementState | None,
     style: GlobalIndicatorStyle,
 ) -> tuple[Component, ...]:
-    table_rows: list[Component] = []
-    last_measurement: Component | None = None
-
-    for measurement in measurements:
-        if measurement.is_last_measurement:
-            last_measurement = _build_last_measurement(
-                label_class_name=style.last_measurement_label_class,
-                value=measurement.real_value,
-                value_class_name=style.last_measurement_value_class,
-                color_class=measurement.color_class,
-            )
-            continue
-        table_rows.append(_build_table_row(state=measurement, style=style))
-
-    content: list[Component] = []
-    if table_rows:
-        content.append(_build_table(rows=table_rows))
-    if last_measurement is not None:
-        content.append(last_measurement)
-    return tuple(content)
+    rows = [_build_table_row(state=measurement, style=style) for measurement in measurements]
+    rows.extend(
+        _build_empty_table_row()
+        for _ in range(global_indicator_measurement_capacity() - len(measurements))
+    )
+    return (
+        _build_table(rows=rows),
+        _build_last_measurement_slot(state=last_measurement, style=style),
+    )
 
 
 def _build_table(*, rows: list[Component]) -> Component:
@@ -72,18 +64,19 @@ def _build_table_row(
 ) -> Component:
     return html.Tr(
         className='global-indicator__row',
+        **{'data-measurement-key': state.key},
         children=[
             _build_table_value_cell(
-                value=DisplayValue.ok(state.temporality),
+                value=DisplayValue.ok(state.label),
                 value_class_name=(
-                    f'global-indicator__value--temporality {style.temporality_class}'
+                    f'global-indicator__value--measurement-label {style.measurement_label_class}'
                 ),
                 is_header=True,
             ),
             _build_table_value_cell(
-                value=state.real_value,
+                value=state.actual_value,
                 color_class=state.color_class,
-                value_class_name=f'global-indicator__value--real {style.real_value_class}',
+                value_class_name=f'global-indicator__value--actual {style.actual_value_class}',
             ),
             _build_table_separator_cell(class_name=style.plan_value_class),
             _build_table_value_cell(
@@ -91,6 +84,14 @@ def _build_table_row(
                 value_class_name=f'global-indicator__value--plan {style.plan_value_class}',
             ),
         ],
+    )
+
+
+def _build_empty_table_row() -> Component:
+    return html.Tr(
+        className='global-indicator__row global-indicator__row--empty',
+        **{'aria-hidden': 'true'},
+        children=[html.Td(className='global-indicator__cell', colSpan=4)],
     )
 
 
@@ -138,33 +139,41 @@ def _build_table_separator_cell(*, class_name: str) -> Component:
     )
 
 
-def _build_last_measurement(
+def _build_last_measurement_slot(
     *,
-    label_class_name: str,
-    value: DisplayValue,
-    value_class_name: str,
-    color_class: IndicatorColorClass = None,
+    state: GlobalIndicatorLastMeasurementState | None,
+    style: GlobalIndicatorStyle,
 ) -> Component:
+    if state is None:
+        return html.Div(
+            className=(
+                'global-indicator__last-measurement global-indicator__last-measurement--empty'
+            ),
+            **{'aria-hidden': 'true'},
+        )
     return html.Div(
         className='global-indicator__last-measurement',
+        **{'data-measurement-key': state.key},
         children=[
             html.P(
                 className=' '.join(
                     part
                     for part in (
                         'global-indicator__last-measurement-value',
-                        value_class_name,
-                        _safe_class_names(value=color_class)
-                        if value.status is DisplayStatus.OK
+                        style.last_measurement_value_class,
+                        _safe_class_names(value=state.color_class)
+                        if state.actual_value.status is DisplayStatus.OK
                         else '',
                     )
                     if part
                 ),
-                children=[_build_display_value(value)],
+                children=[_build_display_value(state.actual_value)],
             ),
             html.P(
-                className=f'global-indicator__last-measurement-label {label_class_name}',
-                children=['Última medición'],
+                className=(
+                    f'global-indicator__last-measurement-label {style.last_measurement_label_class}'
+                ),
+                children=[state.label],
             ),
         ],
     )

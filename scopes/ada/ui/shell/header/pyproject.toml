@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ada-ui-shell-header"
-version = "0.1.1"
+version = "0.2.0"
 description = "Header operacional reutilizable para herramientas ADA"
 requires-python = "==3.14.2"
 classifiers = [
@@ -13,7 +13,7 @@ classifiers = [
 dependencies = [
     "ada-contracts-tool-manifest==0.1.0",
     "ada-ui-component-branding==0.1.0",
-    "ada-ui-component-global-indicator==0.1.0",
+    "ada-ui-component-global-indicator==0.2.0",
     "ada-ui-component-state-wrapper==0.1.0",
     "ada-ui-framework-core==0.1.0",
     "atlanticus-web==0.1.0",

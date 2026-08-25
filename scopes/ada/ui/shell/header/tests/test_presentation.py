@@ -84,16 +84,23 @@ def test_process_header_owns_slots_but_not_alarm_presentations() -> None:
         global_indicators=(
             HeaderIndicatorPlacement(
                 section_key='global_indicators',
-                scope=ToolScope.PLANT,
+                scopes=frozenset({ToolScope.PLANT}),
                 indicator=GlobalIndicatorState(
                     key='recuperacion_cu',
                     label='Recuperación Cu',
                     unit='%',
                     measurements=(
-                        GlobalIndicatorMeasurementState.temporal(
-                            '89,4',
-                            temporality='Día',
+                        GlobalIndicatorMeasurementState(
+                            key='turno',
+                            label='Turno',
+                            actual_value='89,4',
                             plan_value='90,5',
+                        ),
+                        GlobalIndicatorMeasurementState(
+                            key='dia',
+                            label='Día',
+                            actual_value='88,9',
+                            plan_value='90,0',
                         ),
                     ),
                 ),
@@ -156,15 +163,23 @@ def test_broken_global_indicator_is_covered_without_breaking_header(monkeypatch)
         global_indicators=(
             HeaderIndicatorPlacement(
                 section_key='global_indicators',
-                scope=ToolScope.MINE,
+                scopes=frozenset({ToolScope.MINE}),
                 indicator=GlobalIndicatorState(
                     key='transportado',
                     label='Transportado',
                     unit='kt',
                     measurements=(
-                        GlobalIndicatorMeasurementState.temporal(
-                            '198',
-                            temporality='Día',
+                        GlobalIndicatorMeasurementState(
+                            key='turno',
+                            label='Turno',
+                            actual_value='198',
+                            plan_value='220',
+                        ),
+                        GlobalIndicatorMeasurementState(
+                            key='dia',
+                            label='Día',
+                            actual_value='201',
+                            plan_value='220',
                         ),
                     ),
                 ),
@@ -182,6 +197,49 @@ def test_broken_global_indicator_is_covered_without_breaking_header(monkeypatch)
 
     assert _prop(wrapper, 'data-cover') == 'component-error'
     assert _prop(wrapper, 'data-ready') == 'true'
+
+
+def test_header_renders_shared_indicator_with_mine_and_plant_scope_tokens() -> None:
+    from ada.contracts.tool_manifest import INTEGRATED_OPERATIONS_MANIFEST
+
+    state = create_header_state(
+        manifest=INTEGRATED_OPERATIONS_MANIFEST,
+        brand=resolve_brand(
+            ATLANTICUS_BRAND_MANIFEST,
+            BrandContext(current_date=date(2026, 8, 25)),
+        ),
+        application_name='ADA',
+        global_indicators=(
+            HeaderIndicatorPlacement(
+                section_key='global_indicators',
+                scopes=frozenset({ToolScope.MINE, ToolScope.PLANT}),
+                indicator=GlobalIndicatorState(
+                    key='cumplimiento_global',
+                    label='Cumplimiento Global',
+                    unit='%',
+                    measurements=(
+                        GlobalIndicatorMeasurementState(
+                            key='turno',
+                            label='Turno',
+                            actual_value='98',
+                            plan_value='100',
+                        ),
+                        GlobalIndicatorMeasurementState(
+                            key='dia',
+                            label='Día',
+                            actual_value='97',
+                            plan_value='100',
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    )
+
+    component = build_ada_header(state)
+    indicator = _require_by_class(component, 'ada-header__global-indicator')
+
+    assert _prop(indicator, 'data-scopes') == 'mine plant'
 
 
 def _require_by_class(component: Component, class_name: str) -> Component:
