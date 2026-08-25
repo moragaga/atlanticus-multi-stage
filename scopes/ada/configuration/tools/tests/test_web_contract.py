@@ -15,7 +15,7 @@ def test_tool_editor_keeps_structural_identity_editable_with_explicit_risk_guida
     assert 'dash_table' not in layout
     assert 'Importar configuración de herramienta' in layout
     assert "'label': 'Mina y Planta'" in layout
-    assert 'CREATE_MODAL_ID' in layout
+    assert 'CREATE_MODAL_ID' not in layout
     assert 'COMPONENT_MODAL_ID' in layout
     assert 'SUBCOMPONENT_MODAL_ID' in layout
     assert 'Configuración sensible' in layout
@@ -27,8 +27,6 @@ def test_tool_editor_keeps_structural_identity_editable_with_explicit_risk_guida
     assert "Output(TOOL_KIND_ID, 'value')" in callbacks
     assert 'render_application_key' in callbacks
     assert "{'label': 'Mina y Planta', 'value': 'global', 'disabled': True}" in layout
-    assert 'if kind is ToolConfigurationKind.INTEGRATED_OPERATIONS' in callbacks
-    assert 'else build_identity_key(name)' in callbacks
     assert "if 'pi' in selected:" in callbacks
     assert "if 'dispatch' in selected:" in callbacks
 
@@ -172,8 +170,29 @@ def test_tool_editor_exposes_one_configuration_without_tool_selector_or_catalog(
     assert 'ToolConfigurationCatalog' not in callbacks
     assert '+ Nueva herramienta' not in layout
     assert 'Configuración única de herramienta' in layout
-    assert 'Tool configuration already exists' in callbacks
+    assert 'Configurar herramienta' not in layout
+    assert '_tool_modal' not in layout
+    assert 'CREATE_' not in layout
+    assert 'CREATE_' not in callbacks
+    assert 'CREATE_' not in ids
+    assert 'Tool configuration already exists' not in callbacks
     assert 'ToolManifestRegistry' not in callbacks
+
+
+def test_initial_configuration_is_created_by_saving_the_inline_editor() -> None:
+    root = Path(__file__).parents[1] / 'src/ada/configuration/tools/web'
+    layout = (root / 'layout.py').read_text(encoding='utf-8')
+    callbacks = _callbacks()
+    function_start = callbacks.index('def save_tool_draft(')
+    start = callbacks.rfind('@app.callback(', 0, function_start)
+    end = callbacks.index('def _raw_editor_revision(')
+    callback = callbacks[start:end]
+
+    assert "'Guardar borrador'" in layout
+    assert '_build_tool_from_editor(' in callback
+    assert "State(CONFIGURATION_STORE_ID, 'data')" not in callback
+    assert '_require_configuration(' not in callbacks
+    assert 'CREATE_' not in callbacks
 
 
 def test_published_source_identity_is_kept_in_memory_for_structural_change_detection() -> None:
@@ -202,3 +221,54 @@ def test_structural_change_warning_is_advisory_and_does_not_block_draft_save() -
         'disabled=True'
         not in layout[layout.index('Identificador') : layout.index('Fuentes y freshness')]
     )
+
+
+def test_structure_editor_uses_inline_tool_kind_and_modal_close_does_not_require_saved_tool() -> (
+    None
+):
+    callbacks = _callbacks()
+
+    render_start = callbacks.index('def render_structure(')
+    render_block = callbacks[
+        callbacks.rfind('@app.callback(', 0, render_start) : callbacks.index(
+            'def component_editor('
+        )
+    ]
+    component_start = callbacks.index('def component_editor(')
+    component_block = callbacks[
+        callbacks.rfind('@app.callback(', 0, component_start) : callbacks.index(
+            'def delete_component('
+        )
+    ]
+    subcomponent_start = callbacks.index('def subcomponent_editor(')
+    subcomponent_block = callbacks[
+        callbacks.rfind('@app.callback(', 0, subcomponent_start) : callbacks.index(
+            'def linked_component_options('
+        )
+    ]
+    linked_start = callbacks.index('def linked_component_options(')
+    linked_block = callbacks[
+        callbacks.rfind('@app.callback(', 0, linked_start) : callbacks.index(
+            'def delete_subcomponent('
+        )
+    ]
+
+    assert "Input(TOOL_KIND_ID, 'value')" in render_block
+    assert "State(CONFIGURATION_STORE_ID, 'data')" not in render_block
+    assert "State(TOOL_KIND_ID, 'value')" in component_block
+    assert "State(CONFIGURATION_STORE_ID, 'data')" not in component_block
+    assert 'Tool configuration is required' not in component_block
+    assert component_block.index('if _matches_trigger(') < component_block.index(
+        'kind = _optional_tool_kind(kind_value)'
+    )
+    assert "State(TOOL_KIND_ID, 'value')" in subcomponent_block
+    assert "State(CONFIGURATION_STORE_ID, 'data')" not in subcomponent_block
+    assert 'Tool configuration is required' not in subcomponent_block
+    assert subcomponent_block.index('if _matches_trigger(') < subcomponent_block.index(
+        'kind = _optional_tool_kind(kind_value)'
+    )
+    assert "State(TOOL_KIND_ID, 'value')" in linked_block
+    assert "State(CONFIGURATION_STORE_ID, 'data')" not in linked_block
+    assert 'def _save_component_draft(\n    *,\n    kind: ToolConfigurationKind,' in callbacks
+    assert 'def _save_subcomponent_draft(\n    *,\n    kind: ToolConfigurationKind,' in callbacks
+    assert 'def _validate_linked_components(\n    kind: ToolConfigurationKind,' in callbacks

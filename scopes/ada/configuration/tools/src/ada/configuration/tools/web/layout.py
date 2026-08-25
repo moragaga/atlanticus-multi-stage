@@ -19,13 +19,6 @@ from ada.configuration.tools.web.ids import (
     COMPONENT_SCOPE_ID,
     COMPONENTS_LIST_ID,
     CONFIGURATION_STORE_ID,
-    CREATE_BUTTON_ID,
-    CREATE_CANCEL_ID,
-    CREATE_KIND_ID,
-    CREATE_MODAL_ID,
-    CREATE_NAME_ID,
-    CREATE_OPEN_ID,
-    CREATE_RESULT_ID,
     DISPATCH_FRESHNESS_FIELD_ID,
     DISPATCH_FRESHNESS_ID,
     DRAFT_LOAD_SIGNAL_ID,
@@ -87,7 +80,6 @@ def build_tool_admin_configuration(context: ToolAdminWebContext) -> object:
             _sources_section(),
             _structure_section(),
             _reference_section(context),
-            _tool_modal(),
             _component_modal(),
             _subcomponent_modal(),
         ],
@@ -145,127 +137,19 @@ def _tool_toolbar() -> object:
         [
             html.Div(
                 [
-                    html.Div(
-                        [
-                            html.Strong('Configuración única de herramienta'),
-                            html.Span(
-                                (
-                                    'Este despliegue ADA tiene una sola herramienta. '
-                                    'La configuración define su scope, fuentes y estructura.'
-                                ),
-                                className='ada-tools-admin__field-help',
-                            ),
-                        ],
-                        className='ada-tools-admin__toolbar-copy',
-                    ),
-                    html.Button(
-                        'Configurar herramienta',
-                        id=CREATE_OPEN_ID,
-                        className=(
-                            'atlanticus-manager__button atlanticus-manager__button--secondary'
+                    html.Strong('Configuración única de herramienta'),
+                    html.Span(
+                        (
+                            'Este despliegue ADA tiene una sola herramienta. '
+                            'La configuración define su scope, fuentes y estructura.'
                         ),
+                        className='ada-tools-admin__field-help',
                     ),
                 ],
-                className='ada-tools-admin__toolbar-row',
+                className='ada-tools-admin__toolbar-copy',
             ),
         ],
         className='ada-tools-admin__toolbar',
-    )
-
-
-def _tool_modal() -> object:
-    return html.Div(
-        [
-            html.Button(
-                id=CREATE_CANCEL_ID,
-                className='ada-tools-admin__modal-backdrop',
-                **{'aria-label': 'Cerrar formulario'},
-            ),
-            html.Section(
-                [
-                    html.Header(
-                        [
-                            html.Div(
-                                [
-                                    html.P(
-                                        'Herramienta',
-                                        className='ada-tools-admin__modal-eyebrow',
-                                    ),
-                                    html.H3('Configurar herramienta'),
-                                ]
-                            ),
-                            html.Button(
-                                '×',
-                                id=CREATE_CANCEL_ID + '-header',
-                                className='atlanticus-manager__icon-button',
-                                title='Cerrar',
-                            ),
-                        ],
-                        className='ada-tools-admin__modal-header',
-                    ),
-                    html.Div(
-                        [
-                            _field(
-                                'Nombre',
-                                dcc.Input(
-                                    id=CREATE_NAME_ID,
-                                    type='text',
-                                    placeholder='Nombre visible de la herramienta',
-                                    autoComplete='off',
-                                ),
-                                (
-                                    'Se propone un identificador inicial automáticamente y '
-                                    'puedes corregirlo antes de publicar.'
-                                ),
-                            ),
-                            _field(
-                                'Tipo',
-                                dcc.Dropdown(
-                                    id=CREATE_KIND_ID,
-                                    value=None,
-                                    clearable=False,
-                                    searchable=False,
-                                    placeholder='Selecciona el tipo',
-                                    options=[
-                                        {
-                                            'label': 'Operaciones Integradas',
-                                            'value': 'integrated_operations',
-                                        },
-                                        {'label': 'Process', 'value': 'process'},
-                                    ],
-                                ),
-                                'El tipo define las reglas estructurales que ADA aplicará.',
-                            ),
-                            html.Div(id=CREATE_RESULT_ID),
-                        ],
-                        className='ada-tools-admin__modal-body',
-                    ),
-                    html.Footer(
-                        [
-                            html.Button(
-                                'Cancelar',
-                                id=CREATE_CANCEL_ID + '-footer',
-                                className=(
-                                    'atlanticus-manager__button '
-                                    'atlanticus-manager__button--secondary'
-                                ),
-                            ),
-                            html.Button(
-                                'Crear configuración',
-                                id=CREATE_BUTTON_ID,
-                                className=(
-                                    'atlanticus-manager__button atlanticus-manager__button--primary'
-                                ),
-                            ),
-                        ],
-                        className='ada-tools-admin__modal-actions',
-                    ),
-                ],
-                className='ada-tools-admin__modal-dialog',
-            ),
-        ],
-        id=CREATE_MODAL_ID,
-        className='ada-tools-admin__modal',
     )
 
 

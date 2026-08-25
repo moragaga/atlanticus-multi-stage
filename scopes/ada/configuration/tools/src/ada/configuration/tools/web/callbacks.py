@@ -37,13 +37,6 @@ from ada.configuration.tools.web.ids import (
     COMPONENT_SCOPE_ID,
     COMPONENTS_LIST_ID,
     CONFIGURATION_STORE_ID,
-    CREATE_BUTTON_ID,
-    CREATE_CANCEL_ID,
-    CREATE_KIND_ID,
-    CREATE_MODAL_ID,
-    CREATE_NAME_ID,
-    CREATE_OPEN_ID,
-    CREATE_RESULT_ID,
     DISPATCH_FRESHNESS_FIELD_ID,
     DISPATCH_FRESHNESS_ID,
     DRAFT_LOAD_SIGNAL_ID,
@@ -221,87 +214,6 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
             )
 
     @app.callback(
-        Output(CREATE_MODAL_ID, 'className'),
-        Output(CONFIGURATION_STORE_ID, 'data', allow_duplicate=True),
-        Output(CREATE_NAME_ID, 'value'),
-        Output(CREATE_KIND_ID, 'value'),
-        Output(CREATE_RESULT_ID, 'children'),
-        Input(CREATE_OPEN_ID, 'n_clicks'),
-        Input(CREATE_CANCEL_ID, 'n_clicks'),
-        Input(CREATE_CANCEL_ID + '-header', 'n_clicks'),
-        Input(CREATE_CANCEL_ID + '-footer', 'n_clicks'),
-        Input(CREATE_BUTTON_ID, 'n_clicks'),
-        State(CREATE_NAME_ID, 'value'),
-        State(CREATE_KIND_ID, 'value'),
-        State(CONFIGURATION_STORE_ID, 'data'),
-        prevent_initial_call=True,
-    )
-    def create_tool(
-        _open_clicks: int,
-        _cancel_clicks: int,
-        _header_cancel_clicks: int,
-        _footer_cancel_clicks: int,
-        _save_clicks: int,
-        display_name: str | None,
-        kind_value: str | None,
-        configuration_data: dict[str, object] | None,
-    ):
-        trigger = ctx.triggered_id
-        if _matches_trigger(
-            trigger,
-            CREATE_CANCEL_ID,
-            CREATE_CANCEL_ID + '-header',
-            CREATE_CANCEL_ID + '-footer',
-        ):
-            return _MODAL_CLOSED, no_update, '', None, ''
-        if trigger == CREATE_OPEN_ID:
-            if _optional_configuration(configuration_data) is not None:
-                return _MODAL_CLOSED, no_update, '', None, ''
-            return _MODAL_OPEN, no_update, '', None, ''
-        if trigger != CREATE_BUTTON_ID:
-            return _MODAL_CLOSED, no_update, no_update, no_update, ''
-        if not context.can_manage():
-            return (
-                _MODAL_OPEN,
-                no_update,
-                display_name,
-                kind_value,
-                _error('Management access is denied'),
-            )
-        try:
-            if _optional_configuration(configuration_data) is not None:
-                raise ValueError('Tool configuration already exists')
-            name = (display_name or '').strip()
-            kind = ToolConfigurationKind(str(kind_value or ''))
-            key = (
-                kind.value
-                if kind is ToolConfigurationKind.INTEGRATED_OPERATIONS
-                else build_identity_key(name)
-            )
-            configuration = ToolConfiguration(
-                tool_key=key,
-                display_name=name,
-                kind=kind,
-                operational_scope=None,
-            )
-        except Exception as error:
-            return (
-                _MODAL_OPEN,
-                no_update,
-                display_name,
-                kind_value,
-                _error(str(error)),
-            )
-        return _MODAL_CLOSED, configuration.to_document(), '', None, ''
-
-    @app.callback(
-        Output(CREATE_OPEN_ID, 'disabled'),
-        Input(CONFIGURATION_STORE_ID, 'data'),
-    )
-    def toggle_create_tool(configuration_data: dict[str, object] | None) -> bool:
-        return _optional_configuration(configuration_data) is not None
-
-    @app.callback(
         Output(TOOL_NAME_ID, 'value'),
         Output(TOOL_KEY_ID, 'value'),
         Output(TOOL_KIND_ID, 'value'),
@@ -427,20 +339,20 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         Output(COMPONENTS_LIST_ID, 'children'),
         Output(SUBCOMPONENTS_LIST_ID, 'children'),
         Input(STRUCTURE_STORE_ID, 'data'),
-        State(CONFIGURATION_STORE_ID, 'data'),
+        Input(TOOL_KIND_ID, 'value'),
     )
     def render_structure(
         structure_data: list[dict[str, object]] | None,
-        configuration_data: dict[str, object] | None,
+        kind_value: str | None,
     ):
-        tool = _optional_configuration(configuration_data)
-        if tool is None:
-            empty = _empty_structure('Configura la herramienta para comenzar.')
+        kind = _optional_tool_kind(kind_value)
+        if kind is None:
+            empty = _empty_structure('Define el tipo de herramienta para comenzar.')
             return empty, empty
         components = _structure_components(structure_data)
         return (
-            _render_component_list(tool.kind, components),
-            _render_subcomponent_list(tool.kind, components),
+            _render_component_list(kind, components),
+            _render_subcomponent_list(kind, components),
         )
 
     @app.callback(
@@ -467,7 +379,7 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         State(COMPONENT_SCOPE_ID, 'value'),
         State(COMPONENT_PLACEMENT_ID, 'value'),
         State(STRUCTURE_STORE_ID, 'data'),
-        State(CONFIGURATION_STORE_ID, 'data'),
+        State(TOOL_KIND_ID, 'value'),
         prevent_initial_call=True,
     )
     def component_editor(
@@ -483,12 +395,9 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         scope_value: str | None,
         placement_value: str | None,
         structure_data: list[dict[str, object]] | None,
-        configuration_data: dict[str, object] | None,
+        kind_value: str | None,
     ):
-        tool = _optional_configuration(configuration_data)
         trigger = ctx.triggered_id
-        if tool is None:
-            return _component_modal_response(error='Tool configuration is required')
         if _matches_trigger(
             trigger,
             COMPONENT_CANCEL_ID,
@@ -496,12 +405,15 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
             COMPONENT_CANCEL_ID + '-footer',
         ):
             return _component_modal_response(closed=True)
+        kind = _optional_tool_kind(kind_value)
+        if kind is None:
+            return _component_modal_response(error='Tool type is required')
         if trigger == ADD_COMPONENT_ID:
             return _component_modal_response(
                 editor={'mode': 'create'},
                 title='Nuevo componente',
-                scope='mine' if tool.kind is ToolConfigurationKind.INTEGRATED_OPERATIONS else None,
-                scope_visible=tool.kind is ToolConfigurationKind.INTEGRATED_OPERATIONS,
+                scope='mine' if kind is ToolConfigurationKind.INTEGRATED_OPERATIONS else None,
+                scope_visible=kind is ToolConfigurationKind.INTEGRATED_OPERATIONS,
             )
         if isinstance(trigger, dict) and trigger.get('type') == 'ada-tools-component-edit':
             if not _pattern_click_is_real(trigger, _edit_clicks, edit_ids):
@@ -516,7 +428,7 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
                 placement=(
                     component.layout_role.value if component.layout_role is not None else None
                 ),
-                scope_visible=tool.kind is ToolConfigurationKind.INTEGRATED_OPERATIONS,
+                scope_visible=kind is ToolConfigurationKind.INTEGRATED_OPERATIONS,
             )
         if trigger != COMPONENT_SAVE_ID:
             return _component_modal_response(closed=True)
@@ -526,12 +438,12 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
                 name=display_name,
                 scope=scope_value,
                 placement=placement_value,
-                scope_visible=tool.kind is ToolConfigurationKind.INTEGRATED_OPERATIONS,
+                scope_visible=kind is ToolConfigurationKind.INTEGRATED_OPERATIONS,
                 error='Management access is denied',
             )
         try:
             updated = _save_component_draft(
-                tool=tool,
+                kind=kind,
                 components=_structure_components(structure_data),
                 editor_data=editor_data,
                 display_name=display_name,
@@ -544,7 +456,7 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
                 name=display_name,
                 scope=scope_value,
                 placement=placement_value,
-                scope_visible=tool.kind is ToolConfigurationKind.INTEGRATED_OPERATIONS,
+                scope_visible=kind is ToolConfigurationKind.INTEGRATED_OPERATIONS,
                 error=str(error),
             )
         return _component_modal_response(
@@ -626,7 +538,7 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         State(SUBCOMPONENT_NAME_ID, 'value'),
         State(SUBCOMPONENT_LINKED_ID, 'value'),
         State(STRUCTURE_STORE_ID, 'data'),
-        State(CONFIGURATION_STORE_ID, 'data'),
+        State(TOOL_KIND_ID, 'value'),
         prevent_initial_call=True,
     )
     def subcomponent_editor(
@@ -642,15 +554,10 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         display_name: str | None,
         linked_keys: list[str] | None,
         structure_data: list[dict[str, object]] | None,
-        configuration_data: dict[str, object] | None,
+        kind_value: str | None,
     ):
-        tool = _optional_configuration(configuration_data)
         trigger = ctx.triggered_id
         components = list(_structure_components(structure_data))
-        if tool is None:
-            return _subcomponent_modal_response(error='Tool configuration is required')
-        options = _component_options(components)
-        linked_visible = tool.kind is ToolConfigurationKind.INTEGRATED_OPERATIONS
         if _matches_trigger(
             trigger,
             SUBCOMPONENT_CANCEL_ID,
@@ -658,6 +565,11 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
             SUBCOMPONENT_CANCEL_ID + '-footer',
         ):
             return _subcomponent_modal_response(closed=True)
+        kind = _optional_tool_kind(kind_value)
+        if kind is None:
+            return _subcomponent_modal_response(error='Tool type is required')
+        options = _component_options(components)
+        linked_visible = kind is ToolConfigurationKind.INTEGRATED_OPERATIONS
         if trigger == ADD_SUBCOMPONENT_ID:
             if not components:
                 return _subcomponent_modal_response(
@@ -703,7 +615,7 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
             )
         try:
             updated = _save_subcomponent_draft(
-                tool=tool,
+                kind=kind,
                 components=components,
                 editor_data=editor_data,
                 parent_key=parent_key,
@@ -731,15 +643,14 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         Output(SUBCOMPONENT_LINKED_ID, 'options'),
         Input(SUBCOMPONENT_PARENT_ID, 'value'),
         Input(STRUCTURE_STORE_ID, 'data'),
-        State(CONFIGURATION_STORE_ID, 'data'),
+        State(TOOL_KIND_ID, 'value'),
     )
     def linked_component_options(
         parent_key: str | None,
         structure_data: list[dict[str, object]] | None,
-        configuration_data: dict[str, object] | None,
+        kind_value: str | None,
     ):
-        tool = _optional_configuration(configuration_data)
-        if tool is None or tool.kind is not ToolConfigurationKind.INTEGRATED_OPERATIONS:
+        if _optional_tool_kind(kind_value) is not ToolConfigurationKind.INTEGRATED_OPERATIONS:
             return []
         components = _structure_components(structure_data)
         parent = next((item for item in components if item.key == parent_key), None)
@@ -906,7 +817,6 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         State(PI_FRESHNESS_ID, 'value'),
         State(DISPATCH_FRESHNESS_ID, 'value'),
         State(STRUCTURE_STORE_ID, 'data'),
-        State(CONFIGURATION_STORE_ID, 'data'),
         State(SOURCE_REVISION_STORE_ID, 'data'),
         State(context.draft_store_id, 'data'),
         prevent_initial_call=True,
@@ -922,7 +832,6 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         pi_freshness: int | None,
         dispatch_freshness: int | None,
         structure_data: list[dict[str, object]] | None,
-        configuration_data: dict[str, object] | None,
         source_revision: str | None,
         current_draft: dict[str, object] | None,
     ):
@@ -937,7 +846,6 @@ def register_tool_admin_callbacks(app: object, context: ToolAdminWebContext) -> 
         if not context.can_manage():
             return no_update, _error('Management access is denied'), no_update, no_update
         try:
-            _require_configuration(configuration_data)
             updated = _build_tool_from_editor(
                 display_name=str(display_name or ''),
                 tool_key=str(tool_key or ''),
@@ -1077,11 +985,11 @@ def _optional_configuration(
         return None
 
 
-def _require_configuration(data: dict[str, object] | None) -> ToolConfiguration:
-    configuration = _optional_configuration(data)
-    if configuration is None:
-        raise ValueError('Tool configuration is required')
-    return configuration
+def _optional_tool_kind(value: str | None) -> ToolConfigurationKind | None:
+    try:
+        return ToolConfigurationKind(str(value or ''))
+    except ValueError:
+        return None
 
 
 def _scope_value(scope: ToolScope | None) -> str | None:
@@ -1261,7 +1169,7 @@ def _subcomponent_actions(
 
 def _save_component_draft(
     *,
-    tool: ToolConfiguration,
+    kind: ToolConfigurationKind,
     components: tuple[ToolComponentConfiguration, ...],
     editor_data: dict[str, object] | None,
     display_name: str | None,
@@ -1283,7 +1191,7 @@ def _save_component_draft(
         if any(item.key == key for item in components):
             raise ValueError('Component key already exists')
         subcomponents = ()
-    if tool.kind is ToolConfigurationKind.INTEGRATED_OPERATIONS:
+    if kind is ToolConfigurationKind.INTEGRATED_OPERATIONS:
         if scope_value not in {'mine', 'plant'}:
             raise ValueError('Integrated operations component area is required')
         replacement = ToolComponentConfiguration(
@@ -1305,14 +1213,14 @@ def _save_component_draft(
             subcomponents=subcomponents,
         )
     updated = _replace_component(list(components), replacement)
-    if tool.kind is ToolConfigurationKind.INTEGRATED_OPERATIONS:
+    if kind is ToolConfigurationKind.INTEGRATED_OPERATIONS:
         _validate_shared_component_scopes(updated)
     return updated
 
 
 def _save_subcomponent_draft(
     *,
-    tool: ToolConfiguration,
+    kind: ToolConfigurationKind,
     components: list[ToolComponentConfiguration],
     editor_data: dict[str, object] | None,
     parent_key: str | None,
@@ -1338,7 +1246,7 @@ def _save_subcomponent_draft(
         key = build_identity_key(name)
         if any(item.key == key for item in parent.subcomponents):
             raise ValueError('Subcomponent key already exists in the selected component')
-    linked = _validate_linked_components(tool, components, parent, linked_keys)
+    linked = _validate_linked_components(kind, components, parent, linked_keys)
     replacement = ToolSubcomponentConfiguration(
         key=key,
         display_name=name,
@@ -1375,12 +1283,12 @@ def _validate_shared_component_scopes(
 
 
 def _validate_linked_components(
-    tool: ToolConfiguration,
+    kind: ToolConfigurationKind,
     components: list[ToolComponentConfiguration],
     parent: ToolComponentConfiguration,
     linked_keys: list[str],
 ) -> tuple[str, ...]:
-    if tool.kind is ToolConfigurationKind.PROCESS:
+    if kind is ToolConfigurationKind.PROCESS:
         return ()
     linked = tuple(dict.fromkeys(str(value) for value in linked_keys if str(value)))
     for key in linked:
