@@ -1,0 +1,2 @@
+class RuntimeDeliveryCollectorError(RuntimeError):
+    pass
