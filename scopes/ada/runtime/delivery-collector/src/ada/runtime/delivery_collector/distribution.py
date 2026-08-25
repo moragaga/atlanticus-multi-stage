@@ -82,6 +82,10 @@ def _timeseries_payloads(
         snapshot.payload.get('destinations'),
         'Timeseries destinations',
     )
+    step_seconds = _require_positive_integer(
+        snapshot.payload.get('step_seconds'),
+        'Timeseries step_seconds',
+    )
     windows = _require_sequence(snapshot.payload.get('windows'), 'Timeseries windows')
     normalized_windows: tuple[Mapping[str, object], ...] = tuple(
         _require_mapping(window, 'Timeseries window') for window in windows
@@ -107,6 +111,7 @@ def _timeseries_payloads(
         payloads.append(
             {
                 'state': 'mapped',
+                'step_seconds': step_seconds,
                 'keys': list(keys),
                 'windows': component_windows,
             }
@@ -169,6 +174,12 @@ def _require_mapping(value: object, label: str) -> Mapping[str, object]:
 def _require_sequence(value: object, label: str) -> Sequence[object]:
     if not isinstance(value, Sequence) or isinstance(value, str | bytes | bytearray):
         raise RuntimeDeliveryCollectorError(f'{label} must be a sequence')
+    return value
+
+
+def _require_positive_integer(value: object, label: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise RuntimeDeliveryCollectorError(f'{label} must be a positive integer')
     return value
 
 

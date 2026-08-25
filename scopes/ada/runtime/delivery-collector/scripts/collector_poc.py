@@ -32,6 +32,7 @@ class Repository:
                 revision='timeseries-a',
                 published_at_utc=datetime(2026, 8, 25, 12, 0, tzinfo=UTC),
                 payload={
+                    'step_seconds': 120,
                     'destinations': {'molienda': ['produccion_total']},
                     'windows': [
                         {
@@ -178,3 +179,9 @@ print(
     f'{sum(value is not None for value in timeseries_plan.component_payloads)}'
 )
 print(f'timeseries repository reads: {repository.reads[DeliveryChannel.TIMESERIES]}')
+resolved_timeseries = next(
+    payload
+    for payload in timeseries_plan.component_payloads
+    if isinstance(payload, dict) and payload.get('state') == 'mapped'
+)
+print(f'timeseries step seconds: {resolved_timeseries["step_seconds"]}')

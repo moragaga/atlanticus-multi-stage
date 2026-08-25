@@ -173,6 +173,7 @@ def test_timeseries_snapshot_is_partitioned_by_explicit_window_destination() -> 
         'timeseries-a',
         0,
         {
+            'step_seconds': 120,
             'destinations': {
                 'global_indicators': ['produccion_total'],
                 'molienda': ['produccion_total'],
@@ -209,6 +210,7 @@ def test_timeseries_snapshot_is_partitioned_by_explicit_window_destination() -> 
         ),
     )
 
+    assert plan.component_payloads[0]['step_seconds'] == 120
     assert plan.component_payloads[0]['keys'] == ['produccion_total']
     assert plan.component_payloads[0]['windows'][0]['destination'] == 'global_indicators'
     assert plan.component_payloads[1]['windows'][0]['destination'] == 'molienda'
@@ -222,8 +224,30 @@ def test_timeseries_window_without_destination_fails_closed() -> None:
                 'timeseries-a',
                 0,
                 {
+                    'step_seconds': 120,
                     'destinations': {'molienda': ['produccion_total']},
                     'windows': [{'hours': 1, 'keys': ['produccion_total'], 'values': [[1]]}],
+                },
+            ),
+            registry=_registry(),
+            current_control=None,
+            current_payloads=(
+                {'state': 'unmapped', 'windows': []},
+                {'state': 'unmapped', 'windows': []},
+            ),
+        )
+
+
+def test_timeseries_requires_explicit_positive_step_seconds() -> None:
+    with pytest.raises(RuntimeDeliveryCollectorError, match='step_seconds'):
+        plan_channel_updates(
+            channel=DeliveryChannel.TIMESERIES,
+            snapshot=_snapshot(
+                'timeseries-a',
+                0,
+                {
+                    'destinations': {'molienda': ['produccion_total']},
+                    'windows': [],
                 },
             ),
             registry=_registry(),
